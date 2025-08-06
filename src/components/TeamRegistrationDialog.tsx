@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -28,16 +28,25 @@ const TeamRegistrationDialog = ({ isOpen, onOpenChange, tournamentId, playersPer
     notes: ''
   });
   
-  const [players, setPlayers] = useState(
-    Array.from({ length: playersPerTeam }, (_, i) => ({
+  // Initialize players array with proper defensive checks
+  const initializePlayers = (count: number) => {
+    const validCount = Math.max(1, count || 6); // Ensure at least 1 player
+    return Array.from({ length: validCount }, (_, i) => ({
       id: i,
       name: '',
       email: '',
       phone: '',
       position: '',
       jerseyNumber: ''
-    }))
-  );
+    }));
+  };
+  
+  const [players, setPlayers] = useState(() => initializePlayers(playersPerTeam));
+
+  // Update players array when playersPerTeam changes
+  React.useEffect(() => {
+    setPlayers(initializePlayers(playersPerTeam));
+  }, [playersPerTeam]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -95,16 +104,7 @@ const TeamRegistrationDialog = ({ isOpen, onOpenChange, tournamentId, playersPer
         notes: ''
       });
       
-      setPlayers(
-        Array.from({ length: playersPerTeam }, (_, i) => ({
-          id: i,
-          name: '',
-          email: '',
-          phone: '',
-          position: '',
-          jerseyNumber: ''
-        }))
-      );
+      setPlayers(initializePlayers(playersPerTeam));
 
       onSuccess();
       onOpenChange(false);
@@ -156,7 +156,7 @@ const TeamRegistrationDialog = ({ isOpen, onOpenChange, tournamentId, playersPer
           </div>
 
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold">Players ({playersPerTeam} required)</h3>
+            <h3 className="text-lg font-semibold">Players ({players.length} required)</h3>
             <div className="grid gap-4 max-h-64 overflow-y-auto">
               {players.map((player, index) => (
                 <div key={player.id} className="p-4 border rounded-lg space-y-3">
@@ -266,7 +266,7 @@ const TeamRegistrationDialog = ({ isOpen, onOpenChange, tournamentId, playersPer
             </Button>
             <Button
               type="submit"
-              disabled={loading || !formData.teamName.trim() || !players[0].name.trim()}
+              disabled={loading || !formData.teamName.trim() || (players.length > 0 && !players[0]?.name?.trim())}
               className="gradient-primary hover:opacity-90 transition-opacity"
             >
               {loading ? (
