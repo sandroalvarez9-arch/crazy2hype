@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { ArrowLeft, Calendar, MapPin, Users, Trophy, DollarSign, Settings, UserPlus } from 'lucide-react';
 import { format } from 'date-fns';
+import TeamRegistrationDialog from '@/components/TeamRegistrationDialog';
 
 interface Tournament {
   id: string;
@@ -52,6 +53,7 @@ const TournamentDetails = () => {
   const [tournament, setTournament] = useState<Tournament | null>(null);
   const [teams, setTeams] = useState<Team[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showRegistrationDialog, setShowRegistrationDialog] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -251,7 +253,11 @@ const TournamentDetails = () => {
           <div className="flex justify-between items-center">
             <h3 className="text-lg font-semibold">Registered Teams</h3>
             {canRegister && profile?.role === 'player' && (
-              <Button size="sm" className="gradient-primary hover:opacity-90 transition-opacity">
+              <Button 
+                size="sm" 
+                className="gradient-primary hover:opacity-90 transition-opacity"
+                onClick={() => setShowRegistrationDialog(true)}
+              >
                 <UserPlus className="h-4 w-4 mr-2" />
                 Register Team
               </Button>
@@ -291,7 +297,10 @@ const TournamentDetails = () => {
                 <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                 <p className="text-muted-foreground">No teams registered yet</p>
                 {canRegister && profile?.role === 'player' && (
-                  <Button className="mt-4 gradient-primary hover:opacity-90 transition-opacity">
+                  <Button 
+                    className="mt-4 gradient-primary hover:opacity-90 transition-opacity"
+                    onClick={() => setShowRegistrationDialog(true)}
+                  >
                     <UserPlus className="h-4 w-4 mr-2" />
                     Be the first to register!
                   </Button>
@@ -312,6 +321,13 @@ const TournamentDetails = () => {
           </TabsContent>
         )}
       </Tabs>
+
+      <TeamRegistrationDialog
+        isOpen={showRegistrationDialog}
+        onOpenChange={setShowRegistrationDialog}
+        tournamentId={id!}
+        onSuccess={fetchTeams}
+      />
     </div>
   );
 };
