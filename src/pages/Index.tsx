@@ -271,7 +271,7 @@ const Index = () => {
                         </div>
                       </>
                     )}
-                    <Link to={`/tournaments/${tournament.id}`}>
+                    <Link to={`/tournament/${tournament.id}`}>
                       <Button variant="outline" size={isMobile ? "sm" : "default"} className="w-full">
                         View Details
                       </Button>
