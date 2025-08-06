@@ -7,6 +7,8 @@ import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import Layout from "@/components/Layout";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
+import CreateTournament from "./pages/CreateTournament";
+import TournamentDetails from "./pages/TournamentDetails";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -64,6 +66,16 @@ const App = () => (
               <AuthRoute>
                 <Auth />
               </AuthRoute>
+            } />
+            <Route path="/create-tournament" element={
+              <ProtectedRoute>
+                <CreateTournament />
+              </ProtectedRoute>
+            } />
+            <Route path="/tournament/:id" element={
+              <ProtectedRoute>
+                <TournamentDetails />
+              </ProtectedRoute>
             } />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
