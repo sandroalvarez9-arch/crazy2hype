@@ -32,6 +32,7 @@ const formSchema = z.object({
     required_error: 'Registration deadline is required',
   }),
   max_teams: z.number().min(4, 'Minimum 4 teams required').max(64, 'Maximum 64 teams allowed'),
+  players_per_team: z.number().min(1, 'Minimum 1 player per team').max(20, 'Maximum 20 players per team'),
   entry_fee: z.number().min(0, 'Entry fee cannot be negative'),
 }).refine((data) => data.end_date >= data.start_date, {
   message: "End date must be after start date",
@@ -57,6 +58,7 @@ const CreateTournament = () => {
       description: '',
       location: '',
       max_teams: 16,
+      players_per_team: 6,
       entry_fee: 0,
     },
   });
@@ -76,6 +78,7 @@ const CreateTournament = () => {
           end_date: values.end_date.toISOString(),
           registration_deadline: values.registration_deadline.toISOString(),
           max_teams: values.max_teams,
+          players_per_team: values.players_per_team,
           entry_fee: values.entry_fee,
           organizer_id: user.id,
         })
@@ -308,7 +311,7 @@ const CreateTournament = () => {
                 />
               </div>
 
-              <div className={`grid ${isMobile ? 'grid-cols-1' : 'md:grid-cols-2'} gap-6`}>
+              <div className={`grid ${isMobile ? 'grid-cols-1' : 'md:grid-cols-3'} gap-6`}>
                 <FormField
                   control={form.control}
                   name="max_teams"
@@ -326,6 +329,29 @@ const CreateTournament = () => {
                       </FormControl>
                       <FormDescription>
                         Number of teams that can participate (4-64)
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="players_per_team"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Players per Team *</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="number"
+                          min={1}
+                          max={20}
+                          {...field}
+                          onChange={(e) => field.onChange(parseInt(e.target.value))}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        Number of players each team must have (1-20)
                       </FormDescription>
                       <FormMessage />
                     </FormItem>

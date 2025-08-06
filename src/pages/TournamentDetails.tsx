@@ -21,6 +21,7 @@ interface Tournament {
   end_date: string;
   registration_deadline: string;
   max_teams: number;
+  players_per_team: number;
   entry_fee: number;
   status: string;
   organizer_id: string;
@@ -326,6 +327,7 @@ const TournamentDetails = () => {
         isOpen={showRegistrationDialog}
         onOpenChange={setShowRegistrationDialog}
         tournamentId={id!}
+        playersPerTeam={tournament?.players_per_team || 6}
         onSuccess={fetchTeams}
       />
     </div>

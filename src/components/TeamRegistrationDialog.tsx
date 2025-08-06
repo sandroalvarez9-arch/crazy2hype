@@ -13,20 +13,31 @@ interface TeamRegistrationDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   tournamentId: string;
+  playersPerTeam: number;
   onSuccess: () => void;
 }
 
-const TeamRegistrationDialog = ({ isOpen, onOpenChange, tournamentId, onSuccess }: TeamRegistrationDialogProps) => {
+const TeamRegistrationDialog = ({ isOpen, onOpenChange, tournamentId, playersPerTeam, onSuccess }: TeamRegistrationDialogProps) => {
   const { user, profile } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     teamName: '',
-    playersCount: '1',
     contactEmail: profile?.email || '',
     contactPhone: '',
     notes: ''
   });
+  
+  const [players, setPlayers] = useState(
+    Array.from({ length: playersPerTeam }, (_, i) => ({
+      id: i,
+      name: '',
+      email: '',
+      phone: '',
+      position: '',
+      jerseyNumber: ''
+    }))
+  );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,19 +45,42 @@ const TeamRegistrationDialog = ({ isOpen, onOpenChange, tournamentId, onSuccess 
 
     setLoading(true);
     try {
-      const { error } = await supabase
+      // First, create the team
+      const { data: teamData, error: teamError } = await supabase
         .from('teams')
         .insert({
           name: formData.teamName,
           tournament_id: tournamentId,
           captain_id: user.id,
-          players_count: parseInt(formData.playersCount),
+          players_count: playersPerTeam,
           contact_email: formData.contactEmail,
           contact_phone: formData.contactPhone || null,
           is_registered: true
-        });
+        })
+        .select()
+        .single();
 
-      if (error) throw error;
+      if (teamError) throw teamError;
+
+      // Then, insert all players
+      const playersData = players
+        .filter(player => player.name.trim())
+        .map(player => ({
+          team_id: teamData.id,
+          name: player.name.trim(),
+          email: player.email.trim() || null,
+          phone: player.phone.trim() || null,
+          position: player.position.trim() || null,
+          jersey_number: player.jerseyNumber ? parseInt(player.jerseyNumber) : null
+        }));
+
+      if (playersData.length > 0) {
+        const { error: playersError } = await supabase
+          .from('players')
+          .insert(playersData);
+
+        if (playersError) throw playersError;
+      }
 
       toast({
         title: "Team registered successfully!",
@@ -56,11 +90,21 @@ const TeamRegistrationDialog = ({ isOpen, onOpenChange, tournamentId, onSuccess 
       // Reset form
       setFormData({
         teamName: '',
-        playersCount: '1',
         contactEmail: profile?.email || '',
         contactPhone: '',
         notes: ''
       });
+      
+      setPlayers(
+        Array.from({ length: playersPerTeam }, (_, i) => ({
+          id: i,
+          name: '',
+          email: '',
+          phone: '',
+          position: '',
+          jerseyNumber: ''
+        }))
+      );
 
       onSuccess();
       onOpenChange(false);
@@ -80,16 +124,22 @@ const TeamRegistrationDialog = ({ isOpen, onOpenChange, tournamentId, onSuccess 
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
+  const handlePlayerChange = (index: number, field: string, value: string) => {
+    setPlayers(prev => prev.map((player, i) => 
+      i === index ? { ...player, [field]: value } : player
+    ));
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <UserPlus className="h-5 w-5 text-primary" />
             Register Your Team
           </DialogTitle>
           <DialogDescription>
-            Enter your team details to register for this tournament.
+            Enter your team details and all player information to register for this tournament.
           </DialogDescription>
         </DialogHeader>
         
@@ -105,17 +155,70 @@ const TeamRegistrationDialog = ({ isOpen, onOpenChange, tournamentId, onSuccess 
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="playersCount">Number of Players *</Label>
-            <Input
-              id="playersCount"
-              type="number"
-              min="1"
-              max="20"
-              value={formData.playersCount}
-              onChange={(e) => handleInputChange('playersCount', e.target.value)}
-              required
-            />
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold">Players ({playersPerTeam} required)</h3>
+            <div className="grid gap-4 max-h-64 overflow-y-auto">
+              {players.map((player, index) => (
+                <div key={player.id} className="p-4 border rounded-lg space-y-3">
+                  <h4 className="font-medium text-sm text-muted-foreground">
+                    Player {index + 1} {index === 0 && "(Captain)"}
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <Label htmlFor={`player-${index}-name`}>Name *</Label>
+                      <Input
+                        id={`player-${index}-name`}
+                        value={player.name}
+                        onChange={(e) => handlePlayerChange(index, 'name', e.target.value)}
+                        placeholder="Player name"
+                        required={index === 0}
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label htmlFor={`player-${index}-email`}>Email</Label>
+                      <Input
+                        id={`player-${index}-email`}
+                        type="email"
+                        value={player.email}
+                        onChange={(e) => handlePlayerChange(index, 'email', e.target.value)}
+                        placeholder="player@email.com"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label htmlFor={`player-${index}-phone`}>Phone</Label>
+                      <Input
+                        id={`player-${index}-phone`}
+                        type="tel"
+                        value={player.phone}
+                        onChange={(e) => handlePlayerChange(index, 'phone', e.target.value)}
+                        placeholder="Phone number"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label htmlFor={`player-${index}-position`}>Position</Label>
+                      <Input
+                        id={`player-${index}-position`}
+                        value={player.position}
+                        onChange={(e) => handlePlayerChange(index, 'position', e.target.value)}
+                        placeholder="e.g., Setter, Hitter"
+                      />
+                    </div>
+                    <div className="space-y-1 md:col-span-2">
+                      <Label htmlFor={`player-${index}-jersey`}>Jersey Number</Label>
+                      <Input
+                        id={`player-${index}-jersey`}
+                        type="number"
+                        min="1"
+                        max="99"
+                        value={player.jerseyNumber}
+                        onChange={(e) => handlePlayerChange(index, 'jerseyNumber', e.target.value)}
+                        placeholder="Jersey number"
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
 
           <div className="space-y-2">
@@ -163,7 +266,7 @@ const TeamRegistrationDialog = ({ isOpen, onOpenChange, tournamentId, onSuccess 
             </Button>
             <Button
               type="submit"
-              disabled={loading || !formData.teamName.trim()}
+              disabled={loading || !formData.teamName.trim() || !players[0].name.trim()}
               className="gradient-primary hover:opacity-90 transition-opacity"
             >
               {loading ? (

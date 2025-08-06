@@ -97,6 +97,42 @@ export type Database = {
           },
         ]
       }
+      players: {
+        Row: {
+          created_at: string
+          email: string | null
+          id: string
+          jersey_number: number | null
+          name: string
+          phone: string | null
+          position: string | null
+          team_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          jersey_number?: number | null
+          name: string
+          phone?: string | null
+          position?: string | null
+          team_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          jersey_number?: number | null
+          name?: string
+          phone?: string | null
+          position?: string | null
+          team_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
@@ -258,6 +294,7 @@ export type Database = {
           location: string | null
           max_teams: number
           organizer_id: string
+          players_per_team: number
           registration_deadline: string
           start_date: string
           status: string
@@ -274,6 +311,7 @@ export type Database = {
           location?: string | null
           max_teams?: number
           organizer_id: string
+          players_per_team?: number
           registration_deadline: string
           start_date: string
           status?: string
@@ -290,6 +328,7 @@ export type Database = {
           location?: string | null
           max_teams?: number
           organizer_id?: string
+          players_per_team?: number
           registration_deadline?: string
           start_date?: string
           status?: string
