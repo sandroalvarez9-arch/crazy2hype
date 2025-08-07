@@ -291,6 +291,7 @@ export type Database = {
           name: string
           players_count: number | null
           seed_number: number | null
+          skill_level: string | null
           tournament_id: string
           updated_at: string
         }
@@ -307,6 +308,7 @@ export type Database = {
           name: string
           players_count?: number | null
           seed_number?: number | null
+          skill_level?: string | null
           tournament_id: string
           updated_at?: string
         }
@@ -323,6 +325,7 @@ export type Database = {
           name?: string
           players_count?: number | null
           seed_number?: number | null
+          skill_level?: string | null
           tournament_id?: string
           updated_at?: string
         }
@@ -389,6 +392,7 @@ export type Database = {
           organizer_id: string
           players_per_team: number
           registration_deadline: string
+          skill_level: string
           start_date: string
           status: string
           title: string
@@ -414,6 +418,7 @@ export type Database = {
           organizer_id: string
           players_per_team?: number
           registration_deadline: string
+          skill_level?: string
           start_date: string
           status?: string
           title: string
@@ -439,6 +444,7 @@ export type Database = {
           organizer_id?: string
           players_per_team?: number
           registration_deadline?: string
+          skill_level?: string
           start_date?: string
           status?: string
           title?: string

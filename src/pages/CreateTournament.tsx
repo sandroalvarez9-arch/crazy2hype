@@ -36,6 +36,7 @@ const formSchema = z.object({
     required_error: 'First game time is required',
   }),
   tournament_format: z.enum(['pool_play', 'single_elimination', 'double_elimination', 'round_robin']),
+  skill_level: z.enum(['open', 'a', 'bb', 'b', 'c']),
   estimated_game_duration: z.number().min(15, 'Minimum 15 minutes per game').max(180, 'Maximum 3 hours per game'),
   warm_up_duration: z.number().min(3, 'Minimum 3 minutes warm-up').max(10, 'Maximum 10 minutes warm-up'),
   number_of_courts: z.number().min(1, 'Minimum 1 court required').max(10, 'Maximum 10 courts'),
@@ -69,6 +70,7 @@ const CreateTournament = () => {
       description: '',
       location: '',
       tournament_format: 'pool_play' as const,
+      skill_level: 'open' as const,
       estimated_game_duration: 30,
       warm_up_duration: 7,
       number_of_courts: 1,
@@ -94,6 +96,7 @@ const CreateTournament = () => {
           registration_deadline: values.registration_deadline.toISOString(),
           first_game_time: values.first_game_time.toISOString(),
           tournament_format: values.tournament_format,
+          skill_level: values.skill_level,
           estimated_game_duration: values.estimated_game_duration,
           warm_up_duration: values.warm_up_duration,
           number_of_courts: values.number_of_courts,
@@ -361,7 +364,7 @@ const CreateTournament = () => {
                  )}
                />
 
-                <div className={`grid ${isMobile ? 'grid-cols-1' : 'md:grid-cols-3'} gap-6`}>
+                <div className={`grid ${isMobile ? 'grid-cols-1' : 'md:grid-cols-2'} gap-6`}>
                   <FormField
                     control={form.control}
                     name="tournament_format"
@@ -389,6 +392,36 @@ const CreateTournament = () => {
                     )}
                   />
 
+                  <FormField
+                    control={form.control}
+                    name="skill_level"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Skill Level *</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select skill level" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="open">Open (Elite/Competitive)</SelectItem>
+                            <SelectItem value="a">A (Advanced)</SelectItem>
+                            <SelectItem value="bb">BB (Intermediate)</SelectItem>
+                            <SelectItem value="b">B (Beginner-Intermediate)</SelectItem>
+                            <SelectItem value="c">C (Recreational/Beginner)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormDescription>
+                          Choose the appropriate skill level for your tournament
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <div className={`grid ${isMobile ? 'grid-cols-1' : 'md:grid-cols-3'} gap-6`}>
                   <FormField
                     control={form.control}
                     name="estimated_game_duration"

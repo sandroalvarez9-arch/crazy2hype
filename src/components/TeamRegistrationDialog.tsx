@@ -8,16 +8,19 @@ import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { UserPlus, Loader2 } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { formatSkillLevel, getSkillLevelBadgeVariant } from '@/utils/skillLevels';
 
 interface TeamRegistrationDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   tournamentId: string;
   playersPerTeam: number;
+  tournamentSkillLevel?: string;
   onSuccess: () => void;
 }
 
-const TeamRegistrationDialog = ({ isOpen, onOpenChange, tournamentId, playersPerTeam, onSuccess }: TeamRegistrationDialogProps) => {
+const TeamRegistrationDialog = ({ isOpen, onOpenChange, tournamentId, playersPerTeam, tournamentSkillLevel, onSuccess }: TeamRegistrationDialogProps) => {
   const { user, profile } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
@@ -64,6 +67,7 @@ const TeamRegistrationDialog = ({ isOpen, onOpenChange, tournamentId, playersPer
           players_count: playersPerTeam,
           contact_email: formData.contactEmail,
           contact_phone: formData.contactPhone || null,
+          skill_level: tournamentSkillLevel,
           is_registered: true
         })
         .select()
@@ -140,6 +144,14 @@ const TeamRegistrationDialog = ({ isOpen, onOpenChange, tournamentId, playersPer
           </DialogTitle>
           <DialogDescription>
             Enter your team details and all player information to register for this tournament.
+            {tournamentSkillLevel && (
+              <div className="mt-2">
+                <span className="text-sm">Tournament Skill Level: </span>
+                <Badge variant={getSkillLevelBadgeVariant(tournamentSkillLevel as any)} className="text-xs">
+                  {formatSkillLevel(tournamentSkillLevel as any)}
+                </Badge>
+              </div>
+            )}
           </DialogDescription>
         </DialogHeader>
         

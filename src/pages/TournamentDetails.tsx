@@ -13,6 +13,7 @@ import { format } from 'date-fns';
 import TeamRegistrationDialog from '@/components/TeamRegistrationDialog';
 import TeamCheckInDialog from '@/components/TeamCheckInDialog';
 import { TeamScheduleView } from '@/components/TeamScheduleView';
+import { formatSkillLevel, getSkillLevelBadgeVariant } from '@/utils/skillLevels';
 
 interface Tournament {
   id: string;
@@ -24,6 +25,7 @@ interface Tournament {
   registration_deadline: string;
   first_game_time: string | null;
   tournament_format: string;
+  skill_level: string;
   estimated_game_duration: number;
   number_of_courts: number;
   brackets_generated: boolean;
@@ -194,7 +196,10 @@ const TournamentDetails = () => {
             </p>
           </div>
           
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
+            <Badge variant={getSkillLevelBadgeVariant(tournament.skill_level as any)}>
+              {formatSkillLevel(tournament.skill_level as any)}
+            </Badge>
             <Badge variant={tournament.status === 'open' ? 'default' : 'secondary'}>
               {tournament.status}
             </Badge>
@@ -417,6 +422,7 @@ const TournamentDetails = () => {
         onOpenChange={setShowRegistrationDialog}
         tournamentId={id!}
         playersPerTeam={tournament?.players_per_team || 6}
+        tournamentSkillLevel={tournament?.skill_level}
         onSuccess={fetchTeams}
       />
     </div>

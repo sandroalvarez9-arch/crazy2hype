@@ -8,6 +8,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { MapPin, CalendarDays, Users, Trophy, Navigation } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useToast } from '@/hooks/use-toast';
+import { formatSkillLevel, getSkillLevelBadgeVariant, SkillLevel } from '@/utils/skillLevels';
+import SkillLevelFilter from '@/components/SkillLevelFilter';
 
 interface Tournament {
   id: string;
@@ -19,6 +21,7 @@ interface Tournament {
   max_teams: number;
   entry_fee: number;
   status: string;
+  skill_level: string;
   organizer?: {
     username: string;
   };
@@ -53,6 +56,8 @@ const Tournaments = () => {
   const [loading, setLoading] = useState(true);
   const [userLocation, setUserLocation] = useState<{lat: number, lng: number} | null>(null);
   const [locationPermission, setLocationPermission] = useState<string>('pending');
+  const [selectedSkillLevels, setSelectedSkillLevels] = useState<SkillLevel[]>([]);
+  const [filteredTournaments, setFilteredTournaments] = useState<Tournament[]>([]);
   const isMobile = useIsMobile();
   const { toast } = useToast();
 
@@ -140,6 +145,19 @@ const Tournaments = () => {
     }
   };
 
+  // Filter tournaments based on selected skill levels
+  useEffect(() => {
+    if (selectedSkillLevels.length === 0) {
+      setFilteredTournaments(tournaments);
+    } else {
+      setFilteredTournaments(
+        tournaments.filter(tournament => 
+          selectedSkillLevels.includes(tournament.skill_level as SkillLevel)
+        )
+      );
+    }
+  }, [tournaments, selectedSkillLevels]);
+
   const requestLocation = () => {
     setLocationPermission('pending');
     if (navigator.geolocation) {
@@ -170,22 +188,28 @@ const Tournaments = () => {
             </h1>
             <p className="text-muted-foreground">
               {userLocation 
-                ? `${tournaments.length} tournaments sorted by distance from your location`
-                : `${tournaments.length} tournaments available`
+                ? `${filteredTournaments.length} of ${tournaments.length} tournaments sorted by distance from your location`
+                : `${filteredTournaments.length} of ${tournaments.length} tournaments available`
               }
             </p>
           </div>
 
-          {locationPermission === 'denied' && (
-            <Button 
-              onClick={requestLocation}
-              variant="outline"
-              className="flex items-center gap-2"
-            >
-              <Navigation className="h-4 w-4" />
-              Enable Location for Distance Sorting
-            </Button>
-          )}
+          <div className="flex flex-col lg:flex-row gap-2">
+            <SkillLevelFilter 
+              selectedLevels={selectedSkillLevels}
+              onLevelsChange={setSelectedSkillLevels}
+            />
+            {locationPermission === 'denied' && (
+              <Button 
+                onClick={requestLocation}
+                variant="outline"
+                className="flex items-center gap-2"
+              >
+                <Navigation className="h-4 w-4" />
+                Enable Location
+              </Button>
+            )}
+          </div>
         </div>
 
         {loading ? (
@@ -206,9 +230,9 @@ const Tournaments = () => {
               </Card>
             ))}
           </div>
-        ) : tournaments.length > 0 ? (
+        ) : filteredTournaments.length > 0 ? (
           <div className={`grid ${isMobile ? 'grid-cols-1 gap-4' : 'md:grid-cols-2 lg:grid-cols-3 gap-6'}`}>
-            {tournaments.map((tournament, index) => (
+            {filteredTournaments.map((tournament, index) => (
               <Card key={tournament.id} className="hover:shadow-lg transition-all duration-200 shadow-card hover-scale animate-fade-in">
                 <CardHeader className="pb-3">
                   <div className="flex justify-between items-start">
@@ -216,9 +240,14 @@ const Tournaments = () => {
                       {tournament.title}
                     </CardTitle>
                     <div className="flex flex-col items-end gap-1">
-                      <Badge variant="secondary" className="shrink-0">
-                        {tournament.status}
-                      </Badge>
+                      <div className="flex gap-1">
+                        <Badge variant={getSkillLevelBadgeVariant(tournament.skill_level as any)} className="shrink-0 text-xs">
+                          {formatSkillLevel(tournament.skill_level as any)}
+                        </Badge>
+                        <Badge variant="secondary" className="shrink-0 text-xs">
+                          {tournament.status}
+                        </Badge>
+                      </div>
                       {userLocation && tournament.distance !== undefined && (
                         <Badge variant="outline" className="text-xs">
                           {tournament.distance.toFixed(1)} km
@@ -282,6 +311,27 @@ const Tournaments = () => {
               </Card>
             ))}
           </div>
+        ) : tournaments.length > 0 ? (
+          <Card className="shadow-card">
+            <CardContent className="py-8 text-center">
+              <Trophy className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <p className="text-muted-foreground mb-4">
+                No tournaments match your skill level filter. Try adjusting your filter settings.
+              </p>
+              <Button 
+                variant="outline" 
+                onClick={() => setSelectedSkillLevels([])}
+                className="mr-2"
+              >
+                Clear Filters
+              </Button>
+              <Link to="/create-tournament">
+                <Button className="gradient-primary hover:opacity-90 transition-opacity">
+                  Create Tournament
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
         ) : (
           <Card className="shadow-card">
             <CardContent className="py-8 text-center">
