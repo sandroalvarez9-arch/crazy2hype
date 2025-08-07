@@ -378,6 +378,7 @@ export type Database = {
           allow_backup_teams: boolean | null
           bracket_version: number | null
           brackets_generated: boolean | null
+          calculated_courts: number | null
           check_in_deadline: string | null
           created_at: string
           description: string | null
@@ -391,6 +392,7 @@ export type Database = {
           number_of_courts: number | null
           organizer_id: string
           players_per_team: number
+          pools_per_skill_level: Json | null
           registration_deadline: string
           skill_levels: string[] | null
           start_date: string
@@ -404,6 +406,7 @@ export type Database = {
           allow_backup_teams?: boolean | null
           bracket_version?: number | null
           brackets_generated?: boolean | null
+          calculated_courts?: number | null
           check_in_deadline?: string | null
           created_at?: string
           description?: string | null
@@ -417,6 +420,7 @@ export type Database = {
           number_of_courts?: number | null
           organizer_id: string
           players_per_team?: number
+          pools_per_skill_level?: Json | null
           registration_deadline: string
           skill_levels?: string[] | null
           start_date: string
@@ -430,6 +434,7 @@ export type Database = {
           allow_backup_teams?: boolean | null
           bracket_version?: number | null
           brackets_generated?: boolean | null
+          calculated_courts?: number | null
           check_in_deadline?: string | null
           created_at?: string
           description?: string | null
@@ -443,6 +448,7 @@ export type Database = {
           number_of_courts?: number | null
           organizer_id?: string
           players_per_team?: number
+          pools_per_skill_level?: Json | null
           registration_deadline?: string
           skill_levels?: string[] | null
           start_date?: string

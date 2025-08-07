@@ -19,22 +19,94 @@ interface Pool {
   teams: Team[];
 }
 
-export function generatePools(teams: Team[], maxTeamsPerPool: number = 6): Pool[] {
-  const numPools = Math.ceil(teams.length / maxTeamsPerPool);
+interface PoolConfiguration {
+  numPools: number;
+  teamsPerPool: number[];
+  totalMatches: number;
+}
+
+export function calculateOptimalPoolConfiguration(teamCount: number): PoolConfiguration {
+  // Prioritize 4-team pools (6 matches each) over 5-team pools (10 matches each)
+  // This significantly reduces tournament duration
+  
+  if (teamCount <= 0) {
+    return { numPools: 0, teamsPerPool: [], totalMatches: 0 };
+  }
+  
+  if (teamCount <= 4) {
+    return { numPools: 1, teamsPerPool: [teamCount], totalMatches: Math.floor((teamCount * (teamCount - 1)) / 2) };
+  }
+  
+  // Calculate pools to minimize 5+ team pools
+  const numFullPools = Math.floor(teamCount / 4);
+  const remainder = teamCount % 4;
+  
+  let teamsPerPool: number[] = [];
+  let numPools: number;
+  
+  if (remainder === 0) {
+    // Perfect division by 4
+    numPools = numFullPools;
+    teamsPerPool = new Array(numPools).fill(4);
+  } else if (remainder === 1) {
+    // 1 extra team - distribute to avoid single team pool
+    if (numFullPools > 0) {
+      numPools = numFullPools;
+      teamsPerPool = new Array(numFullPools - 1).fill(4);
+      teamsPerPool.push(5); // One pool gets 5 teams
+    } else {
+      numPools = 1;
+      teamsPerPool = [teamCount];
+    }
+  } else if (remainder === 2) {
+    // 2 extra teams - create one pool with 2 teams or distribute
+    if (numFullPools >= 2) {
+      numPools = numFullPools + 1;
+      teamsPerPool = new Array(numFullPools).fill(4);
+      teamsPerPool.push(2);
+    } else {
+      numPools = numFullPools + 1;
+      teamsPerPool = new Array(numFullPools).fill(4);
+      teamsPerPool.push(2);
+    }
+  } else { // remainder === 3
+    // 3 extra teams - create one pool with 3 teams
+    numPools = numFullPools + 1;
+    teamsPerPool = new Array(numFullPools).fill(4);
+    teamsPerPool.push(3);
+  }
+  
+  // Calculate total matches
+  const totalMatches = teamsPerPool.reduce((sum, teamCount) => 
+    sum + Math.floor((teamCount * (teamCount - 1)) / 2), 0);
+  
+  return { numPools, teamsPerPool, totalMatches };
+}
+
+export function generatePools(teams: Team[], skillLevel?: string): Pool[] {
+  const config = calculateOptimalPoolConfiguration(teams.length);
   const pools: Pool[] = [];
   
-  // Create pool names (A, B, C, etc.)
-  for (let i = 0; i < numPools; i++) {
+  // Create pool names (A, B, C, etc. or A1, A2, B1, B2 if skill level provided)
+  for (let i = 0; i < config.numPools; i++) {
+    const baseName = String.fromCharCode(65 + i);
+    const poolName = skillLevel ? `${skillLevel}-${baseName}` : baseName;
+    
     pools.push({
-      name: String.fromCharCode(65 + i), // A, B, C, etc.
+      name: poolName,
       teams: []
     });
   }
   
-  // Distribute teams evenly across pools using snake draft
-  for (let i = 0; i < teams.length; i++) {
-    const poolIndex = i % numPools;
-    pools[poolIndex].teams.push(teams[i]);
+  // Distribute teams according to optimal configuration
+  let teamIndex = 0;
+  for (let poolIndex = 0; poolIndex < config.numPools; poolIndex++) {
+    const teamsInThisPool = config.teamsPerPool[poolIndex];
+    
+    for (let i = 0; i < teamsInThisPool && teamIndex < teams.length; i++) {
+      pools[poolIndex].teams.push(teams[teamIndex]);
+      teamIndex++;
+    }
   }
   
   return pools;
@@ -134,6 +206,74 @@ export function scheduleMatches(
   return scheduledMatches;
 }
 
+interface TeamWithSkillLevel extends Team {
+  skill_level?: string;
+}
+
+export function generatePoolPlayScheduleBySkillLevel(
+  teams: TeamWithSkillLevel[],
+  firstGameTime: Date,
+  estimatedGameDuration: number,
+  warmUpDuration: number = 7
+): { pools: Pool[], matches: Match[], requiredCourts: number, skillLevelBreakdown: Record<string, { pools: number, matches: number, teams: number }> } {
+  // Group teams by skill level
+  const teamsBySkillLevel = teams.reduce((acc, team) => {
+    const level = team.skill_level || 'open';
+    if (!acc[level]) acc[level] = [];
+    acc[level].push(team);
+    return acc;
+  }, {} as Record<string, Team[]>);
+  
+  let allPools: Pool[] = [];
+  let allMatches: Match[] = [];
+  let totalCourts = 0;
+  const skillLevelBreakdown: Record<string, { pools: number, matches: number, teams: number }> = {};
+  
+  // Process each skill level separately
+  Object.entries(teamsBySkillLevel).forEach(([skillLevel, skillTeams]) => {
+    // Generate optimal pools for this skill level
+    const pools = generatePools(skillTeams, skillLevel);
+    
+    // Generate matches for each pool
+    let skillMatches: Match[] = [];
+    pools.forEach(pool => {
+      const poolMatches = generateRoundRobinMatches(pool);
+      skillMatches = skillMatches.concat(poolMatches);
+    });
+    
+    // Track breakdown for this skill level
+    skillLevelBreakdown[skillLevel] = {
+      pools: pools.length,
+      matches: skillMatches.length,
+      teams: skillTeams.length
+    };
+    
+    totalCourts += pools.length; // Each pool needs 1 court during pool play
+    allPools = allPools.concat(pools);
+    allMatches = allMatches.concat(skillMatches);
+  });
+  
+  // Step 3: Assign referees
+  const matchesWithReferees = assignReferees(allMatches, teams);
+  
+  // Step 4: Schedule matches across calculated courts
+  const scheduledMatches = scheduleMatches(
+    matchesWithReferees,
+    firstGameTime,
+    estimatedGameDuration,
+    totalCourts,
+    warmUpDuration
+  );
+  
+  return { 
+    pools: allPools, 
+    matches: scheduledMatches, 
+    requiredCourts: totalCourts,
+    skillLevelBreakdown
+  };
+}
+
+// Legacy function for backward compatibility
 export function generatePoolPlaySchedule(
   teams: Team[],
   firstGameTime: Date,
@@ -142,8 +282,8 @@ export function generatePoolPlaySchedule(
   maxTeamsPerPool: number = 6,
   warmUpDuration: number = 7
 ): { pools: Pool[], matches: Match[] } {
-  // Step 1: Generate pools
-  const pools = generatePools(teams, maxTeamsPerPool);
+  // Use new optimal algorithm but maintain old interface
+  const pools = generatePools(teams);
   
   // Step 2: Generate matches for each pool
   let allMatches: Match[] = [];
@@ -160,7 +300,7 @@ export function generatePoolPlaySchedule(
     matchesWithReferees,
     firstGameTime,
     estimatedGameDuration,
-    numberOfCourts,
+    numberOfCourts || pools.length, // Use pool count if no courts specified
     warmUpDuration
   );
   

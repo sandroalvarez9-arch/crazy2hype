@@ -41,7 +41,7 @@ const formSchema = z.object({
   skill_levels: z.array(z.enum(['open', 'a', 'bb', 'b', 'c'])).min(1, 'At least one skill level is required'),
   estimated_game_duration: z.number().min(15, 'Minimum 15 minutes per game').max(180, 'Maximum 3 hours per game'),
   warm_up_duration: z.number().min(3, 'Minimum 3 minutes warm-up').max(10, 'Maximum 10 minutes warm-up'),
-  number_of_courts: z.number().min(1, 'Minimum 1 court required').max(10, 'Maximum 10 courts'),
+  number_of_courts: z.number().min(1, 'Minimum 1 court required').max(20, 'Maximum 20 courts').optional(),
   max_teams: z.number().min(4, 'Minimum 4 teams required').max(64, 'Maximum 64 teams allowed'),
   players_per_team: z.number().min(1, 'Minimum 1 player per team').max(20, 'Maximum 20 players per team'),
   entry_fee: z.number().min(0, 'Entry fee cannot be negative'),
@@ -75,7 +75,7 @@ const CreateTournament = () => {
       skill_levels: ['open'] as SkillLevel[],
       estimated_game_duration: 30,
       warm_up_duration: 7,
-      number_of_courts: 1,
+      
       max_teams: 16,
       players_per_team: 6,
       entry_fee: 0,
@@ -461,30 +461,7 @@ const CreateTournament = () => {
                       </FormItem>
                     )}
                   />
-                </div>
-
-               <FormField
-                 control={form.control}
-                 name="number_of_courts"
-                 render={({ field }) => (
-                   <FormItem>
-                     <FormLabel>Number of Courts *</FormLabel>
-                     <FormControl>
-                       <Input 
-                         type="number"
-                         min={1}
-                         max={10}
-                         {...field}
-                         onChange={(e) => field.onChange(parseInt(e.target.value))}
-                       />
-                     </FormControl>
-                     <FormDescription>
-                       How many courts will be used for matches
-                     </FormDescription>
-                     <FormMessage />
-                   </FormItem>
-                 )}
-               />
+                 </div>
 
                <div className={`grid ${isMobile ? 'grid-cols-1' : 'md:grid-cols-3'} gap-6`}>
                 <FormField

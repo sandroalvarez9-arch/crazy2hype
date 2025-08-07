@@ -21,7 +21,9 @@ interface Tournament {
   allow_backup_teams: boolean;
   first_game_time: string;
   estimated_game_duration: number;
-  number_of_courts: number;
+  number_of_courts?: number;
+  calculated_courts?: number;
+  skill_levels: string[];
   tournament_format: string;
   brackets_generated: boolean;
 }

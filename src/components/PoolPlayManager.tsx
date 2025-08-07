@@ -5,14 +5,16 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { generatePoolPlaySchedule } from "@/utils/poolPlayGenerator";
+import { generatePoolPlayScheduleBySkillLevel } from "@/utils/poolPlayGenerator";
+import { OptimalPoolPreview } from "@/components/OptimalPoolPreview";
 import { format } from "date-fns";
-import { Trophy, Users, Clock, MapPin } from "lucide-react";
+import { Trophy, Users, Clock, AlertTriangle } from "lucide-react";
 
 interface Team {
   id: string;
   name: string;
   check_in_status: string;
+  skill_level?: string;
 }
 
 interface Tournament {
@@ -21,7 +23,9 @@ interface Tournament {
   first_game_time: string;
   estimated_game_duration: number;
   warm_up_duration?: number;
-  number_of_courts: number;
+  number_of_courts?: number;
+  calculated_courts?: number;
+  skill_levels: string[];
   tournament_format: string;
   brackets_generated: boolean;
 }
@@ -46,13 +50,11 @@ export function PoolPlayManager({ tournament, teams, onBracketsGenerated }: Pool
     try {
       const firstGameTime = new Date(tournament.first_game_time);
       
-      // Generate pools and matches
-      const { pools, matches } = generatePoolPlaySchedule(
-        checkedInTeams,
+      // Generate pools and matches using new optimal algorithm
+      const { pools, matches, requiredCourts, skillLevelBreakdown } = generatePoolPlayScheduleBySkillLevel(
+        checkedInTeams as any,
         firstGameTime,
         tournament.estimated_game_duration,
-        tournament.number_of_courts,
-        6, // maxTeamsPerPool
         tournament.warm_up_duration || 7
       );
 
@@ -76,10 +78,14 @@ export function PoolPlayManager({ tournament, teams, onBracketsGenerated }: Pool
 
       if (matchError) throw matchError;
 
-      // Update tournament to mark brackets as generated
+      // Update tournament with calculated courts and pool breakdown
       const { error: tournamentError } = await supabase
         .from('tournaments')
-        .update({ brackets_generated: true })
+        .update({ 
+          brackets_generated: true,
+          calculated_courts: requiredCourts,
+          pools_per_skill_level: skillLevelBreakdown
+        })
         .eq('id', tournament.id);
 
       if (tournamentError) throw tournamentError;
@@ -91,13 +97,15 @@ export function PoolPlayManager({ tournament, teams, onBracketsGenerated }: Pool
         details: {
           num_pools: pools.length,
           num_matches: matches.length,
-          num_teams: checkedInTeams.length
+          num_teams: checkedInTeams.length,
+          required_courts: requiredCourts,
+          skill_level_breakdown: skillLevelBreakdown
         }
       });
 
       toast({
         title: "Pool play generated successfully!",
-        description: `Created ${pools.length} pools with ${matches.length} matches scheduled.`,
+        description: `Created ${pools.length} pools with ${matches.length} matches across ${requiredCourts} courts.`,
       });
 
       onBracketsGenerated();
@@ -113,29 +121,26 @@ export function PoolPlayManager({ tournament, teams, onBracketsGenerated }: Pool
     }
   };
 
-  const getMaxTeamsPerPool = () => {
-    const numTeams = checkedInTeams.length;
-    if (numTeams <= 12) return 6;
-    if (numTeams <= 16) return 8;
-    return 8; // Max 8 teams per pool
-  };
-
-  const estimatedPools = Math.ceil(checkedInTeams.length / getMaxTeamsPerPool());
-  const estimatedMatches = estimatedPools * Math.floor((getMaxTeamsPerPool() * (getMaxTeamsPerPool() - 1)) / 2);
 
   return (
     <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Trophy className="h-5 w-5" />
-            Pool Play Generation
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {!tournament.brackets_generated ? (
-            <>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      {!tournament.brackets_generated ? (
+        <>
+          <OptimalPoolPreview 
+            checkedInTeams={checkedInTeams}
+            skillLevels={tournament.skill_levels}
+            estimatedGameDuration={tournament.estimated_game_duration}
+          />
+          
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Trophy className="h-5 w-5" />
+                Generate Pool Play
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="flex items-center gap-2">
                   <Users className="h-4 w-4 text-muted-foreground" />
                   <div>
@@ -153,32 +158,6 @@ export function PoolPlayManager({ tournament, teams, onBracketsGenerated }: Pool
                     <div className="text-sm text-muted-foreground">First game starts</div>
                   </div>
                 </div>
-                
-                <div className="flex items-center gap-2">
-                  <MapPin className="h-4 w-4 text-muted-foreground" />
-                  <div>
-                    <div className="font-medium">{tournament.number_of_courts} Courts</div>
-                    <div className="text-sm text-muted-foreground">Available for matches</div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="p-4 bg-muted rounded-lg">
-                <h4 className="font-medium mb-2">Projected Pool Play Setup</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <span className="font-medium">Estimated Pools:</span> {estimatedPools}
-                  </div>
-                  <div>
-                    <span className="font-medium">Estimated Matches:</span> ~{estimatedMatches}
-                  </div>
-                  <div>
-                    <span className="font-medium">Teams per Pool:</span> {Math.floor(checkedInTeams.length / estimatedPools)}-{Math.ceil(checkedInTeams.length / estimatedPools)}
-                  </div>
-                  <div>
-                    <span className="font-medium">Game Duration:</span> {tournament.estimated_game_duration} minutes
-                  </div>
-                </div>
               </div>
 
               <Button
@@ -187,25 +166,75 @@ export function PoolPlayManager({ tournament, teams, onBracketsGenerated }: Pool
                 className="w-full"
                 size="lg"
               >
-                {isGenerating ? 'Generating Pool Play...' : 'Generate Pool Play & Assign Referees'}
+                {isGenerating ? 'Generating Optimal Pool Play...' : 'Generate Pool Play with Optimal Courts'}
               </Button>
 
               {!canGenerateBrackets && checkedInTeams.length < 4 && (
-                <p className="text-sm text-muted-foreground text-center">
-                  Need at least 4 checked-in teams to generate pool play
-                </p>
+                <div className="p-4 border border-orange-200 bg-orange-50 dark:border-orange-800 dark:bg-orange-950 rounded-lg flex items-start gap-2">
+                  <AlertTriangle className="h-5 w-5 text-orange-600 dark:text-orange-400 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <h4 className="font-medium text-orange-800 dark:text-orange-200">Cannot Generate Pool Play</h4>
+                    <p className="text-sm text-orange-700 dark:text-orange-300">
+                      At least 4 teams must be checked in before pool play can be generated. 
+                      Currently {checkedInTeams.length} teams are checked in.
+                    </p>
+                  </div>
+                </div>
               )}
-            </>
-          ) : (
-            <div className="text-center">
-              <Badge className="mb-2">Pool Play Generated</Badge>
-              <p className="text-muted-foreground">
-                Pool play has been created with referee assignments. Check the matches tab to view the schedule.
-              </p>
+            </CardContent>
+          </Card>
+        </>
+      ) : (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Trophy className="h-5 w-5" />
+              Pool Play Generated
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {tournament.calculated_courts && (
+                  <div className="flex items-center gap-2">
+                    <Trophy className="h-4 w-4 text-green-600" />
+                    <div>
+                      <div className="font-medium">{tournament.calculated_courts} Courts</div>
+                      <div className="text-sm text-muted-foreground">Calculated optimally</div>
+                    </div>
+                  </div>
+                )}
+                
+                <div className="flex items-center gap-2">
+                  <Users className="h-4 w-4 text-muted-foreground" />
+                  <div>
+                    <div className="font-medium">{checkedInTeams.length} Teams</div>
+                    <div className="text-sm text-muted-foreground">In tournament</div>
+                  </div>
+                </div>
+                
+                <div className="flex items-center gap-2">
+                  <Clock className="h-4 w-4 text-muted-foreground" />
+                  <div>
+                    <div className="font-medium">
+                      {format(new Date(tournament.first_game_time), "h:mm a")}
+                    </div>
+                    <div className="text-sm text-muted-foreground">Started</div>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="p-4 bg-green-50 dark:bg-green-950 rounded-lg border border-green-200 dark:border-green-800">
+                <h4 className="font-medium text-green-800 dark:text-green-200 mb-1">Pool Play Active</h4>
+                <p className="text-sm text-green-700 dark:text-green-300">
+                  Pool play has been generated with optimal court allocation and referee assignments. 
+                  View the matches tab to see the complete schedule.
+                </p>
+              </div>
             </div>
-          )}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>
