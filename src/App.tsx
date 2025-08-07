@@ -9,6 +9,7 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import CreateTournament from "./pages/CreateTournament";
 import TournamentDetails from "./pages/TournamentDetails";
+import Tournaments from "./pages/Tournaments";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -71,6 +72,11 @@ const App = () => (
               <ProtectedRoute>
                 <CreateTournament />
               </ProtectedRoute>
+            } />
+            <Route path="/tournaments" element={
+              <Layout>
+                <Tournaments />
+              </Layout>
             } />
             <Route path="/tournament/:id" element={
               <ProtectedRoute>
