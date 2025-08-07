@@ -20,6 +20,7 @@ interface Tournament {
   title: string;
   first_game_time: string;
   estimated_game_duration: number;
+  warm_up_duration?: number;
   number_of_courts: number;
   tournament_format: string;
   brackets_generated: boolean;
@@ -50,7 +51,9 @@ export function PoolPlayManager({ tournament, teams, onBracketsGenerated }: Pool
         checkedInTeams,
         firstGameTime,
         tournament.estimated_game_duration,
-        tournament.number_of_courts
+        tournament.number_of_courts,
+        6, // maxTeamsPerPool
+        tournament.warm_up_duration || 7
       );
 
       // Insert all matches into the database

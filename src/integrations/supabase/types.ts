@@ -394,6 +394,7 @@ export type Database = {
           title: string
           tournament_format: string | null
           updated_at: string
+          warm_up_duration: number | null
         }
         Insert: {
           allow_backup_teams?: boolean | null
@@ -418,6 +419,7 @@ export type Database = {
           title: string
           tournament_format?: string | null
           updated_at?: string
+          warm_up_duration?: number | null
         }
         Update: {
           allow_backup_teams?: boolean | null
@@ -442,6 +444,7 @@ export type Database = {
           title?: string
           tournament_format?: string | null
           updated_at?: string
+          warm_up_duration?: number | null
         }
         Relationships: [
           {

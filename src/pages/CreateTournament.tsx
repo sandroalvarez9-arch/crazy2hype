@@ -37,6 +37,7 @@ const formSchema = z.object({
   }),
   tournament_format: z.enum(['pool_play', 'single_elimination', 'double_elimination', 'round_robin']),
   estimated_game_duration: z.number().min(15, 'Minimum 15 minutes per game').max(180, 'Maximum 3 hours per game'),
+  warm_up_duration: z.number().min(3, 'Minimum 3 minutes warm-up').max(10, 'Maximum 10 minutes warm-up'),
   number_of_courts: z.number().min(1, 'Minimum 1 court required').max(10, 'Maximum 10 courts'),
   max_teams: z.number().min(4, 'Minimum 4 teams required').max(64, 'Maximum 64 teams allowed'),
   players_per_team: z.number().min(1, 'Minimum 1 player per team').max(20, 'Maximum 20 players per team'),
@@ -69,6 +70,7 @@ const CreateTournament = () => {
       location: '',
       tournament_format: 'pool_play' as const,
       estimated_game_duration: 30,
+      warm_up_duration: 7,
       number_of_courts: 1,
       max_teams: 16,
       players_per_team: 6,
@@ -93,6 +95,7 @@ const CreateTournament = () => {
           first_game_time: values.first_game_time.toISOString(),
           tournament_format: values.tournament_format,
           estimated_game_duration: values.estimated_game_duration,
+          warm_up_duration: values.warm_up_duration,
           number_of_courts: values.number_of_courts,
           max_teams: values.max_teams,
           players_per_team: values.players_per_team,
@@ -358,57 +361,80 @@ const CreateTournament = () => {
                  )}
                />
 
-               <div className={`grid ${isMobile ? 'grid-cols-1' : 'md:grid-cols-2'} gap-6`}>
-                 <FormField
-                   control={form.control}
-                   name="tournament_format"
-                   render={({ field }) => (
-                     <FormItem>
-                       <FormLabel>Tournament Format *</FormLabel>
-                       <Select onValueChange={field.onChange} defaultValue={field.value}>
-                         <FormControl>
-                           <SelectTrigger>
-                             <SelectValue placeholder="Select format" />
-                           </SelectTrigger>
-                         </FormControl>
-                         <SelectContent>
-                           <SelectItem value="pool_play">Pool Play</SelectItem>
-                           <SelectItem value="single_elimination">Single Elimination</SelectItem>
-                           <SelectItem value="double_elimination">Double Elimination</SelectItem>
-                           <SelectItem value="round_robin">Round Robin</SelectItem>
-                         </SelectContent>
-                       </Select>
-                       <FormDescription>
-                         Pool play includes automatic referee assignments
-                       </FormDescription>
-                       <FormMessage />
-                     </FormItem>
-                   )}
-                 />
+                <div className={`grid ${isMobile ? 'grid-cols-1' : 'md:grid-cols-3'} gap-6`}>
+                  <FormField
+                    control={form.control}
+                    name="tournament_format"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Tournament Format *</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select format" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="pool_play">Pool Play</SelectItem>
+                            <SelectItem value="single_elimination">Single Elimination</SelectItem>
+                            <SelectItem value="double_elimination">Double Elimination</SelectItem>
+                            <SelectItem value="round_robin">Round Robin</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormDescription>
+                          Pool play includes automatic referee assignments
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-                 <FormField
-                   control={form.control}
-                   name="estimated_game_duration"
-                   render={({ field }) => (
-                     <FormItem>
-                       <FormLabel>Game Duration (minutes) *</FormLabel>
-                       <FormControl>
-                         <Input 
-                           type="number"
-                           min={15}
-                           max={180}
-                           {...field}
-                           onChange={(e) => field.onChange(parseInt(e.target.value))}
-                         />
-                       </FormControl>
-                       <FormDescription>
-                         Estimated time per game for scheduling
-                       </FormDescription>
-                       <FormMessage />
-                     </FormItem>
-                   )}
-                 />
-               </div>
+                  <FormField
+                    control={form.control}
+                    name="estimated_game_duration"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Game Duration (minutes) *</FormLabel>
+                        <FormControl>
+                          <Input 
+                            type="number"
+                            min={15}
+                            max={180}
+                            {...field}
+                            onChange={(e) => field.onChange(parseInt(e.target.value))}
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          Estimated time per game for scheduling
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="warm_up_duration"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Warm-up Time (minutes) *</FormLabel>
+                        <FormControl>
+                          <Input 
+                            type="number"
+                            min={3}
+                            max={10}
+                            {...field}
+                            onChange={(e) => field.onChange(parseInt(e.target.value))}
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          Time for teams to warm up before each game
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
 
                <FormField
                  control={form.control}

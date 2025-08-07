@@ -98,7 +98,8 @@ export function scheduleMatches(
   matches: Match[],
   firstGameTime: Date,
   estimatedGameDuration: number,
-  numberOfCourts: number
+  numberOfCourts: number,
+  warmUpDuration: number = 7
 ): Match[] {
   const scheduledMatches = [...matches];
   const courtSchedules = new Map<number, Date>();
@@ -125,8 +126,8 @@ export function scheduleMatches(
     match.court_number = earliestCourt;
     match.scheduled_time = earliestTime.toISOString();
     
-    // Update court schedule (add game duration + 10 minute break)
-    const nextGameTime = new Date(earliestTime.getTime() + (estimatedGameDuration + 10) * 60000);
+    // Update court schedule (add game duration + warm-up + 5 minute transition)
+    const nextGameTime = new Date(earliestTime.getTime() + (estimatedGameDuration + warmUpDuration + 5) * 60000);
     courtSchedules.set(earliestCourt, nextGameTime);
   });
   
@@ -138,7 +139,8 @@ export function generatePoolPlaySchedule(
   firstGameTime: Date,
   estimatedGameDuration: number,
   numberOfCourts: number,
-  maxTeamsPerPool: number = 6
+  maxTeamsPerPool: number = 6,
+  warmUpDuration: number = 7
 ): { pools: Pool[], matches: Match[] } {
   // Step 1: Generate pools
   const pools = generatePools(teams, maxTeamsPerPool);
@@ -158,7 +160,8 @@ export function generatePoolPlaySchedule(
     matchesWithReferees,
     firstGameTime,
     estimatedGameDuration,
-    numberOfCourts
+    numberOfCourts,
+    warmUpDuration
   );
   
   return { pools, matches: scheduledMatches };

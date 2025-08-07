@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
-import { Clock, Users, Coffee, Flag } from "lucide-react";
+import { Clock, Users, Coffee, Flag, Timer } from "lucide-react";
 
 interface Match {
   id: string;
@@ -24,7 +24,7 @@ interface TeamScheduleViewProps {
 
 interface ScheduleItem {
   time: string;
-  type: 'playing' | 'refereeing' | 'break';
+  type: 'playing' | 'refereeing' | 'break' | 'warmup';
   details: string;
   court?: number;
   opponent?: string;
@@ -67,17 +67,35 @@ export function TeamScheduleView({ teamId, teamName, matches }: TeamScheduleView
     // Sort by time
     schedule.sort((a, b) => new Date(a.time).getTime() - new Date(b.time).getTime());
     
-    // Add break periods between activities
+    // Add warm-up periods and breaks between activities
     const scheduleWithBreaks: ScheduleItem[] = [];
     for (let i = 0; i < schedule.length; i++) {
-      scheduleWithBreaks.push(schedule[i]);
+      const currentItem = schedule[i];
+      
+      // Add warm-up period for playing matches
+      if (currentItem.type === 'playing') {
+        const warmUpTime = new Date(new Date(currentItem.time).getTime() - 7 * 60000);
+        scheduleWithBreaks.push({
+          time: warmUpTime.toISOString(),
+          type: 'warmup',
+          details: 'Warm-up time (7 minutes)',
+          court: currentItem.court
+        });
+      }
+      
+      scheduleWithBreaks.push(currentItem);
       
       if (i < schedule.length - 1) {
         const currentEnd = new Date(new Date(schedule[i].time).getTime() + 40 * 60000); // Assume 40 min games
         const nextStart = new Date(schedule[i + 1].time);
-        const breakDuration = (nextStart.getTime() - currentEnd.getTime()) / (1000 * 60);
+        let breakDuration = (nextStart.getTime() - currentEnd.getTime()) / (1000 * 60);
         
-        if (breakDuration >= 15) { // Only show breaks 15+ minutes
+        // Subtract warm-up time from break if next activity is playing
+        if (schedule[i + 1].type === 'playing') {
+          breakDuration -= 7;
+        }
+        
+        if (breakDuration >= 10) { // Only show breaks 10+ minutes
           scheduleWithBreaks.push({
             time: currentEnd.toISOString(),
             type: 'break',
@@ -98,6 +116,8 @@ export function TeamScheduleView({ teamId, teamName, matches }: TeamScheduleView
         return <Users className="h-4 w-4" />;
       case 'refereeing':
         return <Flag className="h-4 w-4" />;
+      case 'warmup':
+        return <Timer className="h-4 w-4" />;
       case 'break':
         return <Coffee className="h-4 w-4" />;
       default:
@@ -111,6 +131,8 @@ export function TeamScheduleView({ teamId, teamName, matches }: TeamScheduleView
         return 'bg-primary text-primary-foreground';
       case 'refereeing':
         return 'bg-secondary text-secondary-foreground';
+      case 'warmup':
+        return 'bg-orange-500 text-white';
       case 'break':
         return 'bg-muted text-muted-foreground';
       default:
@@ -157,7 +179,7 @@ export function TeamScheduleView({ teamId, teamName, matches }: TeamScheduleView
         {schedule.length > 0 && (
           <div className="mt-6 p-4 bg-muted rounded-lg">
             <h4 className="font-medium mb-2">Schedule Summary</h4>
-            <div className="grid grid-cols-3 gap-4 text-sm">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
               <div>
                 <span className="font-medium">Games Playing:</span>
                 <div>{schedule.filter(item => item.type === 'playing').length}</div>
@@ -165,6 +187,10 @@ export function TeamScheduleView({ teamId, teamName, matches }: TeamScheduleView
               <div>
                 <span className="font-medium">Referee Duties:</span>
                 <div>{schedule.filter(item => item.type === 'refereeing').length}</div>
+              </div>
+              <div>
+                <span className="font-medium">Warm-up Periods:</span>
+                <div>{schedule.filter(item => item.type === 'warmup').length}</div>
               </div>
               <div>
                 <span className="font-medium">Break Periods:</span>
