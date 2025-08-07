@@ -69,6 +69,7 @@ export function PoolPlayManager({ tournament, teams, onBracketsGenerated }: Pool
         pool_name: match.pool_name,
         court_number: match.court_number,
         scheduled_time: match.scheduled_time,
+        tournament_phase: 'pool_play',
         status: 'scheduled'
       }));
 

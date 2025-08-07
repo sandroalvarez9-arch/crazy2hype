@@ -28,6 +28,7 @@ interface Match {
   round_number: number;
   match_number: number;
   completed_at: string | null;
+  tournament_phase?: string;
 }
 
 interface Tournament {
@@ -37,6 +38,9 @@ interface Tournament {
   points_per_set: number;
   must_win_by: number;
   deciding_set_points: number;
+  uses_phase_formats?: boolean;
+  pool_play_format?: any;
+  playoff_format?: any;
 }
 
 interface Team {
@@ -86,16 +90,29 @@ export function MatchScoringInterface({
     return setsWon;
   };
 
+  const getActiveFormat = () => {
+    if (tournament.uses_phase_formats) {
+      const isPoolPlay = match.tournament_phase === 'pool_play';
+      return isPoolPlay ? tournament.pool_play_format : tournament.playoff_format;
+    }
+    return {
+      sets: tournament.sets_per_game,
+      points: tournament.points_per_set,
+      decidingPoints: tournament.deciding_set_points
+    };
+  };
+
   const getPointsNeededForSet = () => {
+    const format = getActiveFormat();
     const setsWon1 = getSetsWon(1);
     const setsWon2 = getSetsWon(2);
     const totalSetsWon = setsWon1 + setsWon2;
     
     // Check if this is the deciding set
-    const isDecidingSet = tournament.sets_per_game > 1 && 
-      totalSetsWon === tournament.sets_per_game - 1;
+    const isDecidingSet = format?.sets > 1 && 
+      totalSetsWon === format.sets - 1;
     
-    return isDecidingSet ? tournament.deciding_set_points : tournament.points_per_set;
+    return isDecidingSet ? (format?.decidingPoints || tournament.deciding_set_points) : (format?.points || tournament.points_per_set);
   };
 
   const isSetWon = (team1Score: number, team2Score: number) => {
@@ -107,7 +124,8 @@ export function MatchScoringInterface({
   };
 
   const isMatchWon = (team1Sets: number, team2Sets: number) => {
-    const setsNeeded = Math.ceil(tournament.sets_per_game / 2);
+    const format = getActiveFormat();
+    const setsNeeded = Math.ceil((format?.sets || tournament.sets_per_game) / 2);
     return team1Sets >= setsNeeded || team2Sets >= setsNeeded;
   };
 
@@ -232,14 +250,29 @@ export function MatchScoringInterface({
       <CardContent className="space-y-6">
         {/* Game Format Info */}
         <div className="bg-accent/50 p-3 rounded-lg">
-          <div className="text-sm font-medium">Game Format</div>
+          <div className="text-sm font-medium flex items-center gap-2">
+            Game Format
+            {tournament.uses_phase_formats && (
+              <Badge variant="outline" className="text-xs">
+                {match.tournament_phase === 'pool_play' ? 'Pool Play' : 'Playoffs'}
+              </Badge>
+            )}
+          </div>
           <div className="text-xs text-muted-foreground">
-            {tournament.sets_per_game === 1 ? '1 set' : `Best of ${tournament.sets_per_game} sets`} to {pointsNeeded} points
-            {tournament.sets_per_game > 1 && match.current_set === tournament.sets_per_game && 
-              tournament.deciding_set_points !== tournament.points_per_set && 
-              " (Deciding set)"
-            }
-            • Win by {tournament.must_win_by}
+            {(() => {
+              const format = getActiveFormat();
+              const sets = format?.sets || tournament.sets_per_game;
+              return (
+                <>
+                  {sets === 1 ? '1 set' : `Best of ${sets} sets`} to {pointsNeeded} points
+                  {sets > 1 && match.current_set === sets && 
+                    (format?.decidingPoints || tournament.deciding_set_points) !== (format?.points || tournament.points_per_set) && 
+                    " (Deciding set)"
+                  }
+                  • Win by {tournament.must_win_by}
+                </>
+              );
+            })()}
           </div>
         </div>
 

@@ -78,6 +78,7 @@ export type Database = {
           team2_id: string | null
           team2_score: number | null
           tournament_id: string
+          tournament_phase: string | null
           updated_at: string
           winner_id: string | null
         }
@@ -102,6 +103,7 @@ export type Database = {
           team2_id?: string | null
           team2_score?: number | null
           tournament_id: string
+          tournament_phase?: string | null
           updated_at?: string
           winner_id?: string | null
         }
@@ -126,6 +128,7 @@ export type Database = {
           team2_id?: string | null
           team2_score?: number | null
           tournament_id?: string
+          tournament_phase?: string | null
           updated_at?: string
           winner_id?: string | null
         }
@@ -408,7 +411,9 @@ export type Database = {
           number_of_courts: number | null
           organizer_id: string
           players_per_team: number
+          playoff_format: Json | null
           points_per_set: number | null
+          pool_play_format: Json | null
           pools_per_skill_level: Json | null
           registration_deadline: string
           sets_per_game: number | null
@@ -418,6 +423,7 @@ export type Database = {
           title: string
           tournament_format: string | null
           updated_at: string
+          uses_phase_formats: boolean | null
           warm_up_duration: number | null
         }
         Insert: {
@@ -442,7 +448,9 @@ export type Database = {
           number_of_courts?: number | null
           organizer_id: string
           players_per_team?: number
+          playoff_format?: Json | null
           points_per_set?: number | null
+          pool_play_format?: Json | null
           pools_per_skill_level?: Json | null
           registration_deadline: string
           sets_per_game?: number | null
@@ -452,6 +460,7 @@ export type Database = {
           title: string
           tournament_format?: string | null
           updated_at?: string
+          uses_phase_formats?: boolean | null
           warm_up_duration?: number | null
         }
         Update: {
@@ -476,7 +485,9 @@ export type Database = {
           number_of_courts?: number | null
           organizer_id?: string
           players_per_team?: number
+          playoff_format?: Json | null
           points_per_set?: number | null
+          pool_play_format?: Json | null
           pools_per_skill_level?: Json | null
           registration_deadline?: string
           sets_per_game?: number | null
@@ -486,6 +497,7 @@ export type Database = {
           title?: string
           tournament_format?: string | null
           updated_at?: string
+          uses_phase_formats?: boolean | null
           warm_up_duration?: number | null
         }
         Relationships: [

@@ -22,6 +22,9 @@ interface Tournament {
   brackets_generated: boolean;
   estimated_game_duration: number;
   number_of_courts?: number;
+  uses_phase_formats?: boolean;
+  pool_play_format?: any;
+  playoff_format?: any;
 }
 
 interface Match {
@@ -42,7 +45,8 @@ const GAME_FORMAT_PRESETS = [
     sets: 1,
     points: 21,
     decidingPoints: 21,
-    estimatedMinutes: 15
+    estimatedMinutes: 15,
+    isPhased: false
   },
   {
     name: "Standard",
@@ -50,7 +54,8 @@ const GAME_FORMAT_PRESETS = [
     sets: 3,
     points: 25,
     decidingPoints: 15,
-    estimatedMinutes: 45
+    estimatedMinutes: 45,
+    isPhased: false
   },
   {
     name: "Championship",
@@ -58,7 +63,30 @@ const GAME_FORMAT_PRESETS = [
     sets: 5,
     points: 25,
     decidingPoints: 15,
-    estimatedMinutes: 75
+    estimatedMinutes: 75,
+    isPhased: false
+  },
+  {
+    name: "Pool Record Format",
+    description: "Pool: 2 sets to 21 | Playoffs: Best of 3 to 21",
+    sets: 2,
+    points: 21,
+    decidingPoints: 21,
+    estimatedMinutes: 30,
+    isPhased: true,
+    poolPlay: { sets: 2, points: 21, decidingPoints: 21 },
+    playoffs: { sets: 3, points: 21, decidingPoints: 21 }
+  },
+  {
+    name: "Quick Pool Format", 
+    description: "Pool: 2 sets to 18 | Playoffs: Best of 3 to 18",
+    sets: 2,
+    points: 18,
+    decidingPoints: 18,
+    estimatedMinutes: 25,
+    isPhased: true,
+    poolPlay: { sets: 2, points: 18, decidingPoints: 18 },
+    playoffs: { sets: 3, points: 18, decidingPoints: 18 }
   }
 ];
 
@@ -67,7 +95,10 @@ export function GameFormatManager({ tournament, matches, onTournamentUpdate }: G
     sets_per_game: tournament.sets_per_game,
     points_per_set: tournament.points_per_set,
     must_win_by: tournament.must_win_by,
-    deciding_set_points: tournament.deciding_set_points
+    deciding_set_points: tournament.deciding_set_points,
+    uses_phase_formats: tournament.uses_phase_formats || false,
+    pool_play_format: tournament.pool_play_format || null,
+    playoff_format: tournament.playoff_format || null
   });
   
   const [isUpdating, setIsUpdating] = useState(false);
@@ -88,12 +119,27 @@ export function GameFormatManager({ tournament, matches, onTournamentUpdate }: G
   };
 
   const handlePresetSelect = (preset: typeof GAME_FORMAT_PRESETS[0]) => {
-    setFormat({
-      sets_per_game: preset.sets,
-      points_per_set: preset.points,
-      must_win_by: tournament.must_win_by,
-      deciding_set_points: preset.decidingPoints
-    });
+    if (preset.isPhased && preset.poolPlay && preset.playoffs) {
+      setFormat({
+        sets_per_game: preset.sets,
+        points_per_set: preset.points,
+        must_win_by: tournament.must_win_by,
+        deciding_set_points: preset.decidingPoints,
+        uses_phase_formats: true,
+        pool_play_format: preset.poolPlay,
+        playoff_format: preset.playoffs
+      });
+    } else {
+      setFormat({
+        sets_per_game: preset.sets,
+        points_per_set: preset.points,
+        must_win_by: tournament.must_win_by,
+        deciding_set_points: preset.decidingPoints,
+        uses_phase_formats: false,
+        pool_play_format: null,
+        playoff_format: null
+      });
+    }
   };
 
   const handleFormatUpdate = async (isEmergencyChange = false) => {
@@ -103,7 +149,10 @@ export function GameFormatManager({ tournament, matches, onTournamentUpdate }: G
         sets_per_game: tournament.sets_per_game,
         points_per_set: tournament.points_per_set,
         must_win_by: tournament.must_win_by,
-        deciding_set_points: tournament.deciding_set_points
+        deciding_set_points: tournament.deciding_set_points,
+        uses_phase_formats: tournament.uses_phase_formats,
+        pool_play_format: tournament.pool_play_format,
+        playoff_format: tournament.playoff_format
       };
 
       // Update tournament format
@@ -128,7 +177,9 @@ export function GameFormatManager({ tournament, matches, onTournamentUpdate }: G
 
       toast({
         title: isEmergencyChange ? "Emergency Format Change Applied" : "Game Format Updated",
-        description: `Format updated to ${format.sets_per_game === 1 ? '1 set' : `best of ${format.sets_per_game} sets`} to ${format.points_per_set} points`,
+        description: format.uses_phase_formats 
+          ? `Phase-based format: Pool play (${format.pool_play_format?.sets} sets to ${format.pool_play_format?.points}) | Playoffs (best of ${format.playoff_format?.sets} to ${format.playoff_format?.points})`
+          : `Format updated to ${format.sets_per_game === 1 ? '1 set' : `best of ${format.sets_per_game} sets`} to ${format.points_per_set} points`,
       });
 
       setEmergencyChangeReason("");
@@ -186,8 +237,17 @@ export function GameFormatManager({ tournament, matches, onTournamentUpdate }: G
               Current Game Format
             </CardTitle>
             <CardDescription>
-              {tournament.sets_per_game === 1 ? '1 set' : `Best of ${tournament.sets_per_game} sets`} to {tournament.points_per_set} points
-              {tournament.sets_per_game > 1 && ` (${tournament.deciding_set_points} for deciding set)`}
+              {tournament.uses_phase_formats ? (
+                <>
+                  Pool Play: {tournament.pool_play_format?.sets || 2} sets to {tournament.pool_play_format?.points || 21} | 
+                  Playoffs: Best of {tournament.playoff_format?.sets || 3} to {tournament.playoff_format?.points || 21}
+                </>
+              ) : (
+                <>
+                  {tournament.sets_per_game === 1 ? '1 set' : `Best of ${tournament.sets_per_game} sets`} to {tournament.points_per_set} points
+                  {tournament.sets_per_game > 1 && ` (${tournament.deciding_set_points} for deciding set)`}
+                </>
+              )}
             </CardDescription>
           </div>
           <div className="flex items-center gap-2">
@@ -248,7 +308,10 @@ export function GameFormatManager({ tournament, matches, onTournamentUpdate }: G
                     onClick={() => handlePresetSelect(preset)}
                   >
                     <CardContent className="p-4">
-                      <div className="font-medium">{preset.name}</div>
+                      <div className="font-medium flex items-center gap-2">
+                        {preset.name}
+                        {preset.isPhased && <Badge variant="outline" className="text-xs">Phase-Based</Badge>}
+                      </div>
                       <div className="text-sm text-muted-foreground mt-1">
                         {preset.description}
                       </div>
