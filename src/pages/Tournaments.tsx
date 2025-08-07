@@ -8,6 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { MapPin, CalendarDays, Users, Trophy, Navigation } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
 import { formatSkillLevel, getSkillLevelBadgeVariant, SkillLevel } from '@/utils/skillLevels';
 import SkillLevelFilter from '@/components/SkillLevelFilter';
 
@@ -51,7 +52,7 @@ const getCoordinatesFromLocation = async (location: string): Promise<{lat: numbe
   return null;
 };
 
-const Tournaments = () => {
+const Tournaments = ({ showMyTournaments = false }: { showMyTournaments?: boolean }) => {
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [loading, setLoading] = useState(true);
   const [userLocation, setUserLocation] = useState<{lat: number, lng: number} | null>(null);
@@ -60,6 +61,7 @@ const Tournaments = () => {
   const [filteredTournaments, setFilteredTournaments] = useState<Tournament[]>([]);
   const isMobile = useIsMobile();
   const { toast } = useToast();
+  const { user } = useAuth();
 
   // Get user's current location
   useEffect(() => {
@@ -94,19 +96,27 @@ const Tournaments = () => {
 
   useEffect(() => {
     fetchTournaments();
-  }, [userLocation]);
+  }, [userLocation, showMyTournaments, user]);
 
   const fetchTournaments = async () => {
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('tournaments')
         .select(`
           *,
           organizer:profiles!tournaments_organizer_id_fkey(username),
           teams:teams(id)
         `)
-        .eq('status', 'open')
         .order('start_date', { ascending: true });
+
+      // Filter by user's tournaments if showMyTournaments is true
+      if (showMyTournaments && user) {
+        query = query.eq('organizer_id', user.id);
+      } else if (!showMyTournaments) {
+        query = query.eq('status', 'open');
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
 
@@ -184,12 +194,14 @@ const Tournaments = () => {
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-8">
           <div>
             <h1 className="text-3xl lg:text-4xl font-bold gradient-text mb-2">
-              Browse Tournaments
+              {showMyTournaments ? 'My Tournaments' : 'Browse Tournaments'}
             </h1>
             <p className="text-muted-foreground">
-              {userLocation 
-                ? `${filteredTournaments.length} of ${tournaments.length} tournaments sorted by distance from your location`
-                : `${filteredTournaments.length} of ${tournaments.length} tournaments available`
+              {showMyTournaments 
+                ? `${filteredTournaments.length} of ${tournaments.length} tournaments you've created`
+                : userLocation 
+                  ? `${filteredTournaments.length} of ${tournaments.length} tournaments sorted by distance from your location`
+                  : `${filteredTournaments.length} of ${tournaments.length} tournaments available`
               }
             </p>
           </div>
@@ -318,7 +330,10 @@ const Tournaments = () => {
             <CardContent className="py-8 text-center">
               <Trophy className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
               <p className="text-muted-foreground mb-4">
-                No tournaments match your skill level filter. Try adjusting your filter settings.
+                {showMyTournaments 
+                  ? "No tournaments match your skill level filter. Try adjusting your filter settings."
+                  : "No tournaments match your skill level filter. Try adjusting your filter settings."
+                }
               </p>
               <Button 
                 variant="outline" 
@@ -338,10 +353,15 @@ const Tournaments = () => {
           <Card className="shadow-card">
             <CardContent className="py-8 text-center">
               <Trophy className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-muted-foreground mb-4">No tournaments available right now.</p>
+              <p className="text-muted-foreground mb-4">
+                {showMyTournaments 
+                  ? "You haven't created any tournaments yet."
+                  : "No tournaments available right now."
+                }
+              </p>
               <Link to="/create-tournament">
                 <Button className="gradient-primary hover:opacity-90 transition-opacity">
-                  Create the First Tournament
+                  {showMyTournaments ? 'Create Your First Tournament' : 'Create the First Tournament'}
                 </Button>
               </Link>
             </CardContent>
