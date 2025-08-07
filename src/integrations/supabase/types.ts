@@ -14,6 +14,48 @@ export type Database = {
   }
   public: {
     Tables: {
+      backup_teams: {
+        Row: {
+          captain_id: string
+          contact_email: string | null
+          contact_phone: string | null
+          created_at: string
+          id: string
+          name: string
+          players_count: number | null
+          priority_order: number | null
+          promoted_to_main: boolean | null
+          tournament_id: string
+          updated_at: string
+        }
+        Insert: {
+          captain_id: string
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          id?: string
+          name: string
+          players_count?: number | null
+          priority_order?: number | null
+          promoted_to_main?: boolean | null
+          tournament_id: string
+          updated_at?: string
+        }
+        Update: {
+          captain_id?: string
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          players_count?: number | null
+          priority_order?: number | null
+          promoted_to_main?: boolean | null
+          tournament_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       matches: {
         Row: {
           bracket_position: string | null
@@ -229,10 +271,13 @@ export type Database = {
       teams: {
         Row: {
           captain_id: string
+          check_in_status: string | null
+          check_in_time: string | null
           contact_email: string | null
           contact_phone: string | null
           created_at: string
           id: string
+          is_backup: boolean | null
           is_registered: boolean | null
           name: string
           players_count: number | null
@@ -242,10 +287,13 @@ export type Database = {
         }
         Insert: {
           captain_id: string
+          check_in_status?: string | null
+          check_in_time?: string | null
           contact_email?: string | null
           contact_phone?: string | null
           created_at?: string
           id?: string
+          is_backup?: boolean | null
           is_registered?: boolean | null
           name: string
           players_count?: number | null
@@ -255,10 +303,13 @@ export type Database = {
         }
         Update: {
           captain_id?: string
+          check_in_status?: string | null
+          check_in_time?: string | null
           contact_email?: string | null
           contact_phone?: string | null
           created_at?: string
           id?: string
+          is_backup?: boolean | null
           is_registered?: boolean | null
           name?: string
           players_count?: number | null
@@ -283,9 +334,39 @@ export type Database = {
           },
         ]
       }
+      tournament_logs: {
+        Row: {
+          action: string
+          created_at: string
+          details: Json | null
+          id: string
+          performed_by: string | null
+          tournament_id: string
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          performed_by?: string | null
+          tournament_id: string
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          performed_by?: string | null
+          tournament_id?: string
+        }
+        Relationships: []
+      }
       tournaments: {
         Row: {
+          allow_backup_teams: boolean | null
+          bracket_version: number | null
           brackets_generated: boolean | null
+          check_in_deadline: string | null
           created_at: string
           description: string | null
           end_date: string
@@ -302,7 +383,10 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          allow_backup_teams?: boolean | null
+          bracket_version?: number | null
           brackets_generated?: boolean | null
+          check_in_deadline?: string | null
           created_at?: string
           description?: string | null
           end_date: string
@@ -319,7 +403,10 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          allow_backup_teams?: boolean | null
+          bracket_version?: number | null
           brackets_generated?: boolean | null
+          check_in_deadline?: string | null
           created_at?: string
           description?: string | null
           end_date?: string
@@ -350,7 +437,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      log_tournament_action: {
+        Args: { tournament_id: string; action: string; details?: Json }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never

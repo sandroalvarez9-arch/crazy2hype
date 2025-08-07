@@ -9,6 +9,7 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import CreateTournament from "./pages/CreateTournament";
 import TournamentDetails from "./pages/TournamentDetails";
+import TournamentManagement from "./pages/TournamentManagement";
 import Tournaments from "./pages/Tournaments";
 import NotFound from "./pages/NotFound";
 
@@ -81,6 +82,11 @@ const App = () => (
             <Route path="/tournament/:id" element={
               <ProtectedRoute>
                 <TournamentDetails />
+              </ProtectedRoute>
+            } />
+            <Route path="/tournament/:id/manage" element={
+              <ProtectedRoute>
+                <TournamentManagement />
               </ProtectedRoute>
             } />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

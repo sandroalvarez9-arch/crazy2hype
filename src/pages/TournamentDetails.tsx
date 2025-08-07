@@ -11,6 +11,7 @@ import { Separator } from '@/components/ui/separator';
 import { ArrowLeft, Calendar, MapPin, Users, Trophy, DollarSign, Settings, UserPlus } from 'lucide-react';
 import { format } from 'date-fns';
 import TeamRegistrationDialog from '@/components/TeamRegistrationDialog';
+import TeamCheckInDialog from '@/components/TeamCheckInDialog';
 
 interface Tournament {
   id: string;
@@ -25,6 +26,9 @@ interface Tournament {
   entry_fee: number;
   status: string;
   organizer_id: string;
+  check_in_deadline: string | null;
+  bracket_version: number;
+  allow_backup_teams: boolean;
   organizer: {
     username: string;
     first_name: string;
@@ -37,6 +41,9 @@ interface Team {
   name: string;
   players_count: number;
   is_registered: boolean;
+  captain_id: string;
+  check_in_status: string;
+  check_in_time: string | null;
   captain: {
     username: string;
     first_name: string;
@@ -55,6 +62,7 @@ const TournamentDetails = () => {
   const [teams, setTeams] = useState<Team[]>([]);
   const [loading, setLoading] = useState(true);
   const [showRegistrationDialog, setShowRegistrationDialog] = useState(false);
+  const [userTeams, setUserTeams] = useState<Team[]>([]);
 
   useEffect(() => {
     if (id) {
@@ -94,6 +102,12 @@ const TournamentDetails = () => {
 
       if (error) throw error;
       setTeams(data || []);
+      
+      // Fetch user's teams for check-in
+      if (user) {
+        const userTeamsData = data?.filter(team => team.captain_id === user.id) || [];
+        setUserTeams(userTeamsData);
+      }
     } catch (error) {
       console.error('Error fetching teams:', error);
     } finally {
@@ -156,12 +170,30 @@ const TournamentDetails = () => {
             <Badge variant={tournament.status === 'open' ? 'default' : 'secondary'}>
               {tournament.status}
             </Badge>
-            {isOrganizer && (
-              <Button size="sm" variant="outline">
-                <Settings className="h-4 w-4 mr-2" />
-                Manage
-              </Button>
-            )}
+            <div className="flex gap-2">
+              {isOrganizer && (
+                <Button 
+                  size="sm" 
+                  variant="outline"
+                  onClick={() => navigate(`/tournament/${id}/manage`)}
+                >
+                  <Settings className="h-4 w-4 mr-2" />
+                  Manage
+                </Button>
+              )}
+              {userTeams.length > 0 && (
+                <TeamCheckInDialog
+                  tournament={{
+                    id: tournament.id,
+                    title: tournament.title,
+                    check_in_deadline: tournament.check_in_deadline,
+                    start_date: tournament.start_date
+                  }}
+                  userTeams={userTeams}
+                  onCheckInComplete={fetchTeams}
+                />
+              )}
+            </div>
           </div>
         </div>
 
