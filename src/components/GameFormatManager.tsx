@@ -112,10 +112,29 @@ export function GameFormatManager({ tournament, matches, onTournamentUpdate }: G
   const canModifyFormat = !tournament.game_format_locked || !hasStartedMatches;
 
   const calculateEstimatedDuration = (sets: number, points: number) => {
-    // Rough estimation: 1 minute per 2 points, plus set breaks
-    const pointsPerSet = points * 1.2; // Account for deuce scenarios
-    const avgSetsPlayed = sets === 1 ? 1 : sets === 3 ? 2.2 : 3.5;
-    return Math.round(avgSetsPlayed * (pointsPerSet / 2) + (avgSetsPlayed - 1) * 3); // 3 min break between sets
+    // Real-world timing: 15 minutes per set, plus breaks between sets
+    const setBreakTime = 3; // minutes between sets
+    
+    if (sets === 1) {
+      return 15; // Single set = 15 minutes
+    } else if (sets === 2) {
+      return 30; // Two sets = 30 minutes (no breaks since it's not best-of format)
+    } else if (sets === 3) {
+      // Best of 3: average 2.2 sets played + breaks
+      const avgSetsPlayed = 2.2;
+      const avgBreaks = 1.2; // average breaks between sets
+      return Math.round(avgSetsPlayed * 15 + avgBreaks * setBreakTime);
+    } else if (sets === 5) {
+      // Best of 5: average 3.5 sets played + breaks
+      const avgSetsPlayed = 3.5;
+      const avgBreaks = 2.5; // average breaks between sets
+      return Math.round(avgSetsPlayed * 15 + avgBreaks * setBreakTime);
+    }
+    
+    // Fallback for any other format
+    const avgSetsPlayed = sets === 1 ? 1 : sets * 0.7;
+    const avgBreaks = avgSetsPlayed > 1 ? avgSetsPlayed - 1 : 0;
+    return Math.round(avgSetsPlayed * 15 + avgBreaks * setBreakTime);
   };
 
   const handlePresetSelect = (preset: typeof GAME_FORMAT_PRESETS[0]) => {
