@@ -12,6 +12,7 @@ import { ArrowLeft, Calendar, MapPin, Users, Trophy, DollarSign, Settings, UserP
 import { format } from 'date-fns';
 import TeamRegistrationDialog from '@/components/TeamRegistrationDialog';
 import TeamCheckInDialog from '@/components/TeamCheckInDialog';
+import { TeamScheduleView } from '@/components/TeamScheduleView';
 
 interface Tournament {
   id: string;
@@ -21,6 +22,11 @@ interface Tournament {
   start_date: string;
   end_date: string;
   registration_deadline: string;
+  first_game_time: string | null;
+  tournament_format: string;
+  estimated_game_duration: number;
+  number_of_courts: number;
+  brackets_generated: boolean;
   max_teams: number;
   players_per_team: number;
   entry_fee: number;
@@ -63,11 +69,13 @@ const TournamentDetails = () => {
   const [loading, setLoading] = useState(true);
   const [showRegistrationDialog, setShowRegistrationDialog] = useState(false);
   const [userTeams, setUserTeams] = useState<Team[]>([]);
+  const [matches, setMatches] = useState<any[]>([]);
 
   useEffect(() => {
     if (id) {
       fetchTournamentDetails();
       fetchTeams();
+      fetchMatches();
     }
   }, [id]);
 
@@ -112,6 +120,26 @@ const TournamentDetails = () => {
       console.error('Error fetching teams:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchMatches = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('matches')
+        .select(`
+          *,
+          team1:teams!matches_team1_id_fkey(name),
+          team2:teams!matches_team2_id_fkey(name),
+          referee_team:teams!matches_referee_team_id_fkey(name)
+        `)
+        .eq('tournament_id', id)
+        .order('scheduled_time');
+
+      if (error) throw error;
+      setMatches(data || []);
+    } catch (error) {
+      console.error('Error fetching matches:', error);
     }
   };
 
@@ -237,10 +265,11 @@ const TournamentDetails = () => {
       </div>
 
       <Tabs defaultValue="overview" className="animate-fade-in">
-        <TabsList className={`grid w-full ${isMobile ? 'grid-cols-2' : 'grid-cols-3'}`}>
+        <TabsList className={`grid w-full ${isMobile ? 'grid-cols-2' : userTeams.length > 0 ? 'grid-cols-4' : 'grid-cols-3'}`}>
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="teams">Teams ({registeredTeams.length})</TabsTrigger>
           {!isMobile && <TabsTrigger value="matches">Matches</TabsTrigger>}
+          {userTeams.length > 0 && <TabsTrigger value="schedule">My Schedule</TabsTrigger>}
         </TabsList>
         
         <TabsContent value="overview" className="space-y-6">
@@ -277,6 +306,15 @@ const TournamentDetails = () => {
                   <span className="text-muted-foreground">Tournament End</span>
                   <span className="font-medium">{format(new Date(tournament.end_date), 'PPP')}</span>
                 </div>
+                {tournament.first_game_time && (
+                  <>
+                    <Separator />
+                    <div className="flex justify-between items-center">
+                      <span className="text-muted-foreground">First Game</span>
+                      <span className="font-medium">{format(new Date(tournament.first_game_time), "PPP 'at' p")}</span>
+                    </div>
+                  </>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -348,9 +386,28 @@ const TournamentDetails = () => {
             <Card className="shadow-card">
               <CardContent className="py-8 text-center">
                 <Trophy className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <p className="text-muted-foreground">Tournament matches will appear here once the tournament starts</p>
+                <p className="text-muted-foreground">Tournament matches will appear here once pool play is generated</p>
               </CardContent>
             </Card>
+          </TabsContent>
+        )}
+
+        {userTeams.length > 0 && (
+          <TabsContent value="schedule">
+            {userTeams.map((team) => (
+              <div key={team.id} className="mb-6">
+                <TeamScheduleView 
+                  teamId={team.id}
+                  teamName={team.name}
+                  matches={matches.map(match => ({
+                    ...match,
+                    team1_name: match.team1?.name,
+                    team2_name: match.team2?.name,
+                    referee_team_name: match.referee_team?.name
+                  }))}
+                />
+              </div>
+            ))}
           </TabsContent>
         )}
       </Tabs>

@@ -60,9 +60,12 @@ export type Database = {
         Row: {
           bracket_position: string | null
           completed_at: string | null
+          court_number: number | null
           created_at: string
           id: string
           match_number: number
+          pool_name: string | null
+          referee_team_id: string | null
           round_number: number
           scheduled_time: string | null
           status: string
@@ -77,9 +80,12 @@ export type Database = {
         Insert: {
           bracket_position?: string | null
           completed_at?: string | null
+          court_number?: number | null
           created_at?: string
           id?: string
           match_number: number
+          pool_name?: string | null
+          referee_team_id?: string | null
           round_number: number
           scheduled_time?: string | null
           status?: string
@@ -94,9 +100,12 @@ export type Database = {
         Update: {
           bracket_position?: string | null
           completed_at?: string | null
+          court_number?: number | null
           created_at?: string
           id?: string
           match_number?: number
+          pool_name?: string | null
+          referee_team_id?: string | null
           round_number?: number
           scheduled_time?: string | null
           status?: string
@@ -371,15 +380,19 @@ export type Database = {
           description: string | null
           end_date: string
           entry_fee: number | null
+          estimated_game_duration: number | null
+          first_game_time: string | null
           id: string
           location: string | null
           max_teams: number
+          number_of_courts: number | null
           organizer_id: string
           players_per_team: number
           registration_deadline: string
           start_date: string
           status: string
           title: string
+          tournament_format: string | null
           updated_at: string
         }
         Insert: {
@@ -391,15 +404,19 @@ export type Database = {
           description?: string | null
           end_date: string
           entry_fee?: number | null
+          estimated_game_duration?: number | null
+          first_game_time?: string | null
           id?: string
           location?: string | null
           max_teams?: number
+          number_of_courts?: number | null
           organizer_id: string
           players_per_team?: number
           registration_deadline: string
           start_date: string
           status?: string
           title: string
+          tournament_format?: string | null
           updated_at?: string
         }
         Update: {
@@ -411,15 +428,19 @@ export type Database = {
           description?: string | null
           end_date?: string
           entry_fee?: number | null
+          estimated_game_duration?: number | null
+          first_game_time?: string | null
           id?: string
           location?: string | null
           max_teams?: number
+          number_of_courts?: number | null
           organizer_id?: string
           players_per_team?: number
           registration_deadline?: string
           start_date?: string
           status?: string
           title?: string
+          tournament_format?: string | null
           updated_at?: string
         }
         Relationships: [

@@ -13,10 +13,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon, ArrowLeft, Trophy } from 'lucide-react';
+import { CalendarIcon, ArrowLeft, Trophy, Clock } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const formSchema = z.object({
   title: z.string().min(3, 'Tournament title must be at least 3 characters'),
@@ -31,6 +32,12 @@ const formSchema = z.object({
   registration_deadline: z.date({
     required_error: 'Registration deadline is required',
   }),
+  first_game_time: z.date({
+    required_error: 'First game time is required',
+  }),
+  tournament_format: z.enum(['pool_play', 'single_elimination', 'double_elimination', 'round_robin']),
+  estimated_game_duration: z.number().min(15, 'Minimum 15 minutes per game').max(180, 'Maximum 3 hours per game'),
+  number_of_courts: z.number().min(1, 'Minimum 1 court required').max(10, 'Maximum 10 courts'),
   max_teams: z.number().min(4, 'Minimum 4 teams required').max(64, 'Maximum 64 teams allowed'),
   players_per_team: z.number().min(1, 'Minimum 1 player per team').max(20, 'Maximum 20 players per team'),
   entry_fee: z.number().min(0, 'Entry fee cannot be negative'),
@@ -40,6 +47,9 @@ const formSchema = z.object({
 }).refine((data) => data.registration_deadline <= data.start_date, {
   message: "Registration deadline must be before start date",
   path: ["registration_deadline"],
+}).refine((data) => data.first_game_time >= data.start_date && data.first_game_time <= data.end_date, {
+  message: "First game time must be between start and end dates",
+  path: ["first_game_time"],
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -57,6 +67,9 @@ const CreateTournament = () => {
       title: '',
       description: '',
       location: '',
+      tournament_format: 'pool_play' as const,
+      estimated_game_duration: 30,
+      number_of_courts: 1,
       max_teams: 16,
       players_per_team: 6,
       entry_fee: 0,
@@ -77,6 +90,10 @@ const CreateTournament = () => {
           start_date: values.start_date.toISOString(),
           end_date: values.end_date.toISOString(),
           registration_deadline: values.registration_deadline.toISOString(),
+          first_game_time: values.first_game_time.toISOString(),
+          tournament_format: values.tournament_format,
+          estimated_game_duration: values.estimated_game_duration,
+          number_of_courts: values.number_of_courts,
           max_teams: values.max_teams,
           players_per_team: values.players_per_team,
           entry_fee: values.entry_fee,
@@ -308,10 +325,129 @@ const CreateTournament = () => {
                       <FormMessage />
                     </FormItem>
                   )}
-                />
-              </div>
+                 />
+               </div>
 
-              <div className={`grid ${isMobile ? 'grid-cols-1' : 'md:grid-cols-3'} gap-6`}>
+               <FormField
+                 control={form.control}
+                 name="first_game_time"
+                 render={({ field }) => (
+                   <FormItem className="flex flex-col">
+                     <FormLabel>First Game Time *</FormLabel>
+                     <Popover>
+                       <PopoverTrigger asChild>
+                         <FormControl>
+                           <Button
+                             variant="outline"
+                             className={cn(
+                               "w-full pl-3 text-left font-normal",
+                               !field.value && "text-muted-foreground"
+                             )}
+                           >
+                             {field.value ? (
+                               format(field.value, "PPP 'at' p")
+                             ) : (
+                               <span>Pick date and time</span>
+                             )}
+                             <Clock className="ml-auto h-4 w-4 opacity-50" />
+                           </Button>
+                         </FormControl>
+                       </PopoverTrigger>
+                       <PopoverContent className="w-auto p-0" align="start">
+                         <Calendar
+                           mode="single"
+                           selected={field.value}
+                           onSelect={field.onChange}
+                           disabled={(date) => date < new Date()}
+                           initialFocus
+                           className={cn("p-3 pointer-events-auto")}
+                         />
+                       </PopoverContent>
+                     </Popover>
+                     <FormDescription>
+                       When the first match of the tournament starts
+                     </FormDescription>
+                     <FormMessage />
+                   </FormItem>
+                 )}
+               />
+
+               <div className={`grid ${isMobile ? 'grid-cols-1' : 'md:grid-cols-2'} gap-6`}>
+                 <FormField
+                   control={form.control}
+                   name="tournament_format"
+                   render={({ field }) => (
+                     <FormItem>
+                       <FormLabel>Tournament Format *</FormLabel>
+                       <Select onValueChange={field.onChange} defaultValue={field.value}>
+                         <FormControl>
+                           <SelectTrigger>
+                             <SelectValue placeholder="Select format" />
+                           </SelectTrigger>
+                         </FormControl>
+                         <SelectContent>
+                           <SelectItem value="pool_play">Pool Play</SelectItem>
+                           <SelectItem value="single_elimination">Single Elimination</SelectItem>
+                           <SelectItem value="double_elimination">Double Elimination</SelectItem>
+                           <SelectItem value="round_robin">Round Robin</SelectItem>
+                         </SelectContent>
+                       </Select>
+                       <FormDescription>
+                         Pool play includes automatic referee assignments
+                       </FormDescription>
+                       <FormMessage />
+                     </FormItem>
+                   )}
+                 />
+
+                 <FormField
+                   control={form.control}
+                   name="estimated_game_duration"
+                   render={({ field }) => (
+                     <FormItem>
+                       <FormLabel>Game Duration (minutes) *</FormLabel>
+                       <FormControl>
+                         <Input 
+                           type="number"
+                           min={15}
+                           max={180}
+                           {...field}
+                           onChange={(e) => field.onChange(parseInt(e.target.value))}
+                         />
+                       </FormControl>
+                       <FormDescription>
+                         Estimated time per game for scheduling
+                       </FormDescription>
+                       <FormMessage />
+                     </FormItem>
+                   )}
+                 />
+               </div>
+
+               <FormField
+                 control={form.control}
+                 name="number_of_courts"
+                 render={({ field }) => (
+                   <FormItem>
+                     <FormLabel>Number of Courts *</FormLabel>
+                     <FormControl>
+                       <Input 
+                         type="number"
+                         min={1}
+                         max={10}
+                         {...field}
+                         onChange={(e) => field.onChange(parseInt(e.target.value))}
+                       />
+                     </FormControl>
+                     <FormDescription>
+                       How many courts will be used for matches
+                     </FormDescription>
+                     <FormMessage />
+                   </FormItem>
+                 )}
+               />
+
+               <div className={`grid ${isMobile ? 'grid-cols-1' : 'md:grid-cols-3'} gap-6`}>
                 <FormField
                   control={form.control}
                   name="max_teams"

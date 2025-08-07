@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { Users, UserCheck, UserX, Clock, Trophy, AlertTriangle } from "lucide-react";
+import { PoolPlayManager } from "@/components/PoolPlayManager";
 
 interface Tournament {
   id: string;
@@ -18,6 +19,11 @@ interface Tournament {
   check_in_deadline: string | null;
   bracket_version: number;
   allow_backup_teams: boolean;
+  first_game_time: string;
+  estimated_game_duration: number;
+  number_of_courts: number;
+  tournament_format: string;
+  brackets_generated: boolean;
 }
 
 interface Team {
@@ -259,6 +265,7 @@ export default function TournamentManagement() {
         <TabsList>
           <TabsTrigger value="teams">Team Management</TabsTrigger>
           <TabsTrigger value="backup">Backup Teams</TabsTrigger>
+          <TabsTrigger value="poolplay">Pool Play</TabsTrigger>
           <TabsTrigger value="bracket">Bracket Control</TabsTrigger>
         </TabsList>
 
@@ -367,6 +374,16 @@ export default function TournamentManagement() {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="poolplay" className="space-y-4">
+          {tournament && (
+            <PoolPlayManager 
+              tournament={tournament}
+              teams={teams}
+              onBracketsGenerated={fetchTournamentData}
+            />
+          )}
         </TabsContent>
 
         <TabsContent value="bracket" className="space-y-4">
