@@ -407,7 +407,7 @@ export type Database = {
           bracket_version: number | null
           brackets_generated: boolean | null
           calculated_courts: number | null
-          check_address: string | null
+          cashapp_info: string | null
           check_in_deadline: string | null
           created_at: string
           deciding_set_points: number | null
@@ -450,7 +450,7 @@ export type Database = {
           bracket_version?: number | null
           brackets_generated?: boolean | null
           calculated_courts?: number | null
-          check_address?: string | null
+          cashapp_info?: string | null
           check_in_deadline?: string | null
           created_at?: string
           deciding_set_points?: number | null
@@ -493,7 +493,7 @@ export type Database = {
           bracket_version?: number | null
           brackets_generated?: boolean | null
           calculated_courts?: number | null
-          check_address?: string | null
+          cashapp_info?: string | null
           check_in_deadline?: string | null
           created_at?: string
           deciding_set_points?: number | null

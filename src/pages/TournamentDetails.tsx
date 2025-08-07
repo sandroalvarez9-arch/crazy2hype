@@ -37,7 +37,7 @@ interface Tournament {
   venmo_username: string | null;
   paypal_email: string | null;
   bank_details: string | null;
-  check_address: string | null;
+  cashapp_info: string | null;
   other_payment_methods: string | null;
   status: string;
   organizer_id: string;
@@ -481,7 +481,7 @@ const TournamentDetails = () => {
         venmoUsername={tournament?.venmo_username}
         paypalEmail={tournament?.paypal_email}
         bankDetails={tournament?.bank_details}
-        checkAddress={tournament?.check_address}
+        cashappInfo={tournament?.cashapp_info}
         otherPaymentMethods={tournament?.other_payment_methods}
         onSuccess={fetchTeams}
       />

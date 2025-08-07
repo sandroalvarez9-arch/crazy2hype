@@ -48,7 +48,7 @@ const formSchema = z.object({
   venmo_username: z.string().optional(),
   paypal_email: z.string().optional(),
   bank_details: z.string().optional(),
-  check_address: z.string().optional(),
+  cashapp_info: z.string().optional(),
   other_payment_methods: z.string().optional(),
 }).refine((data) => data.end_date >= data.start_date, {
   message: "End date must be after start date",
@@ -84,7 +84,7 @@ const CreateTournament = () => {
       venmo_username: '',
       paypal_email: '',
       bank_details: '',
-      check_address: '',
+      cashapp_info: '',
       other_payment_methods: '',
     },
   });
@@ -141,7 +141,7 @@ const CreateTournament = () => {
           venmo_username: values.venmo_username || null,
           paypal_email: values.paypal_email || null,
           bank_details: values.bank_details || null,
-          check_address: values.check_address || null,
+          cashapp_info: values.cashapp_info || null,
           other_payment_methods: values.other_payment_methods || null,
           organizer_id: user.id,
         })
@@ -664,13 +664,13 @@ const CreateTournament = () => {
                     
                     <FormField
                       control={form.control}
-                      name="check_address"
+                      name="cashapp_info"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Check Mailing Address</FormLabel>
+                          <FormLabel>CashApp Details</FormLabel>
                           <FormControl>
                             <Textarea 
-                              placeholder="Name and address for check payments"
+                              placeholder="CashApp username, handle, or payment details"
                               className="min-h-[60px]"
                               {...field}
                             />

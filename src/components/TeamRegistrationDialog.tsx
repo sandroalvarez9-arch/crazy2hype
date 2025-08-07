@@ -25,7 +25,7 @@ interface TeamRegistrationDialogProps {
   venmoUsername?: string | null;
   paypalEmail?: string | null;
   bankDetails?: string | null;
-  checkAddress?: string | null;
+  cashappInfo?: string | null;
   otherPaymentMethods?: string | null;
   onSuccess: () => void;
 }
@@ -42,7 +42,7 @@ const TeamRegistrationDialog = ({
   venmoUsername,
   paypalEmail,
   bankDetails,
-  checkAddress,
+  cashappInfo,
   otherPaymentMethods,
   onSuccess 
 }: TeamRegistrationDialogProps) => {
@@ -407,7 +407,7 @@ const TeamRegistrationDialog = ({
               venmoUsername={venmoUsername}
               paypalEmail={paypalEmail}
               bankDetails={bankDetails}
-              checkAddress={checkAddress}
+              cashappInfo={cashappInfo}
               otherPaymentMethods={otherPaymentMethods}
             />
           )}

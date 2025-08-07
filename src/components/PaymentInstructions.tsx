@@ -1,7 +1,7 @@
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { CreditCard, DollarSign, Building2, Mail } from 'lucide-react';
+import { CreditCard, DollarSign, Building2, Mail, Smartphone } from 'lucide-react';
 
 interface PaymentInstructionsProps {
   entryFee: number;
@@ -9,7 +9,7 @@ interface PaymentInstructionsProps {
   venmoUsername?: string | null;
   paypalEmail?: string | null;
   bankDetails?: string | null;
-  checkAddress?: string | null;
+  cashappInfo?: string | null;
   otherPaymentMethods?: string | null;
 }
 
@@ -19,12 +19,12 @@ const PaymentInstructions = ({
   venmoUsername,
   paypalEmail,
   bankDetails,
-  checkAddress,
+  cashappInfo,
   otherPaymentMethods
 }: PaymentInstructionsProps) => {
   if (entryFee <= 0) return null;
 
-  const hasPaymentMethods = venmoUsername || paypalEmail || bankDetails || checkAddress || otherPaymentMethods;
+  const hasPaymentMethods = venmoUsername || paypalEmail || bankDetails || cashappInfo || otherPaymentMethods;
 
   return (
     <Card className="border-accent">
@@ -78,10 +78,13 @@ const PaymentInstructions = ({
               </div>
             )}
             
-            {checkAddress && (
+            {cashappInfo && (
               <div className="p-2 bg-muted rounded">
-                <strong className="text-sm">Check Payment Address:</strong>
-                <p className="text-sm whitespace-pre-wrap mt-1">{checkAddress}</p>
+                <div className="flex items-center gap-2 mb-1">
+                  <Smartphone className="h-4 w-4 text-muted-foreground" />
+                  <strong className="text-sm">CashApp:</strong>
+                </div>
+                <p className="text-sm whitespace-pre-wrap pl-6">{cashappInfo}</p>
               </div>
             )}
             
