@@ -8,9 +8,14 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Users, UserCheck, UserX, Clock, Trophy, AlertTriangle } from "lucide-react";
+import { Users, UserCheck, UserX, Clock, Trophy, AlertTriangle, DollarSign, CheckCircle } from "lucide-react";
 import { PoolPlayManager } from "@/components/PoolPlayManager";
 import { GameFormatManager } from "@/components/GameFormatManager";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 interface Tournament {
   id: string;
@@ -32,6 +37,7 @@ interface Tournament {
   must_win_by: number;
   deciding_set_points: number;
   game_format_locked: boolean;
+  entry_fee: number;
 }
 
 interface Team {
@@ -43,6 +49,10 @@ interface Team {
   players_count: number;
   contact_email: string | null;
   captain_id: string;
+  payment_status: string;
+  payment_date: string | null;
+  payment_method: string | null;
+  payment_notes: string | null;
 }
 
 interface BackupTeam {
@@ -204,6 +214,46 @@ export default function TournamentManagement() {
     }
   };
 
+  const updatePaymentStatus = async (teamId: string, status: string, method?: string, notes?: string) => {
+    try {
+      const updateData: any = { 
+        payment_status: status,
+        payment_method: method || null,
+        payment_notes: notes || null
+      };
+      
+      if (status === 'paid') {
+        updateData.payment_date = new Date().toISOString();
+      }
+
+      const { error } = await supabase
+        .from("teams")
+        .update(updateData)
+        .eq("id", teamId);
+
+      if (error) throw error;
+
+      // Log the action
+      await supabase.rpc('log_tournament_action', {
+        tournament_id: id,
+        action: `payment_${status}`,
+        details: { team_id: teamId, payment_method: method, notes }
+      });
+
+      fetchTournamentData();
+      toast({
+        title: "Success",
+        description: `Payment status updated to ${status}`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error", 
+        description: "Failed to update payment status",
+        variant: "destructive",
+      });
+    }
+  };
+
   if (!user) {
     return <Navigate to="/auth" replace />;
   }
@@ -219,6 +269,8 @@ export default function TournamentManagement() {
   const checkedInTeams = teams.filter(t => t.check_in_status === 'checked_in').length;
   const noShowTeams = teams.filter(t => t.check_in_status === 'no_show').length;
   const pendingTeams = teams.filter(t => t.check_in_status === 'pending').length;
+  const paidTeams = teams.filter(t => t.payment_status === 'paid').length;
+  const unpaidTeams = teams.filter(t => t.payment_status === 'pending').length;
 
   return (
     <div className="container mx-auto p-6">
@@ -272,6 +324,7 @@ export default function TournamentManagement() {
       <Tabs defaultValue="teams" className="space-y-4">
         <TabsList>
           <TabsTrigger value="teams">Team Management</TabsTrigger>
+          {tournament?.entry_fee > 0 && <TabsTrigger value="payments">Payment Management</TabsTrigger>}
           <TabsTrigger value="backup">Backup Teams</TabsTrigger>
           <TabsTrigger value="format">Game Format</TabsTrigger>
           <TabsTrigger value="poolplay">Pool Play</TabsTrigger>
@@ -385,6 +438,100 @@ export default function TournamentManagement() {
           </Card>
         </TabsContent>
 
+        {tournament?.entry_fee > 0 && (
+          <TabsContent value="payments" className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+                  <DollarSign className="h-4 w-4 text-green-600" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-green-600">
+                    ${(paidTeams * (tournament?.entry_fee || 0)).toFixed(2)}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {paidTeams} paid teams
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Outstanding</CardTitle>
+                  <Clock className="h-4 w-4 text-yellow-600" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-yellow-600">
+                    ${(unpaidTeams * (tournament?.entry_fee || 0)).toFixed(2)}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {unpaidTeams} unpaid teams
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Payment Rate</CardTitle>
+                  <CheckCircle className="h-4 w-4 text-blue-600" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-blue-600">
+                    {teams.length > 0 ? Math.round((paidTeams / teams.length) * 100) : 0}%
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {paidTeams} of {teams.length} teams
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Payment Status</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {teams.map((team) => (
+                    <div key={team.id} className="flex items-center justify-between p-4 border rounded-lg">
+                      <div className="flex-1">
+                        <h3 className="font-medium">{team.name}</h3>
+                        <p className="text-sm text-muted-foreground">
+                          {team.contact_email} • Entry Fee: ${tournament?.entry_fee}
+                        </p>
+                        {team.payment_date && (
+                          <p className="text-xs text-muted-foreground">
+                            Paid: {new Date(team.payment_date).toLocaleString()}
+                            {team.payment_method && ` via ${team.payment_method}`}
+                          </p>
+                        )}
+                        {team.payment_notes && (
+                          <p className="text-xs text-muted-foreground">
+                            Note: {team.payment_notes}
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge variant={team.payment_status === 'paid' ? 'default' : 'secondary'}>
+                          {team.payment_status.toUpperCase()}
+                        </Badge>
+                        {team.payment_status === 'pending' && (
+                          <PaymentConfirmDialog
+                            team={team}
+                            entryFee={tournament?.entry_fee || 0}
+                            onConfirm={(method, notes) => updatePaymentStatus(team.id, 'paid', method, notes)}
+                          />
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        )}
+
         <TabsContent value="format" className="space-y-4">
           {tournament && (
             <GameFormatManager 
@@ -452,5 +599,80 @@ export default function TournamentManagement() {
         </TabsContent>
       </Tabs>
     </div>
+  );
+}
+
+interface PaymentConfirmDialogProps {
+  team: Team;
+  entryFee: number;
+  onConfirm: (method: string, notes: string) => void;
+}
+
+function PaymentConfirmDialog({ team, entryFee, onConfirm }: PaymentConfirmDialogProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState('');
+  const [notes, setNotes] = useState('');
+
+  const handleConfirm = () => {
+    onConfirm(paymentMethod, notes);
+    setIsOpen(false);
+    setPaymentMethod('');
+    setNotes('');
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <DialogTrigger asChild>
+        <Button size="sm" variant="outline">
+          Mark as Paid
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Confirm Payment</DialogTitle>
+          <DialogDescription>
+            Mark {team.name}'s payment of ${entryFee} as received.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label>Payment Method</Label>
+            <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select payment method" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="cash">Cash</SelectItem>
+                <SelectItem value="check">Check</SelectItem>
+                <SelectItem value="credit_card">Credit Card</SelectItem>
+                <SelectItem value="debit_card">Debit Card</SelectItem>
+                <SelectItem value="venmo">Venmo</SelectItem>
+                <SelectItem value="paypal">PayPal</SelectItem>
+                <SelectItem value="zelle">Zelle</SelectItem>
+                <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
+                <SelectItem value="other">Other</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label>Notes (optional)</Label>
+            <Textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Payment reference, confirmation number, etc."
+              rows={3}
+            />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setIsOpen(false)}>
+            Cancel
+          </Button>
+          <Button onClick={handleConfirm} disabled={!paymentMethod}>
+            Confirm Payment
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

@@ -19,10 +19,11 @@ interface TeamRegistrationDialogProps {
   playersPerTeam: number;
   tournamentSkillLevels?: SkillLevel[];
   maxTeamsPerSkillLevel?: Record<string, number>;
+  entryFee?: number;
   onSuccess: () => void;
 }
 
-const TeamRegistrationDialog = ({ isOpen, onOpenChange, tournamentId, playersPerTeam, tournamentSkillLevels, maxTeamsPerSkillLevel, onSuccess }: TeamRegistrationDialogProps) => {
+const TeamRegistrationDialog = ({ isOpen, onOpenChange, tournamentId, playersPerTeam, tournamentSkillLevels, maxTeamsPerSkillLevel, entryFee = 0, onSuccess }: TeamRegistrationDialogProps) => {
   const { user, profile } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
@@ -117,7 +118,8 @@ const TeamRegistrationDialog = ({ isOpen, onOpenChange, tournamentId, playersPer
           contact_email: formData.contactEmail,
           contact_phone: formData.contactPhone || null,
           skill_level: formData.skillLevel,
-          is_registered: true
+          is_registered: true,
+          payment_status: 'pending'
         })
         .select()
         .single();
@@ -194,6 +196,12 @@ const TeamRegistrationDialog = ({ isOpen, onOpenChange, tournamentId, playersPer
           </DialogTitle>
           <DialogDescription>
             Enter your team details and all player information to register for this tournament.
+            {entryFee > 0 && (
+              <div className="mt-2 p-3 bg-accent rounded-lg">
+                <p className="text-sm font-medium">Entry Fee: ${entryFee}</p>
+                <p className="text-xs text-muted-foreground">Payment confirmation required after registration</p>
+              </div>
+            )}
             {tournamentSkillLevels && tournamentSkillLevels.length > 0 && (
               <div className="mt-2">
                 <span className="text-sm">Available Skill Levels: </span>

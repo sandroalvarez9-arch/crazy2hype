@@ -304,6 +304,10 @@ export type Database = {
           is_backup: boolean | null
           is_registered: boolean | null
           name: string
+          payment_date: string | null
+          payment_method: string | null
+          payment_notes: string | null
+          payment_status: string | null
           players_count: number | null
           seed_number: number | null
           skill_level: string | null
@@ -321,6 +325,10 @@ export type Database = {
           is_backup?: boolean | null
           is_registered?: boolean | null
           name: string
+          payment_date?: string | null
+          payment_method?: string | null
+          payment_notes?: string | null
+          payment_status?: string | null
           players_count?: number | null
           seed_number?: number | null
           skill_level?: string | null
@@ -338,6 +346,10 @@ export type Database = {
           is_backup?: boolean | null
           is_registered?: boolean | null
           name?: string
+          payment_date?: string | null
+          payment_method?: string | null
+          payment_notes?: string | null
+          payment_status?: string | null
           players_count?: number | null
           seed_number?: number | null
           skill_level?: string | null

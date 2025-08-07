@@ -470,6 +470,7 @@ const TournamentDetails = () => {
         playersPerTeam={tournament?.players_per_team || 6}
         tournamentSkillLevels={tournament?.skill_levels as any}
         maxTeamsPerSkillLevel={tournament?.max_teams_per_skill_level}
+        entryFee={tournament?.entry_fee}
         onSuccess={fetchTeams}
       />
     </div>
