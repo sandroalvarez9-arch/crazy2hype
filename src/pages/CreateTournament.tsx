@@ -35,9 +35,7 @@ const formSchema = z.object({
   registration_deadline: z.date({
     required_error: 'Registration deadline is required',
   }),
-  first_game_time: z.date({
-    required_error: 'First game time is required',
-  }),
+  first_game_time: z.string().min(1, 'First game time is required'),
   tournament_format: z.enum(['pool_play', 'single_elimination', 'double_elimination', 'round_robin']),
   skill_levels: z.array(z.enum(['open', 'a', 'bb', 'b', 'c'])).min(1, 'At least one skill level is required'),
   estimated_game_duration: z.number().min(15, 'Minimum 15 minutes per game').max(180, 'Maximum 3 hours per game'),
@@ -52,9 +50,6 @@ const formSchema = z.object({
 }).refine((data) => data.registration_deadline <= data.start_date, {
   message: "Registration deadline must be before start date",
   path: ["registration_deadline"],
-}).refine((data) => data.first_game_time >= data.start_date && data.first_game_time <= data.end_date, {
-  message: "First game time must be between start and end dates",
-  path: ["first_game_time"],
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -120,7 +115,7 @@ const CreateTournament = () => {
           start_date: values.start_date.toISOString(),
           end_date: values.end_date.toISOString(),
           registration_deadline: values.registration_deadline.toISOString(),
-          first_game_time: values.first_game_time.toISOString(),
+          first_game_time: values.first_game_time,
           tournament_format: values.tournament_format,
           skill_levels: values.skill_levels,
           estimated_game_duration: values.estimated_game_duration,
@@ -368,20 +363,12 @@ const CreateTournament = () => {
                    <FormItem className="flex flex-col">
                      <FormLabel>First Game Time *</FormLabel>
                      <FormControl>
-                       <Input
-                         type="time"
-                         value={field.value ? format(field.value, "HH:mm") : ""}
-                         onChange={(e) => {
-                           const startDate = form.getValues('start_date');
-                           if (e.target.value && startDate) {
-                             const [hours, minutes] = e.target.value.split(':');
-                             const gameTime = new Date(startDate);
-                             gameTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
-                             field.onChange(gameTime);
-                           }
-                         }}
-                         className="w-full"
-                       />
+                        <Input
+                          type="time"
+                          value={field.value || ""}
+                          onChange={(e) => field.onChange(e.target.value)}
+                          className="w-full"
+                        />
                      </FormControl>
                      <FormDescription>
                        What time the first match starts on the tournament start date
