@@ -353,8 +353,8 @@ const TournamentDetails = () => {
                   <>
                     <Separator />
                     <div className="flex justify-between items-center">
-                      <span className="text-muted-foreground">First Game</span>
-                      <span className="font-medium">{format(new Date(tournament.first_game_time), "PPP 'at' p")}</span>
+                      <span className="text-muted-foreground">First Game Time</span>
+                      <span className="font-medium">{tournament.first_game_time}</span>
                     </div>
                   </>
                 )}
