@@ -333,11 +333,12 @@ export function GameFormatManager({ tournament, matches, onTournamentUpdate }: G
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="1">1 Set</SelectItem>
-                    <SelectItem value="3">Best of 3</SelectItem>
-                    <SelectItem value="5">Best of 5</SelectItem>
-                  </SelectContent>
+                        <SelectContent>
+                          <SelectItem value="1">1 Set</SelectItem>
+                          <SelectItem value="2">2 Sets</SelectItem>
+                          <SelectItem value="3">Best of 3</SelectItem>
+                          <SelectItem value="5">Best of 5</SelectItem>
+                        </SelectContent>
                 </Select>
               </div>
 
