@@ -403,9 +403,11 @@ export type Database = {
       tournaments: {
         Row: {
           allow_backup_teams: boolean | null
+          bank_details: string | null
           bracket_version: number | null
           brackets_generated: boolean | null
           calculated_courts: number | null
+          check_address: string | null
           check_in_deadline: string | null
           created_at: string
           deciding_set_points: number | null
@@ -422,6 +424,9 @@ export type Database = {
           must_win_by: number | null
           number_of_courts: number | null
           organizer_id: string
+          other_payment_methods: string | null
+          payment_instructions: string | null
+          paypal_email: string | null
           players_per_team: number
           playoff_format: Json | null
           points_per_set: number | null
@@ -436,13 +441,16 @@ export type Database = {
           tournament_format: string | null
           updated_at: string
           uses_phase_formats: boolean | null
+          venmo_username: string | null
           warm_up_duration: number | null
         }
         Insert: {
           allow_backup_teams?: boolean | null
+          bank_details?: string | null
           bracket_version?: number | null
           brackets_generated?: boolean | null
           calculated_courts?: number | null
+          check_address?: string | null
           check_in_deadline?: string | null
           created_at?: string
           deciding_set_points?: number | null
@@ -459,6 +467,9 @@ export type Database = {
           must_win_by?: number | null
           number_of_courts?: number | null
           organizer_id: string
+          other_payment_methods?: string | null
+          payment_instructions?: string | null
+          paypal_email?: string | null
           players_per_team?: number
           playoff_format?: Json | null
           points_per_set?: number | null
@@ -473,13 +484,16 @@ export type Database = {
           tournament_format?: string | null
           updated_at?: string
           uses_phase_formats?: boolean | null
+          venmo_username?: string | null
           warm_up_duration?: number | null
         }
         Update: {
           allow_backup_teams?: boolean | null
+          bank_details?: string | null
           bracket_version?: number | null
           brackets_generated?: boolean | null
           calculated_courts?: number | null
+          check_address?: string | null
           check_in_deadline?: string | null
           created_at?: string
           deciding_set_points?: number | null
@@ -496,6 +510,9 @@ export type Database = {
           must_win_by?: number | null
           number_of_courts?: number | null
           organizer_id?: string
+          other_payment_methods?: string | null
+          payment_instructions?: string | null
+          paypal_email?: string | null
           players_per_team?: number
           playoff_format?: Json | null
           points_per_set?: number | null
@@ -510,6 +527,7 @@ export type Database = {
           tournament_format?: string | null
           updated_at?: string
           uses_phase_formats?: boolean | null
+          venmo_username?: string | null
           warm_up_duration?: number | null
         }
         Relationships: [

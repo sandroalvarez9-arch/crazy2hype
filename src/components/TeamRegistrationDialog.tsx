@@ -11,6 +11,7 @@ import { UserPlus, Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { formatSkillLevel, getSkillLevelBadgeVariant, SkillLevel, skillLevelLabels, skillLevelDescriptions } from '@/utils/skillLevels';
+import PaymentInstructions from './PaymentInstructions';
 
 interface TeamRegistrationDialogProps {
   isOpen: boolean;
@@ -20,10 +21,31 @@ interface TeamRegistrationDialogProps {
   tournamentSkillLevels?: SkillLevel[];
   maxTeamsPerSkillLevel?: Record<string, number>;
   entryFee?: number;
+  paymentInstructions?: string | null;
+  venmoUsername?: string | null;
+  paypalEmail?: string | null;
+  bankDetails?: string | null;
+  checkAddress?: string | null;
+  otherPaymentMethods?: string | null;
   onSuccess: () => void;
 }
 
-const TeamRegistrationDialog = ({ isOpen, onOpenChange, tournamentId, playersPerTeam, tournamentSkillLevels, maxTeamsPerSkillLevel, entryFee = 0, onSuccess }: TeamRegistrationDialogProps) => {
+const TeamRegistrationDialog = ({ 
+  isOpen, 
+  onOpenChange, 
+  tournamentId, 
+  playersPerTeam, 
+  tournamentSkillLevels, 
+  maxTeamsPerSkillLevel, 
+  entryFee = 0,
+  paymentInstructions,
+  venmoUsername,
+  paypalEmail,
+  bankDetails,
+  checkAddress,
+  otherPaymentMethods,
+  onSuccess 
+}: TeamRegistrationDialogProps) => {
   const { user, profile } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
@@ -377,6 +399,18 @@ const TeamRegistrationDialog = ({ isOpen, onOpenChange, tournamentId, playersPer
               rows={3}
             />
           </div>
+
+          {entryFee > 0 && (
+            <PaymentInstructions
+              entryFee={entryFee}
+              paymentInstructions={paymentInstructions}
+              venmoUsername={venmoUsername}
+              paypalEmail={paypalEmail}
+              bankDetails={bankDetails}
+              checkAddress={checkAddress}
+              otherPaymentMethods={otherPaymentMethods}
+            />
+          )}
 
           <DialogFooter>
             <Button

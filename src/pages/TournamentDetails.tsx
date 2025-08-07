@@ -33,6 +33,12 @@ interface Tournament {
   max_teams_per_skill_level?: Record<string, number>;
   players_per_team: number;
   entry_fee: number;
+  payment_instructions: string | null;
+  venmo_username: string | null;
+  paypal_email: string | null;
+  bank_details: string | null;
+  check_address: string | null;
+  other_payment_methods: string | null;
   status: string;
   organizer_id: string;
   check_in_deadline: string | null;
@@ -471,6 +477,12 @@ const TournamentDetails = () => {
         tournamentSkillLevels={tournament?.skill_levels as any}
         maxTeamsPerSkillLevel={tournament?.max_teams_per_skill_level}
         entryFee={tournament?.entry_fee}
+        paymentInstructions={tournament?.payment_instructions}
+        venmoUsername={tournament?.venmo_username}
+        paypalEmail={tournament?.paypal_email}
+        bankDetails={tournament?.bank_details}
+        checkAddress={tournament?.check_address}
+        otherPaymentMethods={tournament?.other_payment_methods}
         onSuccess={fetchTeams}
       />
     </div>
