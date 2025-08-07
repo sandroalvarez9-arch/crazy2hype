@@ -16,18 +16,18 @@ export const skillLevelDescriptions: Record<SkillLevel, string> = {
   'c': 'Recreational/Beginner'
 };
 
-export const getSkillLevelBadgeVariant = (skillLevel: SkillLevel): "default" | "secondary" | "outline" | "destructive" => {
+export const getSkillLevelBadgeVariant = (skillLevel: SkillLevel): "default" | "secondary" | "outline" | "destructive" | "warning" | "info" | "purple" => {
   switch (skillLevel) {
     case 'open':
-      return 'default';
+      return 'default';    // Green - Elite
     case 'a':
-      return 'secondary';
+      return 'destructive'; // Red - Advanced
     case 'bb':
-      return 'outline';
+      return 'warning';    // Orange - Intermediate
     case 'b':
-      return 'outline';
+      return 'info';       // Blue - Beginner-Intermediate
     case 'c':
-      return 'outline';
+      return 'secondary';  // Gray - Recreational/Beginner
     default:
       return 'outline';
   }
