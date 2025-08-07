@@ -9,18 +9,19 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { useToast } from '@/hooks/use-toast';
 import { UserPlus, Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { formatSkillLevel, getSkillLevelBadgeVariant } from '@/utils/skillLevels';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { formatSkillLevel, getSkillLevelBadgeVariant, SkillLevel, skillLevelLabels, skillLevelDescriptions } from '@/utils/skillLevels';
 
 interface TeamRegistrationDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   tournamentId: string;
   playersPerTeam: number;
-  tournamentSkillLevel?: string;
+  tournamentSkillLevels?: SkillLevel[];
   onSuccess: () => void;
 }
 
-const TeamRegistrationDialog = ({ isOpen, onOpenChange, tournamentId, playersPerTeam, tournamentSkillLevel, onSuccess }: TeamRegistrationDialogProps) => {
+const TeamRegistrationDialog = ({ isOpen, onOpenChange, tournamentId, playersPerTeam, tournamentSkillLevels, onSuccess }: TeamRegistrationDialogProps) => {
   const { user, profile } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
@@ -28,7 +29,8 @@ const TeamRegistrationDialog = ({ isOpen, onOpenChange, tournamentId, playersPer
     teamName: '',
     contactEmail: profile?.email || '',
     contactPhone: '',
-    notes: ''
+    notes: '',
+    skillLevel: ''
   });
   
   // Initialize players array with proper defensive checks
@@ -67,7 +69,7 @@ const TeamRegistrationDialog = ({ isOpen, onOpenChange, tournamentId, playersPer
           players_count: playersPerTeam,
           contact_email: formData.contactEmail,
           contact_phone: formData.contactPhone || null,
-          skill_level: tournamentSkillLevel,
+          skill_level: formData.skillLevel,
           is_registered: true
         })
         .select()
@@ -105,7 +107,8 @@ const TeamRegistrationDialog = ({ isOpen, onOpenChange, tournamentId, playersPer
         teamName: '',
         contactEmail: profile?.email || '',
         contactPhone: '',
-        notes: ''
+        notes: '',
+        skillLevel: ''
       });
       
       setPlayers(initializePlayers(playersPerTeam));
@@ -144,12 +147,16 @@ const TeamRegistrationDialog = ({ isOpen, onOpenChange, tournamentId, playersPer
           </DialogTitle>
           <DialogDescription>
             Enter your team details and all player information to register for this tournament.
-            {tournamentSkillLevel && (
+            {tournamentSkillLevels && tournamentSkillLevels.length > 0 && (
               <div className="mt-2">
-                <span className="text-sm">Tournament Skill Level: </span>
-                <Badge variant={getSkillLevelBadgeVariant(tournamentSkillLevel as any)} className="text-xs">
-                  {formatSkillLevel(tournamentSkillLevel as any)}
-                </Badge>
+                <span className="text-sm">Available Skill Levels: </span>
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {tournamentSkillLevels.map((level) => (
+                    <Badge key={level} variant={getSkillLevelBadgeVariant(level)} className="text-xs">
+                      {formatSkillLevel(level)}
+                    </Badge>
+                  ))}
+                </div>
               </div>
             )}
           </DialogDescription>
@@ -166,6 +173,29 @@ const TeamRegistrationDialog = ({ isOpen, onOpenChange, tournamentId, playersPer
               required
             />
           </div>
+
+          {tournamentSkillLevels && tournamentSkillLevels.length > 1 && (
+            <div className="space-y-2">
+              <Label htmlFor="skillLevel">Team Skill Level *</Label>
+              <Select value={formData.skillLevel} onValueChange={(value) => handleInputChange('skillLevel', value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select your team's skill level" />
+                </SelectTrigger>
+                <SelectContent>
+                  {tournamentSkillLevels.map((level) => (
+                    <SelectItem key={level} value={level}>
+                      <div className="flex flex-col">
+                        <span>{skillLevelLabels[level]}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {skillLevelDescriptions[level]}
+                        </span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           <div className="space-y-4">
             <h3 className="text-lg font-semibold">Players ({players.length} required)</h3>
@@ -278,7 +308,12 @@ const TeamRegistrationDialog = ({ isOpen, onOpenChange, tournamentId, playersPer
             </Button>
             <Button
               type="submit"
-              disabled={loading || !formData.teamName.trim() || (players.length > 0 && !players[0]?.name?.trim())}
+              disabled={
+                loading || 
+                !formData.teamName.trim() || 
+                (players.length > 0 && !players[0]?.name?.trim()) ||
+                (tournamentSkillLevels && tournamentSkillLevels.length > 1 && !formData.skillLevel)
+              }
               className="gradient-primary hover:opacity-90 transition-opacity"
             >
               {loading ? (

@@ -392,7 +392,7 @@ export type Database = {
           organizer_id: string
           players_per_team: number
           registration_deadline: string
-          skill_level: string
+          skill_levels: string[] | null
           start_date: string
           status: string
           title: string
@@ -418,7 +418,7 @@ export type Database = {
           organizer_id: string
           players_per_team?: number
           registration_deadline: string
-          skill_level?: string
+          skill_levels?: string[] | null
           start_date: string
           status?: string
           title: string
@@ -444,7 +444,7 @@ export type Database = {
           organizer_id?: string
           players_per_team?: number
           registration_deadline?: string
-          skill_level?: string
+          skill_levels?: string[] | null
           start_date?: string
           status?: string
           title?: string

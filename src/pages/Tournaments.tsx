@@ -21,7 +21,7 @@ interface Tournament {
   max_teams: number;
   entry_fee: number;
   status: string;
-  skill_level: string;
+  skill_levels: string[];
   organizer?: {
     username: string;
   };
