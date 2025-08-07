@@ -10,6 +10,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useToast } from "@/hooks/use-toast";
 import { Users, UserCheck, UserX, Clock, Trophy, AlertTriangle } from "lucide-react";
 import { PoolPlayManager } from "@/components/PoolPlayManager";
+import { GameFormatManager } from "@/components/GameFormatManager";
 
 interface Tournament {
   id: string;
@@ -26,6 +27,11 @@ interface Tournament {
   skill_levels: string[];
   tournament_format: string;
   brackets_generated: boolean;
+  sets_per_game: number;
+  points_per_set: number;
+  must_win_by: number;
+  deciding_set_points: number;
+  game_format_locked: boolean;
 }
 
 interface Team {
@@ -267,6 +273,7 @@ export default function TournamentManagement() {
         <TabsList>
           <TabsTrigger value="teams">Team Management</TabsTrigger>
           <TabsTrigger value="backup">Backup Teams</TabsTrigger>
+          <TabsTrigger value="format">Game Format</TabsTrigger>
           <TabsTrigger value="poolplay">Pool Play</TabsTrigger>
           <TabsTrigger value="bracket">Bracket Control</TabsTrigger>
         </TabsList>
@@ -376,6 +383,16 @@ export default function TournamentManagement() {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="format" className="space-y-4">
+          {tournament && (
+            <GameFormatManager 
+              tournament={tournament}
+              matches={[]} // TODO: Fetch matches when needed
+              onTournamentUpdate={fetchTournamentData}
+            />
+          )}
         </TabsContent>
 
         <TabsContent value="poolplay" className="space-y-4">

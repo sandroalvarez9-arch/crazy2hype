@@ -62,12 +62,16 @@ export type Database = {
           completed_at: string | null
           court_number: number | null
           created_at: string
+          current_set: number | null
           id: string
           match_number: number
           pool_name: string | null
           referee_team_id: string | null
           round_number: number
           scheduled_time: string | null
+          set_scores: Json | null
+          sets_won_team1: number | null
+          sets_won_team2: number | null
           status: string
           team1_id: string | null
           team1_score: number | null
@@ -82,12 +86,16 @@ export type Database = {
           completed_at?: string | null
           court_number?: number | null
           created_at?: string
+          current_set?: number | null
           id?: string
           match_number: number
           pool_name?: string | null
           referee_team_id?: string | null
           round_number: number
           scheduled_time?: string | null
+          set_scores?: Json | null
+          sets_won_team1?: number | null
+          sets_won_team2?: number | null
           status?: string
           team1_id?: string | null
           team1_score?: number | null
@@ -102,12 +110,16 @@ export type Database = {
           completed_at?: string | null
           court_number?: number | null
           created_at?: string
+          current_set?: number | null
           id?: string
           match_number?: number
           pool_name?: string | null
           referee_team_id?: string | null
           round_number?: number
           scheduled_time?: string | null
+          set_scores?: Json | null
+          sets_won_team1?: number | null
+          sets_won_team2?: number | null
           status?: string
           team1_id?: string | null
           team1_score?: number | null
@@ -381,20 +393,25 @@ export type Database = {
           calculated_courts: number | null
           check_in_deadline: string | null
           created_at: string
+          deciding_set_points: number | null
           description: string | null
           end_date: string
           entry_fee: number | null
           estimated_game_duration: number | null
           first_game_time: string | null
+          game_format_locked: boolean | null
           id: string
           location: string | null
           max_teams: number
           max_teams_per_skill_level: Json | null
+          must_win_by: number | null
           number_of_courts: number | null
           organizer_id: string
           players_per_team: number
+          points_per_set: number | null
           pools_per_skill_level: Json | null
           registration_deadline: string
+          sets_per_game: number | null
           skill_levels: string[] | null
           start_date: string
           status: string
@@ -410,20 +427,25 @@ export type Database = {
           calculated_courts?: number | null
           check_in_deadline?: string | null
           created_at?: string
+          deciding_set_points?: number | null
           description?: string | null
           end_date: string
           entry_fee?: number | null
           estimated_game_duration?: number | null
           first_game_time?: string | null
+          game_format_locked?: boolean | null
           id?: string
           location?: string | null
           max_teams?: number
           max_teams_per_skill_level?: Json | null
+          must_win_by?: number | null
           number_of_courts?: number | null
           organizer_id: string
           players_per_team?: number
+          points_per_set?: number | null
           pools_per_skill_level?: Json | null
           registration_deadline: string
+          sets_per_game?: number | null
           skill_levels?: string[] | null
           start_date: string
           status?: string
@@ -439,20 +461,25 @@ export type Database = {
           calculated_courts?: number | null
           check_in_deadline?: string | null
           created_at?: string
+          deciding_set_points?: number | null
           description?: string | null
           end_date?: string
           entry_fee?: number | null
           estimated_game_duration?: number | null
           first_game_time?: string | null
+          game_format_locked?: boolean | null
           id?: string
           location?: string | null
           max_teams?: number
           max_teams_per_skill_level?: Json | null
+          must_win_by?: number | null
           number_of_courts?: number | null
           organizer_id?: string
           players_per_team?: number
+          points_per_set?: number | null
           pools_per_skill_level?: Json | null
           registration_deadline?: string
+          sets_per_game?: number | null
           skill_levels?: string[] | null
           start_date?: string
           status?: string
@@ -476,6 +503,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      log_format_change: {
+        Args: {
+          tournament_id: string
+          old_format: Json
+          new_format: Json
+          change_reason?: string
+        }
+        Returns: undefined
+      }
       log_tournament_action: {
         Args: { tournament_id: string; action: string; details?: Json }
         Returns: undefined
