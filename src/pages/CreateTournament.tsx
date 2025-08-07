@@ -334,38 +334,24 @@ const CreateTournament = () => {
                  render={({ field }) => (
                    <FormItem className="flex flex-col">
                      <FormLabel>First Game Time *</FormLabel>
-                     <Popover>
-                       <PopoverTrigger asChild>
-                         <FormControl>
-                           <Button
-                             variant="outline"
-                             className={cn(
-                               "w-full pl-3 text-left font-normal",
-                               !field.value && "text-muted-foreground"
-                             )}
-                           >
-                             {field.value ? (
-                               format(field.value, "PPP 'at' p")
-                             ) : (
-                               <span>Pick date and time</span>
-                             )}
-                             <Clock className="ml-auto h-4 w-4 opacity-50" />
-                           </Button>
-                         </FormControl>
-                       </PopoverTrigger>
-                       <PopoverContent className="w-auto p-0" align="start">
-                         <Calendar
-                           mode="single"
-                           selected={field.value}
-                           onSelect={field.onChange}
-                           disabled={(date) => date < new Date()}
-                           initialFocus
-                           className={cn("p-3 pointer-events-auto")}
-                         />
-                       </PopoverContent>
-                     </Popover>
+                     <FormControl>
+                       <Input
+                         type="time"
+                         value={field.value ? format(field.value, "HH:mm") : ""}
+                         onChange={(e) => {
+                           const startDate = form.getValues('start_date');
+                           if (e.target.value && startDate) {
+                             const [hours, minutes] = e.target.value.split(':');
+                             const gameTime = new Date(startDate);
+                             gameTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+                             field.onChange(gameTime);
+                           }
+                         }}
+                         className="w-full"
+                       />
+                     </FormControl>
                      <FormDescription>
-                       When the first match of the tournament starts
+                       What time the first match starts on the tournament start date
                      </FormDescription>
                      <FormMessage />
                    </FormItem>
