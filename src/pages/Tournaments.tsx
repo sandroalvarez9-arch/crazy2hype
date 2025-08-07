@@ -152,7 +152,7 @@ const Tournaments = () => {
     } else {
       setFilteredTournaments(
         tournaments.filter(tournament => 
-          selectedSkillLevels.includes(tournament.skill_level as SkillLevel)
+          tournament.skill_levels.some(level => selectedSkillLevels.includes(level as SkillLevel))
         )
       );
     }
@@ -240,10 +240,12 @@ const Tournaments = () => {
                       {tournament.title}
                     </CardTitle>
                     <div className="flex flex-col items-end gap-1">
-                      <div className="flex gap-1">
-                        <Badge variant={getSkillLevelBadgeVariant(tournament.skill_level as any)} className="shrink-0 text-xs">
-                          {formatSkillLevel(tournament.skill_level as any)}
-                        </Badge>
+                      <div className="flex flex-wrap gap-1">
+                        {tournament.skill_levels.map((level) => (
+                          <Badge key={level} variant={getSkillLevelBadgeVariant(level as SkillLevel)} className="shrink-0 text-xs">
+                            {formatSkillLevel(level as SkillLevel)}
+                          </Badge>
+                        ))}
                         <Badge variant="secondary" className="shrink-0 text-xs">
                           {tournament.status}
                         </Badge>
