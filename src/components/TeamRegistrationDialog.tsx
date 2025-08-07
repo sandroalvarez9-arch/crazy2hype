@@ -18,13 +18,15 @@ interface TeamRegistrationDialogProps {
   tournamentId: string;
   playersPerTeam: number;
   tournamentSkillLevels?: SkillLevel[];
+  maxTeamsPerSkillLevel?: Record<string, number>;
   onSuccess: () => void;
 }
 
-const TeamRegistrationDialog = ({ isOpen, onOpenChange, tournamentId, playersPerTeam, tournamentSkillLevels, onSuccess }: TeamRegistrationDialogProps) => {
+const TeamRegistrationDialog = ({ isOpen, onOpenChange, tournamentId, playersPerTeam, tournamentSkillLevels, maxTeamsPerSkillLevel, onSuccess }: TeamRegistrationDialogProps) => {
   const { user, profile } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [skillLevelTeamCounts, setSkillLevelTeamCounts] = useState<Record<string, number>>({});
   const [formData, setFormData] = useState({
     teamName: '',
     contactEmail: profile?.email || '',
@@ -32,6 +34,36 @@ const TeamRegistrationDialog = ({ isOpen, onOpenChange, tournamentId, playersPer
     notes: '',
     skillLevel: ''
   });
+
+  // Fetch current team counts by skill level
+  React.useEffect(() => {
+    const fetchTeamCounts = async () => {
+      if (!tournamentSkillLevels) return;
+      
+      try {
+        const { data: teams, error } = await supabase
+          .from('teams')
+          .select('skill_level')
+          .eq('tournament_id', tournamentId)
+          .eq('is_registered', true);
+
+        if (error) throw error;
+
+        const counts: Record<string, number> = {};
+        tournamentSkillLevels.forEach(level => {
+          counts[level] = teams?.filter(team => team.skill_level === level).length || 0;
+        });
+        
+        setSkillLevelTeamCounts(counts);
+      } catch (error) {
+        console.error('Error fetching team counts:', error);
+      }
+    };
+
+    if (isOpen) {
+      fetchTeamCounts();
+    }
+  }, [isOpen, tournamentId, tournamentSkillLevels]);
   
   // Initialize players array with proper defensive checks
   const initializePlayers = (count: number) => {
@@ -56,6 +88,21 @@ const TeamRegistrationDialog = ({ isOpen, onOpenChange, tournamentId, playersPer
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user || !profile) return;
+
+    // Check skill level capacity
+    if (formData.skillLevel && maxTeamsPerSkillLevel) {
+      const currentCount = skillLevelTeamCounts[formData.skillLevel] || 0;
+      const maxCount = maxTeamsPerSkillLevel[formData.skillLevel] || 0;
+      
+      if (currentCount >= maxCount) {
+        toast({
+          title: "Skill level full",
+          description: `The ${formatSkillLevel(formData.skillLevel as SkillLevel)} division is full. Please select a different skill level or contact the organizer.`,
+          variant: "destructive",
+        });
+        return;
+      }
+    }
 
     setLoading(true);
     try {
@@ -150,13 +197,27 @@ const TeamRegistrationDialog = ({ isOpen, onOpenChange, tournamentId, playersPer
             {tournamentSkillLevels && tournamentSkillLevels.length > 0 && (
               <div className="mt-2">
                 <span className="text-sm">Available Skill Levels: </span>
-                <div className="flex flex-wrap gap-1 mt-1">
-                  {tournamentSkillLevels.map((level) => (
-                    <Badge key={level} variant={getSkillLevelBadgeVariant(level)} className="text-xs">
-                      {formatSkillLevel(level)}
-                    </Badge>
-                  ))}
-                </div>
+                 <div className="flex flex-wrap gap-1 mt-1">
+                   {tournamentSkillLevels.map((level) => {
+                     const currentCount = skillLevelTeamCounts[level] || 0;
+                     const maxCount = maxTeamsPerSkillLevel?.[level] || 0;
+                     const isFull = currentCount >= maxCount;
+                     
+                     return (
+                       <div key={level} className="flex items-center gap-1">
+                         <Badge 
+                           variant={isFull ? 'secondary' : getSkillLevelBadgeVariant(level)} 
+                           className={`text-xs ${isFull ? 'opacity-50' : ''}`}
+                         >
+                           {formatSkillLevel(level)}
+                         </Badge>
+                         <span className={`text-xs ${isFull ? 'text-destructive' : 'text-muted-foreground'}`}>
+                           {currentCount}/{maxCount}
+                         </span>
+                       </div>
+                     );
+                   })}
+                 </div>
               </div>
             )}
           </DialogDescription>
@@ -182,16 +243,28 @@ const TeamRegistrationDialog = ({ isOpen, onOpenChange, tournamentId, playersPer
                   <SelectValue placeholder="Select your team's skill level" />
                 </SelectTrigger>
                 <SelectContent>
-                  {tournamentSkillLevels.map((level) => (
-                    <SelectItem key={level} value={level}>
-                      <div className="flex flex-col">
-                        <span>{skillLevelLabels[level]}</span>
-                        <span className="text-xs text-muted-foreground">
-                          {skillLevelDescriptions[level]}
-                        </span>
-                      </div>
-                    </SelectItem>
-                  ))}
+                  {tournamentSkillLevels.map((level) => {
+                    const currentCount = skillLevelTeamCounts[level] || 0;
+                    const maxCount = maxTeamsPerSkillLevel?.[level] || 0;
+                    const isFull = currentCount >= maxCount;
+                    
+                    return (
+                      <SelectItem key={level} value={level} disabled={isFull}>
+                        <div className="flex flex-col">
+                          <div className="flex items-center gap-2">
+                            <span>{skillLevelLabels[level]}</span>
+                            <span className={`text-xs ${isFull ? 'text-destructive' : 'text-muted-foreground'}`}>
+                              ({currentCount}/{maxCount})
+                            </span>
+                            {isFull && <span className="text-xs text-destructive font-medium">FULL</span>}
+                          </div>
+                          <span className="text-xs text-muted-foreground">
+                            {skillLevelDescriptions[level]}
+                          </span>
+                        </div>
+                      </SelectItem>
+                    );
+                  })}
                 </SelectContent>
               </Select>
             </div>

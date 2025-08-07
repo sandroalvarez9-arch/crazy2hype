@@ -30,6 +30,7 @@ interface Tournament {
   number_of_courts: number;
   brackets_generated: boolean;
   max_teams: number;
+  max_teams_per_skill_level?: Record<string, number>;
   players_per_team: number;
   entry_fee: number;
   status: string;
@@ -52,6 +53,7 @@ interface Team {
   captain_id: string;
   check_in_status: string;
   check_in_time: string | null;
+  skill_level?: string;
   captain: {
     username: string;
     first_name: string;
@@ -93,7 +95,10 @@ const TournamentDetails = () => {
         .single();
 
       if (error) throw error;
-      setTournament(data);
+      setTournament({
+        ...data,
+        max_teams_per_skill_level: data.max_teams_per_skill_level as Record<string, number> | undefined
+      });
     } catch (error) {
       console.error('Error fetching tournament:', error);
     }
@@ -169,9 +174,26 @@ const TournamentDetails = () => {
 
   const isOrganizer = user?.id === tournament.organizer_id;
   const registeredTeams = teams.filter(team => team.is_registered);
+  
+  // Calculate registration status by skill level
+  const getRegistrationStatusBySkillLevel = () => {
+    const statusBySkillLevel: Record<string, { registered: number, max: number }> = {};
+    
+    tournament.skill_levels.forEach(skillLevel => {
+      const teamsInSkillLevel = registeredTeams.filter(team => team.skill_level === skillLevel).length;
+      const maxTeamsForSkillLevel = tournament.max_teams_per_skill_level?.[skillLevel] || 0;
+      statusBySkillLevel[skillLevel] = {
+        registered: teamsInSkillLevel,
+        max: maxTeamsForSkillLevel
+      };
+    });
+    
+    return statusBySkillLevel;
+  };
+  
+  const skillLevelStatus = getRegistrationStatusBySkillLevel();
   const canRegister = new Date() < new Date(tournament.registration_deadline) && 
-                     tournament.status === 'open' && 
-                     registeredTeams.length < tournament.max_teams;
+                     tournament.status === 'open';
 
   return (
     <div className={`container mx-auto px-4 py-6 ${isMobile ? 'pb-4' : 'py-8'}`}>
@@ -258,6 +280,18 @@ const TournamentDetails = () => {
                 <div>
                   <p className="text-sm text-muted-foreground">Teams</p>
                   <p className="font-medium">{registeredTeams.length}/{tournament.max_teams}</p>
+                  {tournament.skill_levels.length > 1 && (
+                    <div className="text-xs text-muted-foreground mt-1">
+                      {tournament.skill_levels.map(level => (
+                        <div key={level} className="inline-flex items-center gap-1 mr-2">
+                          <Badge variant={getSkillLevelBadgeVariant(level as any)} className="text-xs">
+                            {formatSkillLevel(level as any)}
+                          </Badge>
+                          <span>{skillLevelStatus[level]?.registered || 0}/{skillLevelStatus[level]?.max || 0}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
               
@@ -355,18 +389,26 @@ const TournamentDetails = () => {
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Players</span>
-                        <span>{team.players_count}</span>
-                      </div>
-                      {team.contact_email && (
-                        <div className="flex justify-between text-sm">
-                          <span className="text-muted-foreground">Email</span>
-                          <span className="truncate ml-2">{team.contact_email}</span>
-                        </div>
-                      )}
-                    </div>
+                     <div className="space-y-2">
+                       <div className="flex justify-between text-sm">
+                         <span className="text-muted-foreground">Players</span>
+                         <span>{team.players_count}</span>
+                       </div>
+                       {team.skill_level && (
+                         <div className="flex justify-between text-sm">
+                           <span className="text-muted-foreground">Skill Level</span>
+                           <Badge variant={getSkillLevelBadgeVariant(team.skill_level as any)} className="text-xs">
+                             {formatSkillLevel(team.skill_level as any)}
+                           </Badge>
+                         </div>
+                       )}
+                       {team.contact_email && (
+                         <div className="flex justify-between text-sm">
+                           <span className="text-muted-foreground">Email</span>
+                           <span className="truncate ml-2">{team.contact_email}</span>
+                         </div>
+                       )}
+                     </div>
                   </CardContent>
                 </Card>
               ))}
@@ -427,6 +469,7 @@ const TournamentDetails = () => {
         tournamentId={id!}
         playersPerTeam={tournament?.players_per_team || 6}
         tournamentSkillLevels={tournament?.skill_levels as any}
+        maxTeamsPerSkillLevel={tournament?.max_teams_per_skill_level}
         onSuccess={fetchTeams}
       />
     </div>

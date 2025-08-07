@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -19,7 +19,8 @@ import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { SkillLevelMultiSelect } from '@/components/SkillLevelMultiSelect';
-import { SkillLevel } from '@/utils/skillLevels';
+import { SkillLevel, formatSkillLevel, getSkillLevelBadgeVariant } from '@/utils/skillLevels';
+import { Badge } from '@/components/ui/badge';
 
 const formSchema = z.object({
   title: z.string().min(3, 'Tournament title must be at least 3 characters'),
@@ -42,7 +43,7 @@ const formSchema = z.object({
   estimated_game_duration: z.number().min(15, 'Minimum 15 minutes per game').max(180, 'Maximum 3 hours per game'),
   warm_up_duration: z.number().min(3, 'Minimum 3 minutes warm-up').max(10, 'Maximum 10 minutes warm-up'),
   number_of_courts: z.number().min(1, 'Minimum 1 court required').max(20, 'Maximum 20 courts').optional(),
-  max_teams: z.number().min(4, 'Minimum 4 teams required').max(64, 'Maximum 64 teams allowed'),
+  max_teams_per_skill_level: z.record(z.number().min(4, 'Minimum 4 teams per skill level').max(64, 'Maximum 64 teams per skill level')),
   players_per_team: z.number().min(1, 'Minimum 1 player per team').max(20, 'Maximum 20 players per team'),
   entry_fee: z.number().min(0, 'Entry fee cannot be negative'),
 }).refine((data) => data.end_date >= data.start_date, {
@@ -75,12 +76,35 @@ const CreateTournament = () => {
       skill_levels: ['open'] as SkillLevel[],
       estimated_game_duration: 30,
       warm_up_duration: 7,
-      
-      max_teams: 16,
+      max_teams_per_skill_level: { open: 16 },
       players_per_team: 6,
       entry_fee: 0,
     },
   });
+
+  // Watch skill levels to update max_teams_per_skill_level
+  const watchedSkillLevels = form.watch('skill_levels');
+  const currentMaxTeams = form.watch('max_teams_per_skill_level');
+
+  React.useEffect(() => {
+    const newMaxTeams = { ...currentMaxTeams };
+    
+    // Add default limits for new skill levels
+    watchedSkillLevels.forEach(level => {
+      if (!(level in newMaxTeams)) {
+        newMaxTeams[level] = 16;
+      }
+    });
+    
+    // Remove limits for removed skill levels
+    Object.keys(newMaxTeams).forEach(level => {
+      if (!watchedSkillLevels.includes(level as SkillLevel)) {
+        delete newMaxTeams[level];
+      }
+    });
+    
+    form.setValue('max_teams_per_skill_level', newMaxTeams);
+  }, [watchedSkillLevels, currentMaxTeams, form]);
 
   const onSubmit = async (values: FormValues) => {
     if (!user) return;
@@ -102,7 +126,8 @@ const CreateTournament = () => {
           estimated_game_duration: values.estimated_game_duration,
           warm_up_duration: values.warm_up_duration,
           number_of_courts: values.number_of_courts,
-          max_teams: values.max_teams,
+          max_teams_per_skill_level: values.max_teams_per_skill_level,
+          max_teams: Object.values(values.max_teams_per_skill_level).reduce((sum, count) => sum + count, 0),
           players_per_team: values.players_per_team,
           entry_fee: values.entry_fee,
           organizer_id: user.id,
@@ -463,29 +488,50 @@ const CreateTournament = () => {
                   />
                  </div>
 
-               <div className={`grid ${isMobile ? 'grid-cols-1' : 'md:grid-cols-3'} gap-6`}>
-                <FormField
-                  control={form.control}
-                  name="max_teams"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Maximum Teams *</FormLabel>
-                      <FormControl>
-                        <Input 
-                          type="number"
-                          min={4}
-                          max={64}
-                          {...field}
-                          onChange={(e) => field.onChange(parseInt(e.target.value))}
-                        />
-                      </FormControl>
-                      <FormDescription>
-                        Number of teams that can participate (4-64)
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+               <div className="space-y-6">
+                 <FormField
+                   control={form.control}
+                   name="max_teams_per_skill_level"
+                   render={({ field }) => (
+                     <FormItem>
+                       <FormLabel>Team Limits per Skill Level *</FormLabel>
+                       <div className="space-y-3">
+                         {watchedSkillLevels.map((level) => (
+                           <div key={level} className="flex items-center gap-3">
+                             <div className="flex-1">
+                               <Badge variant={getSkillLevelBadgeVariant(level)} className="mb-1">
+                                 {formatSkillLevel(level)}
+                               </Badge>
+                             </div>
+                             <div className="flex-1">
+                               <Input
+                                 type="number"
+                                 min={4}
+                                 max={64}
+                                 value={field.value[level] || 16}
+                                 onChange={(e) => {
+                                   const newValue = parseInt(e.target.value) || 16;
+                                   field.onChange({
+                                     ...field.value,
+                                     [level]: newValue
+                                   });
+                                 }}
+                                 placeholder="16"
+                               />
+                             </div>
+                           </div>
+                         ))}
+                       </div>
+                       <FormDescription>
+                         Set maximum teams for each skill level (4-64 per level).
+                         Total: {Object.values(field.value).reduce((sum, count) => sum + count, 0)} teams
+                       </FormDescription>
+                       <FormMessage />
+                     </FormItem>
+                   )}
+                 />
+
+               <div className={`grid ${isMobile ? 'grid-cols-1' : 'md:grid-cols-2'} gap-6`}>
 
                 <FormField
                   control={form.control}
@@ -532,10 +578,11 @@ const CreateTournament = () => {
                       <FormMessage />
                     </FormItem>
                   )}
-                />
-              </div>
+                 />
+               </div>
+               </div>
 
-              <div className="flex gap-4 pt-4">
+               <div className="flex gap-4 pt-4">
                 <Button
                   type="button"
                   variant="outline"

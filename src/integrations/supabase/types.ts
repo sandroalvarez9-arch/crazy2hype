@@ -389,6 +389,7 @@ export type Database = {
           id: string
           location: string | null
           max_teams: number
+          max_teams_per_skill_level: Json | null
           number_of_courts: number | null
           organizer_id: string
           players_per_team: number
@@ -417,6 +418,7 @@ export type Database = {
           id?: string
           location?: string | null
           max_teams?: number
+          max_teams_per_skill_level?: Json | null
           number_of_courts?: number | null
           organizer_id: string
           players_per_team?: number
@@ -445,6 +447,7 @@ export type Database = {
           id?: string
           location?: string | null
           max_teams?: number
+          max_teams_per_skill_level?: Json | null
           number_of_courts?: number | null
           organizer_id?: string
           players_per_team?: number
