@@ -12,6 +12,8 @@ import TournamentDetails from "./pages/TournamentDetails";
 import TournamentManagement from "./pages/TournamentManagement";
 import Tournaments from "./pages/Tournaments";
 import NotFound from "./pages/NotFound";
+import PaymentSuccess from "./pages/PaymentSuccess";
+import PaymentCanceled from "./pages/PaymentCanceled";
 
 const queryClient = new QueryClient();
 
@@ -93,6 +95,16 @@ const App = () => (
               <ProtectedRoute>
                 <TournamentManagement />
               </ProtectedRoute>
+            } />
+            <Route path="/payment-success" element={
+              <Layout>
+                <PaymentSuccess />
+              </Layout>
+            } />
+            <Route path="/payment-canceled" element={
+              <Layout>
+                <PaymentCanceled />
+              </Layout>
             } />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />

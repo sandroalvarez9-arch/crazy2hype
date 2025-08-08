@@ -80,6 +80,7 @@ const TournamentDetails = () => {
   const [showRegistrationDialog, setShowRegistrationDialog] = useState(false);
   const [userTeams, setUserTeams] = useState<Team[]>([]);
   const [matches, setMatches] = useState<any[]>([]);
+  const [paying, setPaying] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -153,6 +154,24 @@ const TournamentDetails = () => {
       setMatches(data || []);
     } catch (error) {
       console.error('Error fetching matches:', error);
+    }
+  };
+
+  const handlePayOnline = async () => {
+    if (!tournament || !user) return;
+    try {
+      setPaying(true);
+      const { data, error } = await supabase.functions.invoke('create-payment', {
+        body: { tournamentId: tournament.id },
+      });
+      if (error) throw error as any;
+      if ((data as any)?.url) {
+        window.open((data as any).url as string, '_blank');
+      }
+    } catch (e) {
+      console.error('Stripe checkout error:', e);
+    } finally {
+      setPaying(false);
     }
   };
 
@@ -244,6 +263,17 @@ const TournamentDetails = () => {
                 >
                   <Settings className="h-4 w-4 mr-2" />
                   Manage
+                </Button>
+              )}
+              {tournament.entry_fee > 0 && user && (
+                <Button 
+                  size="sm"
+                  className="gradient-primary hover:opacity-90 transition-opacity"
+                  onClick={handlePayOnline}
+                  disabled={paying}
+                >
+                  <DollarSign className="h-4 w-4 mr-2" />
+                  {paying ? 'Redirecting…' : 'Pay online (Stripe)'}
                 </Button>
               )}
               {userTeams.length > 0 && (
