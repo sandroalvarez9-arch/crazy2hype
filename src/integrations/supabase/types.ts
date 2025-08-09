@@ -300,6 +300,7 @@ export type Database = {
           contact_email: string | null
           contact_phone: string | null
           created_at: string
+          division: string | null
           id: string
           is_backup: boolean | null
           is_registered: boolean | null
@@ -321,6 +322,7 @@ export type Database = {
           contact_email?: string | null
           contact_phone?: string | null
           created_at?: string
+          division?: string | null
           id?: string
           is_backup?: boolean | null
           is_registered?: boolean | null
@@ -342,6 +344,7 @@ export type Database = {
           contact_email?: string | null
           contact_phone?: string | null
           created_at?: string
+          division?: string | null
           id?: string
           is_backup?: boolean | null
           is_registered?: boolean | null
@@ -412,6 +415,7 @@ export type Database = {
           created_at: string
           deciding_set_points: number | null
           description: string | null
+          divisions: string[] | null
           end_date: string
           entry_fee: number | null
           estimated_game_duration: number | null
@@ -420,6 +424,7 @@ export type Database = {
           id: string
           location: string | null
           max_teams: number
+          max_teams_per_division_skill: Json | null
           max_teams_per_skill_level: Json | null
           must_win_by: number | null
           number_of_courts: number | null
@@ -435,6 +440,7 @@ export type Database = {
           registration_deadline: string
           sets_per_game: number | null
           skill_levels: string[] | null
+          skill_levels_by_division: Json | null
           start_date: string
           status: string
           title: string
@@ -455,6 +461,7 @@ export type Database = {
           created_at?: string
           deciding_set_points?: number | null
           description?: string | null
+          divisions?: string[] | null
           end_date: string
           entry_fee?: number | null
           estimated_game_duration?: number | null
@@ -463,6 +470,7 @@ export type Database = {
           id?: string
           location?: string | null
           max_teams?: number
+          max_teams_per_division_skill?: Json | null
           max_teams_per_skill_level?: Json | null
           must_win_by?: number | null
           number_of_courts?: number | null
@@ -478,6 +486,7 @@ export type Database = {
           registration_deadline: string
           sets_per_game?: number | null
           skill_levels?: string[] | null
+          skill_levels_by_division?: Json | null
           start_date: string
           status?: string
           title: string
@@ -498,6 +507,7 @@ export type Database = {
           created_at?: string
           deciding_set_points?: number | null
           description?: string | null
+          divisions?: string[] | null
           end_date?: string
           entry_fee?: number | null
           estimated_game_duration?: number | null
@@ -506,6 +516,7 @@ export type Database = {
           id?: string
           location?: string | null
           max_teams?: number
+          max_teams_per_division_skill?: Json | null
           max_teams_per_skill_level?: Json | null
           must_win_by?: number | null
           number_of_courts?: number | null
@@ -521,6 +532,7 @@ export type Database = {
           registration_deadline?: string
           sets_per_game?: number | null
           skill_levels?: string[] | null
+          skill_levels_by_division?: Json | null
           start_date?: string
           status?: string
           title?: string
