@@ -25,9 +25,9 @@ const SkillLevelFilter = ({ selectedLevels, onLevelsChange }: SkillLevelFilterPr
     onLevelsChange([]);
   };
 
-  const selectAll = () => {
-    onLevelsChange(['open', 'a', 'bb', 'b', 'c']);
-  };
+const selectAll = () => {
+  onLevelsChange(['open', 'aa', 'a', 'bb', 'b', 'c']);
+};
 
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
@@ -62,7 +62,7 @@ const SkillLevelFilter = ({ selectedLevels, onLevelsChange }: SkillLevelFilterPr
                 variant="ghost" 
                 size="sm" 
                 onClick={selectAll}
-                disabled={selectedLevels.length === 5}
+                disabled={selectedLevels.length === 6}
               >
                 All
               </Button>

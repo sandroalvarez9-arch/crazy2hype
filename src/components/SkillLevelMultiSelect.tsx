@@ -13,7 +13,7 @@ interface SkillLevelMultiSelectProps {
   className?: string;
 }
 
-const allSkillLevels: SkillLevel[] = ['open', 'a', 'bb', 'b', 'c'];
+const allSkillLevels: SkillLevel[] = ['open', 'aa', 'a', 'bb', 'b', 'c'];
 
 export function SkillLevelMultiSelect({ selectedLevels, onLevelsChange, className }: SkillLevelMultiSelectProps) {
   const [open, setOpen] = useState(false);
