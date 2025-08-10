@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,6 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { formatSkillLevel, getSkillLevelBadgeVariant, SkillLevel } from '@/utils/skillLevels';
 import SkillLevelFilter from '@/components/SkillLevelFilter';
+import { Input } from '@/components/ui/input';
 
 interface Tournament {
   id: string;
@@ -76,40 +77,99 @@ const Tournaments = ({ showMyTournaments = false }: { showMyTournaments?: boolea
   const [locationPermission, setLocationPermission] = useState<string>('pending');
   const [selectedSkillLevels, setSelectedSkillLevels] = useState<SkillLevel[]>([]);
   const [filteredTournaments, setFilteredTournaments] = useState<Tournament[]>([]);
+  const [manualQuery, setManualQuery] = useState('');
+  const [manualLoading, setManualLoading] = useState(false);
+  const [isIframe, setIsIframe] = useState(false);
+  const requestedRef = useRef(false);
   const isMobile = useIsMobile();
   const { toast } = useToast();
   const { user } = useAuth();
 
-  // Get user's current location
-  useEffect(() => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setUserLocation({
-            lat: position.coords.latitude,
-            lng: position.coords.longitude
-          });
-          setLocationPermission('granted');
-        },
-        (error) => {
-          console.log('Location access denied:', error);
-          setLocationPermission('denied');
-          toast({
-            title: "Location Access",
-            description: "Location access denied. Tournaments will be sorted alphabetically.",
-            variant: "default"
-          });
-        }
-      );
-    } else {
-      setLocationPermission('unsupported');
-      toast({
-        title: "Location Unavailable",
-        description: "Geolocation is not supported. Tournaments will be sorted alphabetically.",
-        variant: "default"
-      });
+// Helpers for robust geolocation
+const isInIframeSafe = () => {
+  try {
+    return window.self !== window.top;
+  } catch {
+    return true;
+  }
+};
+
+const getCurrentPositionWithTimeout = (timeout = 8000) =>
+  new Promise<GeolocationPosition>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error('Geolocation timeout')), timeout);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        clearTimeout(timer);
+        resolve(pos);
+      },
+      (err) => {
+        clearTimeout(timer);
+        reject(err);
+      },
+      { enableHighAccuracy: false, timeout, maximumAge: 300000 }
+    );
+  });
+
+const checkAndRequestLocation = async (manual = false) => {
+  if (requestedRef.current && !manual) return;
+  requestedRef.current = true;
+
+  if (!('geolocation' in navigator)) {
+    setLocationPermission('unsupported');
+    toast({
+      title: 'Location unavailable',
+      description: 'Geolocation is not supported by your browser.',
+      variant: 'default',
+    });
+    return;
+  }
+
+  const iframe = isInIframeSafe();
+  setIsIframe(iframe);
+  if (iframe && !manual) {
+    setLocationPermission('blocked');
+    toast({
+      title: 'Location blocked in preview',
+      description: 'Browsers often block geolocation inside iframes. Use the city/ZIP field instead.',
+      variant: 'default',
+    });
+    return;
+  }
+
+  try {
+    const perm = await navigator.permissions?.query({ name: 'geolocation' as PermissionName });
+    if (perm) setLocationPermission(perm.state);
+    if (perm?.state === 'denied') {
+      toast({ title: 'Location denied', description: 'Please allow location or use the city/ZIP field.', variant: 'default' });
+      return;
     }
-  }, [toast]);
+
+    const pos = await getCurrentPositionWithTimeout(8000);
+    const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+    setUserLocation(loc);
+    setLocationPermission('granted');
+    localStorage.setItem('userLocation', JSON.stringify({ ...loc, ts: Date.now() }));
+  } catch (err: any) {
+    setLocationPermission('denied');
+    const msg = err?.message?.includes('timeout') ? 'Location request timed out.' : 'Unable to get your location.';
+    toast({ title: 'Location error', description: `${msg} You can enter a city or ZIP instead.`, variant: 'default' });
+  }
+};
+
+// On mount: restore cached location and try one-time geolocation
+useEffect(() => {
+  try {
+    const cached = localStorage.getItem('userLocation');
+    if (cached) {
+      const obj = JSON.parse(cached);
+      if (obj?.lat && obj?.lng && Date.now() - (obj.ts || 0) < 1000 * 60 * 60 * 24 * 7) {
+        setUserLocation({ lat: obj.lat, lng: obj.lng });
+      }
+    }
+  } catch {}
+  checkAndRequestLocation();
+}, []);
+
 
   useEffect(() => {
     fetchTournaments();
@@ -197,25 +257,28 @@ setTournaments(tournamentsWithDistance);
     }
   }, [tournaments, selectedSkillLevels]);
 
-  const requestLocation = () => {
-    setLocationPermission('pending');
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setUserLocation({
-            lat: position.coords.latitude,
-            lng: position.coords.longitude
-          });
-          setLocationPermission('granted');
-          fetchTournaments();
-        },
-        (error) => {
-          console.log('Location access denied:', error);
-          setLocationPermission('denied');
-        }
-      );
+const requestLocation = () => {
+  checkAndRequestLocation(true);
+};
+
+const handleManualSubmit = async () => {
+  if (!manualQuery.trim()) return;
+  setManualLoading(true);
+  try {
+    const coords = await geocodeLocation(manualQuery.trim());
+    if (!coords) {
+      toast({ title: 'Not found', description: 'Could not find that place. Try a different city or ZIP.', variant: 'default' });
+    } else {
+      setUserLocation(coords);
+      localStorage.setItem('userLocation', JSON.stringify({ ...coords, ts: Date.now(), source: 'manual', query: manualQuery.trim() }));
+      setLocationPermission('manual');
+      toast({ title: 'Location set', description: 'Sorting by distance from your chosen location.', variant: 'default' });
+      fetchTournaments();
     }
-  };
+  } finally {
+    setManualLoading(false);
+  }
+};
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -240,14 +303,30 @@ setTournaments(tournamentsWithDistance);
               selectedLevels={selectedSkillLevels}
               onLevelsChange={setSelectedSkillLevels}
             />
-            {locationPermission === 'denied' && (
+            <div className="flex gap-2">
+              <Input
+                placeholder="City or ZIP"
+                value={manualQuery}
+                onChange={(e) => setManualQuery(e.target.value)}
+                className="w-[180px]"
+              />
+              <Button
+                variant="outline"
+                onClick={handleManualSubmit}
+                disabled={!manualQuery.trim() || manualLoading}
+              >
+                {manualLoading ? 'Setting...' : 'Set location'}
+              </Button>
+            </div>
+            {locationPermission !== 'granted' && (
               <Button 
                 onClick={requestLocation}
                 variant="outline"
                 className="flex items-center gap-2"
+                title={isIframe ? 'Preview may block geolocation' : undefined}
               >
                 <Navigation className="h-4 w-4" />
-                Enable Location
+                Use My Location
               </Button>
             )}
           </div>
