@@ -45,11 +45,28 @@ const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: numbe
   return R * c;
 };
 
-// Simple geocoding function (in a real app, you'd use a proper geocoding service)
-const getCoordinatesFromLocation = async (location: string): Promise<{lat: number, lng: number} | null> => {
-  // This is a simplified example - in production you'd use a proper geocoding API
-  // For now, we'll return null and handle sorting without precise coordinates
-  return null;
+// Geocode location with localStorage caching (30 days)
+const geocodeLocation = async (location: string): Promise<{ lat: number; lng: number } | null> => {
+  const key = `geocode:${location}`;
+  const cached = localStorage.getItem(key);
+  if (cached) {
+    try {
+      const obj = JSON.parse(cached);
+      if (obj?.lat && obj?.lng && Date.now() - (obj.ts || 0) < 1000 * 60 * 60 * 24 * 30) {
+        return { lat: obj.lat, lng: obj.lng };
+      }
+    } catch {}
+  }
+  try {
+    const { data, error } = await supabase.functions.invoke('geocode', { body: { query: location } });
+    if (error) throw error as any;
+    const { lat, lng, place_name } = data as any;
+    localStorage.setItem(key, JSON.stringify({ lat, lng, place_name, ts: Date.now() }));
+    return { lat, lng };
+  } catch (e) {
+    console.error('Geocoding failed:', e);
+    return null;
+  }
 };
 
 const Tournaments = ({ showMyTournaments = false }: { showMyTournaments?: boolean }) => {
@@ -120,29 +137,41 @@ const Tournaments = ({ showMyTournaments = false }: { showMyTournaments?: boolea
 
       if (error) throw error;
 
-      let tournamentsWithDistance = data?.map(tournament => ({
-        ...tournament,
-        teams: tournament.teams ? [{ count: tournament.teams.length }] : [{ count: 0 }],
-        distance: 0
-      })) || [];
+let tournamentsWithDistance = (data?.map((tournament) => ({
+  ...tournament,
+  teams: tournament.teams ? [{ count: tournament.teams.length }] : [{ count: 0 }],
+})) || []) as Tournament[];
 
-      // If we have user location, calculate distances and sort by proximity
-      if (userLocation && tournamentsWithDistance.length > 0) {
-        // For demo purposes, we'll assign random distances
-        // In a real app, you'd geocode tournament locations and calculate actual distances
-        tournamentsWithDistance = tournamentsWithDistance.map(tournament => ({
-          ...tournament,
-          distance: Math.random() * 100 // Random distance between 0-100km for demo
-        }));
+// If we have user location, calculate distances and sort by proximity
+if (userLocation && tournamentsWithDistance.length > 0) {
+  const uniqueLocations = Array.from(new Set(tournamentsWithDistance.map(t => t.location).filter(Boolean)));
+  const coordMap = new Map<string, { lat: number; lng: number }>();
+  await Promise.all(
+    uniqueLocations.map(async (loc) => {
+      const coords = await geocodeLocation(loc);
+      if (coords) coordMap.set(loc, coords);
+    })
+  );
 
-        // Sort by distance (closest first)
-        tournamentsWithDistance.sort((a, b) => (a.distance || 0) - (b.distance || 0));
-      } else {
-        // Fallback to alphabetical sorting if no location
-        tournamentsWithDistance.sort((a, b) => a.title.localeCompare(b.title));
-      }
+  tournamentsWithDistance = tournamentsWithDistance.map((t) => {
+    const coords = coordMap.get(t.location);
+    const distance = coords
+      ? calculateDistance(userLocation.lat, userLocation.lng, coords.lat, coords.lng) * 0.621371
+      : undefined;
+    return { ...t, distance };
+  });
 
-      setTournaments(tournamentsWithDistance);
+  tournamentsWithDistance.sort((a, b) => {
+    const da = a.distance ?? Number.POSITIVE_INFINITY;
+    const db = b.distance ?? Number.POSITIVE_INFINITY;
+    return da - db;
+  });
+} else {
+  // Fallback to alphabetical sorting if no location
+  tournamentsWithDistance.sort((a, b) => a.title.localeCompare(b.title));
+}
+
+setTournaments(tournamentsWithDistance);
     } catch (error) {
       console.error('Error fetching tournaments:', error);
       toast({
@@ -264,7 +293,7 @@ const Tournaments = ({ showMyTournaments = false }: { showMyTournaments?: boolea
                       </div>
                       {userLocation && tournament.distance !== undefined && (
                         <Badge variant="outline" className="text-xs">
-                          {tournament.distance.toFixed(1)} km
+                          {tournament.distance.toFixed(1)} mi
                         </Badge>
                       )}
                     </div>
