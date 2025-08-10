@@ -81,6 +81,9 @@ const TournamentDetails = () => {
   const [userTeams, setUserTeams] = useState<Team[]>([]);
   const [matches, setMatches] = useState<any[]>([]);
   const [paying, setPaying] = useState(false);
+  const [distanceText, setDistanceText] = useState<string | null>(null);
+  const [mapsLink, setMapsLink] = useState<string | null>(null);
+
 
   useEffect(() => {
     if (id) {
@@ -175,6 +178,75 @@ const TournamentDetails = () => {
     }
   };
 
+  // Compute real-world distance to tournament location
+  useEffect(() => {
+    const computeDistance = async () => {
+      if (!tournament?.location) return;
+
+      // Build maps link
+      const link = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(tournament.location)}`;
+      setMapsLink(link);
+
+      // Get user location
+      const getPosition = () => new Promise<GeolocationPosition>((resolve, reject) => {
+        if (!('geolocation' in navigator)) return reject(new Error('Geolocation not supported'));
+        navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true, timeout: 10000 });
+      });
+
+      try {
+        const pos = await getPosition();
+        const userLat = pos.coords.latitude;
+        const userLng = pos.coords.longitude;
+
+        // Geocode with cache
+        const key = `geocode:${tournament.location}`;
+        const cachedRaw = localStorage.getItem(key);
+        let dest: { lat: number; lng: number; place_name?: string } | null = null;
+        if (cachedRaw) {
+          try {
+            const cached = JSON.parse(cachedRaw);
+            if (cached?.lat && cached?.lng && Date.now() - (cached.ts || 0) < 1000 * 60 * 60 * 24 * 30) {
+              dest = { lat: cached.lat, lng: cached.lng, place_name: cached.place_name };
+            }
+          } catch {}
+        }
+
+        if (!dest) {
+          const { data, error } = await supabase.functions.invoke('geocode', {
+            body: { query: tournament.location },
+          });
+          if (error) throw error as any;
+          const { lat, lng, place_name } = data as any;
+          dest = { lat, lng, place_name };
+          localStorage.setItem(key, JSON.stringify({ ...dest, ts: Date.now() }));
+        }
+
+        if (dest) {
+          const km = haversine(userLat, userLng, dest.lat, dest.lng);
+          const miles = km * 0.621371;
+          setDistanceText(`${miles.toFixed(1)} miles away`);
+        }
+      } catch (e) {
+        // Silent fail – user denied or geocode failed
+        // console.warn('Distance computation skipped:', e);
+      }
+    };
+
+    computeDistance();
+  }, [tournament?.location]);
+
+  function haversine(lat1: number, lon1: number, lat2: number, lon2: number) {
+    const toRad = (v: number) => (v * Math.PI) / 180;
+    const R = 6371; // km
+    const dLat = toRad(lat2 - lat1);
+    const dLon = toRad(lon2 - lon1);
+    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+              Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+              Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c; // km
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -182,6 +254,7 @@ const TournamentDetails = () => {
       </div>
     );
   }
+
 
   if (!tournament) {
     return (
@@ -300,6 +373,20 @@ const TournamentDetails = () => {
                 <div>
                   <p className="text-sm text-muted-foreground">Location</p>
                   <p className="font-medium">{tournament.location}</p>
+                  {distanceText && (
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {distanceText}
+                      {mapsLink && (
+                        <>
+                          {' '}
+                          •{' '}
+                          <a href={mapsLink} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                            Open in Maps
+                          </a>
+                        </>
+                      )}
+                    </p>
+                  )}
                 </div>
               </div>
               
