@@ -22,6 +22,7 @@ import { SkillLevelMultiSelect } from '@/components/SkillLevelMultiSelect';
 import { SkillLevel, formatSkillLevel, getSkillLevelBadgeVariant } from '@/utils/skillLevels';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
+import { LocationAutocompleteInput } from '@/components/LocationAutocompleteInput';
 type Division = 'men' | 'women' | 'coed';
 const formSchema = z.object({
   title: z.string().min(3, 'Tournament title must be at least 3 characters'),
@@ -254,7 +255,10 @@ const CreateTournament = () => {
                     <FormItem>
                       <FormLabel>Location *</FormLabel>
                       <FormControl>
-                        <Input placeholder="Beach Park, Miami" {...field} />
+                        <LocationAutocompleteInput
+                          value={field.value}
+                          onChange={field.onChange}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
