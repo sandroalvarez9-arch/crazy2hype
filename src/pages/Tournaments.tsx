@@ -303,31 +303,34 @@ const handleManualSubmit = async () => {
               selectedLevels={selectedSkillLevels}
               onLevelsChange={setSelectedSkillLevels}
             />
-            <div className="flex gap-2">
-              <Input
-                placeholder="City or ZIP"
-                value={manualQuery}
-                onChange={(e) => setManualQuery(e.target.value)}
-                className="w-[180px]"
-              />
-              <Button
-                variant="outline"
-                onClick={handleManualSubmit}
-                disabled={!manualQuery.trim() || manualLoading}
-              >
-                {manualLoading ? 'Setting...' : 'Set location'}
-              </Button>
-            </div>
             {locationPermission !== 'granted' && (
-              <Button 
-                onClick={requestLocation}
-                variant="outline"
-                className="flex items-center gap-2"
-                title={isIframe ? 'Preview may block geolocation' : undefined}
-              >
-                <Navigation className="h-4 w-4" />
-                Use My Location
-              </Button>
+              <div className="flex items-center gap-2">
+                <Input
+                  placeholder="Enter a city or ZIP"
+                  aria-label="Enter a city or ZIP"
+                  value={manualQuery}
+                  onChange={(e) => setManualQuery(e.target.value)}
+                  className="w-[160px] h-8 text-sm"
+                />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleManualSubmit}
+                  disabled={!manualQuery.trim() || manualLoading}
+                >
+                  {manualLoading ? 'Setting...' : 'Set'}
+                </Button>
+                <Button 
+                  onClick={requestLocation}
+                  variant="outline"
+                  size="sm"
+                  className="flex items-center gap-2"
+                  title={isIframe ? 'Preview may block geolocation' : undefined}
+                >
+                  <Navigation className="h-4 w-4" />
+                  Use My Location
+                </Button>
+              </div>
             )}
           </div>
         </div>
