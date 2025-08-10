@@ -22,6 +22,7 @@ import { SkillLevelMultiSelect } from '@/components/SkillLevelMultiSelect';
 import { SkillLevel, formatSkillLevel, getSkillLevelBadgeVariant } from '@/utils/skillLevels';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
+type Division = 'men' | 'women' | 'coed';
 const formSchema = z.object({
   title: z.string().min(3, 'Tournament title must be at least 3 characters'),
   description: z.string().optional(),
@@ -120,7 +121,7 @@ const CreateTournament = () => {
   }, [watchedSkillLevels, currentMaxTeams, form]);
 
   // Divisions-related watches
-  const watchedDivisions = form.watch('divisions') || [];
+  const watchedDivisions: Division[] = (form.watch('divisions') || []) as Division[];
   const slByDiv = form.watch('skill_levels_by_division') || {};
   const maxByDiv = form.watch('max_teams_per_division_skill') || {};
 
@@ -128,15 +129,15 @@ const CreateTournament = () => {
   React.useEffect(() => {
     const updatedSL: Record<string, any> = { ...slByDiv };
     const updatedMax: Record<string, any> = { ...maxByDiv };
-    watchedDivisions.forEach((div: string) => {
+    watchedDivisions.forEach((div: Division) => {
       if (!updatedSL[div]) updatedSL[div] = [];
       if (!updatedMax[div]) updatedMax[div] = {};
     });
     Object.keys(updatedSL).forEach((div) => {
-      if (!watchedDivisions.includes(div)) delete updatedSL[div];
+      if (!watchedDivisions.includes(div as Division)) delete updatedSL[div];
     });
     Object.keys(updatedMax).forEach((div) => {
-      if (!watchedDivisions.includes(div)) delete updatedMax[div];
+      if (!watchedDivisions.includes(div as Division)) delete updatedMax[div];
     });
     form.setValue('skill_levels_by_division', updatedSL);
     form.setValue('max_teams_per_division_skill', updatedMax);
@@ -447,7 +448,7 @@ const CreateTournament = () => {
                  )}
                />
 
-                <div className={`grid ${isMobile ? 'grid-cols-1' : 'md:grid-cols-2'} gap-6`}>
+                <div className={`grid ${isMobile ? 'grid-cols-1' : 'md:grid-cols-3'} gap-6`}>
                   <FormField
                     control={form.control}
                     name="tournament_format"
@@ -477,23 +478,62 @@ const CreateTournament = () => {
 
                   <FormField
                     control={form.control}
-                    name="skill_levels"
+                    name="divisions"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Skill Levels *</FormLabel>
-                        <FormControl>
-                          <SkillLevelMultiSelect
-                            selectedLevels={field.value}
-                            onLevelsChange={field.onChange}
-                          />
-                        </FormControl>
+                        <FormLabel>Divisions</FormLabel>
+                        <div className="flex flex-wrap gap-4">
+                          {(['men','women','coed'] as Division[]).map((div) => {
+                            const selected = (field.value || []) as Division[];
+                            const isChecked = selected.includes(div);
+                            return (
+                              <label key={div} className="flex items-center gap-2">
+                                <Checkbox
+                                  checked={isChecked}
+                                  onCheckedChange={(checked) => {
+                                    const checkedBool = Boolean(checked);
+                                    const next = checkedBool
+                                      ? ([...selected, div] as Division[])
+                                      : (selected.filter((d) => d !== div) as Division[]);
+                                    // Deduplicate just in case
+                                    const deduped = Array.from(new Set(next)) as Division[];
+                                    field.onChange(deduped);
+                                  }}
+                                />
+                                <span className="capitalize">{div === 'coed' ? 'Coed' : div}</span>
+                              </label>
+                            );
+                          })}
+                        </div>
                         <FormDescription>
-                          Select all skill levels that can participate in this tournament
+                          Choose one or more divisions (Men, Women, Coed).
                         </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
+
+                  {watchedDivisions.length === 0 && (
+                    <FormField
+                      control={form.control}
+                      name="skill_levels"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Skill Levels *</FormLabel>
+                          <FormControl>
+                            <SkillLevelMultiSelect
+                              selectedLevels={field.value}
+                              onLevelsChange={field.onChange}
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            Select all skill levels that can participate in this tournament
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  )}
                 </div>
 
                 <div className={`grid ${isMobile ? 'grid-cols-1' : 'md:grid-cols-3'} gap-6`}>
@@ -608,7 +648,7 @@ const CreateTournament = () => {
                                   if (maxCopy[div][lvl] == null) maxCopy[div][lvl] = 16;
                                 });
                                 Object.keys(maxCopy[div]).forEach((lvl) => {
-                                  if (!newLevels.includes(lvl)) delete maxCopy[div][lvl];
+                                  if (!newLevels.includes(lvl as SkillLevel)) delete maxCopy[div][lvl];
                                 });
                                 form.setValue('max_teams_per_division_skill', maxCopy);
                               }}
