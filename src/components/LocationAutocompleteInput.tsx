@@ -129,7 +129,7 @@ export function LocationAutocompleteInput({ value, onChange, placeholder = "City
           )}
         </div>
       </PopoverTrigger>
-      <PopoverContent className="w-[320px] p-0" align="start">
+      <PopoverContent className="w-[320px] p-0" align="start" onOpenAutoFocus={(e) => e.preventDefault()}>
         <Command>
           <CommandList>
             <CommandEmpty>No results</CommandEmpty>
