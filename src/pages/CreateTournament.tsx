@@ -48,12 +48,6 @@ const formSchema = z.object({
   max_teams_per_division_skill: z.record(z.record(z.number().min(4).max(64))).default({}),
   players_per_team: z.number().min(1, 'Minimum 1 player per team').max(20, 'Maximum 20 players per team'),
   entry_fee: z.number().min(0, 'Entry fee cannot be negative'),
-  payment_instructions: z.string().optional(),
-  venmo_username: z.string().optional(),
-  paypal_email: z.string().optional(),
-  bank_details: z.string().optional(),
-  cashapp_info: z.string().optional(),
-  other_payment_methods: z.string().optional(),
 }).refine((data) => data.end_date >= data.start_date, {
   message: "End date must be after start date",
   path: ["end_date"],
@@ -87,12 +81,6 @@ const CreateTournament = () => {
     max_teams_per_division_skill: {},
     players_per_team: 6,
     entry_fee: 0,
-    payment_instructions: '',
-    venmo_username: '',
-    paypal_email: '',
-    bank_details: '',
-    cashapp_info: '',
-    other_payment_methods: '',
   },
   });
 
@@ -189,12 +177,6 @@ const CreateTournament = () => {
           max_teams: Object.values(values.max_teams_per_skill_level).reduce((sum, count) => sum + count, 0),
           players_per_team: values.players_per_team,
           entry_fee: values.entry_fee,
-          payment_instructions: values.payment_instructions || null,
-          venmo_username: values.venmo_username || null,
-          paypal_email: values.paypal_email || null,
-          bank_details: values.bank_details || null,
-          cashapp_info: values.cashapp_info || null,
-          other_payment_methods: values.other_payment_methods || null,
           organizer_id: user.id,
         })
         .select()
@@ -729,7 +711,7 @@ const CreateTournament = () => {
                         />
                       </FormControl>
                       <FormDescription>
-                        Fee per team (leave 0 for free tournaments)
+                        Stripe Checkout will collect this amount; set 0 for free tournaments.
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
@@ -738,118 +720,6 @@ const CreateTournament = () => {
                 </div>
                 </div>
 
-                {/* Payment Information Section */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg">Payment Information (Optional)</CardTitle>
-                    <CardDescription>
-                      Provide payment instructions for teams if you're charging an entry fee
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <FormField
-                      control={form.control}
-                      name="payment_instructions"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>General Payment Instructions</FormLabel>
-                          <FormControl>
-                            <Textarea 
-                              placeholder="e.g., Payment is due within 24 hours of registration. Send to..."
-                              className="min-h-[80px]"
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <div className={`grid ${isMobile ? 'grid-cols-1' : 'md:grid-cols-2'} gap-4`}>
-                      <FormField
-                        control={form.control}
-                        name="venmo_username"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Venmo Username</FormLabel>
-                            <FormControl>
-                              <Input placeholder="@your-venmo-username" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      
-                      <FormField
-                        control={form.control}
-                        name="paypal_email"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>PayPal Email</FormLabel>
-                            <FormControl>
-                              <Input placeholder="payments@yourorg.com" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                    
-                    <FormField
-                      control={form.control}
-                      name="bank_details"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Bank Transfer Details</FormLabel>
-                          <FormControl>
-                            <Textarea 
-                              placeholder="Account Name, Number, Routing, etc."
-                              className="min-h-[60px]"
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={form.control}
-                      name="cashapp_info"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>CashApp Details</FormLabel>
-                          <FormControl>
-                            <Textarea 
-                              placeholder="CashApp username, handle, or payment details"
-                              className="min-h-[60px]"
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={form.control}
-                      name="other_payment_methods"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Other Payment Methods</FormLabel>
-                          <FormControl>
-                            <Textarea 
-                              placeholder="Cash at event, Apple Pay, Zelle, etc."
-                              className="min-h-[60px]"
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </CardContent>
-                </Card>
 
                 <div className="flex gap-4 pt-4">
                 <Button
