@@ -16,6 +16,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import EmailPlayersDialog from "@/components/EmailPlayersDialog";
+import EditTournamentDetailsDialog from "@/components/EditTournamentDetailsDialog";
 
 interface Tournament {
   id: string;
@@ -38,6 +40,7 @@ interface Tournament {
   deciding_set_points: number;
   game_format_locked: boolean;
   entry_fee: number;
+  location?: string | null;
 }
 
 interface Team {
@@ -274,9 +277,22 @@ export default function TournamentManagement() {
 
   return (
     <div className="container mx-auto p-6">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold">{tournament?.title} - Management</h1>
-        <p className="text-muted-foreground">Manage teams, check-ins, and tournament logistics</p>
+      <div className="mb-6 flex items-start justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">{tournament?.title} - Management</h1>
+          <p className="text-muted-foreground">Manage teams, check-ins, communications, and logistics</p>
+        </div>
+        {tournament && (
+          <EditTournamentDetailsDialog
+            tournament={{
+              id: tournament.id,
+              title: tournament.title,
+              location: tournament.location || null,
+              first_game_time: tournament.first_game_time,
+            }}
+            onSaved={fetchTournamentData}
+          />
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
@@ -329,6 +345,7 @@ export default function TournamentManagement() {
           <TabsTrigger value="format">Game Format</TabsTrigger>
           <TabsTrigger value="poolplay">Pool Play</TabsTrigger>
           <TabsTrigger value="bracket">Bracket Control</TabsTrigger>
+          <TabsTrigger value="communications">Communications</TabsTrigger>
         </TabsList>
 
         <TabsContent value="teams" className="space-y-4">
@@ -594,6 +611,20 @@ export default function TournamentManagement() {
                   <p>Bracket generation and match management coming soon</p>
                 </div>
               </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="communications" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Email all players</CardTitle>
+            </CardHeader>
+            <CardContent className="flex items-center justify-between">
+              <p className="text-muted-foreground">
+                Send announcements or updates to all registered players and team contacts.
+              </p>
+              {tournament && <EmailPlayersDialog tournamentId={tournament.id} defaultSubject={`${tournament.title} - Update`} />}
             </CardContent>
           </Card>
         </TabsContent>
