@@ -35,11 +35,22 @@ serve(async (req) => {
     // Read tournament to get entry fee and title
     const { data: tournament, error: tErr } = await supabaseClient
       .from("tournaments")
-      .select("id, title, entry_fee")
+      .select("id, title, entry_fee, organizer_id")
       .eq("id", tournamentId)
       .single();
 
     if (tErr || !tournament) throw new Error(tErr?.message || "Tournament not found");
+
+    // Ensure organizer has connected Stripe
+    const { data: organizerProfile, error: pErr } = await supabaseClient
+      .from("profiles")
+      .select("stripe_account_id, stripe_connected, stripe_charges_enabled")
+      .eq("user_id", tournament.organizer_id)
+      .single();
+    if (pErr) throw new Error(`Organizer profile error: ${pErr.message}`);
+    if (!organizerProfile?.stripe_account_id || organizerProfile.stripe_connected !== true) {
+      throw new Error("Organizer hasn't connected Stripe to receive payments");
+    }
 
     // Convert entry_fee (numeric) to integer cents safely
     const entryFeeNumber = typeof tournament.entry_fee === "string"
@@ -63,6 +74,8 @@ serve(async (req) => {
 
     const origin = req.headers.get("origin") || "https://bsthkkljpqzuimkcbcfy.supabase.co";
 
+    const platformFee = Math.floor(unitAmount * 0.05);
+
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       customer_email: customerId ? undefined : user.email!,
@@ -77,13 +90,16 @@ serve(async (req) => {
         },
       ],
       mode: "payment",
+      payment_intent_data: {
+        application_fee_amount: platformFee,
+      },
       success_url: `${origin}/payment-success`,
       cancel_url: `${origin}/payment-canceled`,
       metadata: {
         tournament_id: tournament.id,
         user_id: user.id,
       },
-    });
+    }, { stripeAccount: organizerProfile.stripe_account_id });
 
     return new Response(JSON.stringify({ url: session.url }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

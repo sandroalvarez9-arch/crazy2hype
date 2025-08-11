@@ -14,6 +14,7 @@ import Tournaments from "./pages/Tournaments";
 import NotFound from "./pages/NotFound";
 import PaymentSuccess from "./pages/PaymentSuccess";
 import PaymentCanceled from "./pages/PaymentCanceled";
+import StripeConnectCallback from "./pages/StripeConnectCallback";
 
 const queryClient = new QueryClient();
 
@@ -104,6 +105,11 @@ const App = () => (
             <Route path="/payment-canceled" element={
               <Layout>
                 <PaymentCanceled />
+              </Layout>
+            } />
+            <Route path="/stripe-connect/callback" element={
+              <Layout>
+                <StripeConnectCallback />
               </Layout>
             } />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

@@ -207,6 +207,10 @@ export type Database = {
           id: string
           last_name: string | null
           role: string
+          stripe_account_id: string | null
+          stripe_charges_enabled: boolean
+          stripe_connected: boolean
+          stripe_details_submitted: boolean
           updated_at: string
           user_id: string
           username: string
@@ -218,6 +222,10 @@ export type Database = {
           id?: string
           last_name?: string | null
           role?: string
+          stripe_account_id?: string | null
+          stripe_charges_enabled?: boolean
+          stripe_connected?: boolean
+          stripe_details_submitted?: boolean
           updated_at?: string
           user_id: string
           username: string
@@ -229,6 +237,10 @@ export type Database = {
           id?: string
           last_name?: string | null
           role?: string
+          stripe_account_id?: string | null
+          stripe_charges_enabled?: boolean
+          stripe_connected?: boolean
+          stripe_details_submitted?: boolean
           updated_at?: string
           user_id?: string
           username?: string

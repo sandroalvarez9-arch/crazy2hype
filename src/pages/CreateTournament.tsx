@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -65,6 +66,7 @@ const CreateTournament = () => {
   const isMobile = useIsMobile();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [stripeConnected, setStripeConnected] = useState<boolean | null>(null);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -151,9 +153,51 @@ const CreateTournament = () => {
     }
   }, [slByDiv, maxByDiv, watchedDivisions, form]);
 
+  const connectStripe = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke('get-stripe-oauth-url');
+      if (error || !data?.url) {
+        throw new Error(error?.message || 'Failed to create Stripe connect link');
+      }
+      // Open Stripe connect in a new tab (recommended)
+      window.open(data.url, '_blank');
+    } catch (e: any) {
+      console.error(e);
+      toast({
+        title: 'Could not start Stripe connection',
+        description: e?.message || 'Please try again.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  React.useEffect(() => {
+    const fetchStripe = async () => {
+      if (!user) return;
+      const { data } = await supabase
+        .from('profiles')
+        .select('stripe_connected, stripe_account_id')
+        .eq('user_id', user.id)
+        .single();
+      setStripeConnected(Boolean(data?.stripe_connected && data?.stripe_account_id));
+    };
+    fetchStripe();
+  }, [user]);
+
   const onSubmit = async (values: FormValues) => {
     if (!user) return;
-    
+
+    // Hard block if Stripe not connected
+    if (!stripeConnected) {
+      toast({
+        title: 'Connect Stripe to create a tournament',
+        description: 'Hosts must connect a Stripe account to receive payments (5% platform fee applies).',
+        variant: 'destructive',
+      });
+      await connectStripe();
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const { data, error } = await supabase
@@ -222,6 +266,18 @@ const CreateTournament = () => {
           Set up your volleyball tournament with all the details
         </p>
       </div>
+
+      {stripeConnected === false && (
+        <Alert className="mb-6">
+          <AlertTitle>Connect Stripe to accept payments</AlertTitle>
+          <AlertDescription>
+            Hosts must connect a Stripe Standard account to receive entry fees. A 5% platform fee applies.
+          </AlertDescription>
+          <div className="mt-3">
+            <Button onClick={connectStripe} className="gradient-primary hover:opacity-90 transition-opacity">Connect with Stripe</Button>
+          </div>
+        </Alert>
+      )}
 
       <Card className="shadow-card animate-scale-in">
         <CardHeader>
