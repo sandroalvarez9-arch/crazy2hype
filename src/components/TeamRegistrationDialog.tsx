@@ -127,6 +127,18 @@ const TeamRegistrationDialog = ({
       }
     }
 
+    // Ensure all players provide name and email so everyone can be notified
+    const allHaveNames = players.every((p) => p.name.trim());
+    const allHaveEmails = players.every((p) => p.email.trim());
+    if (!allHaveNames || !allHaveEmails) {
+      toast({
+        title: "Missing player info",
+        description: "Please enter name and email for all players so everyone can be notified.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setLoading(true);
     try {
       // First, create the team
@@ -316,17 +328,18 @@ const TeamRegistrationDialog = ({
                         value={player.name}
                         onChange={(e) => handlePlayerChange(index, 'name', e.target.value)}
                         placeholder="Player name"
-                        required={index === 0}
+                        required
                       />
                     </div>
                     <div className="space-y-1">
-                      <Label htmlFor={`player-${index}-email`}>Email</Label>
+                      <Label htmlFor={`player-${index}-email`}>Email *</Label>
                       <Input
                         id={`player-${index}-email`}
                         type="email"
                         value={player.email}
                         onChange={(e) => handlePlayerChange(index, 'email', e.target.value)}
                         placeholder="player@email.com"
+                        required
                       />
                     </div>
                     <div className="space-y-1">
@@ -421,16 +434,17 @@ const TeamRegistrationDialog = ({
             >
               Cancel
             </Button>
-            <Button
-              type="submit"
-              disabled={
-                loading || 
-                !formData.teamName.trim() || 
-                (players.length > 0 && !players[0]?.name?.trim()) ||
-                (tournamentSkillLevels && tournamentSkillLevels.length > 1 && !formData.skillLevel)
-              }
-              className="gradient-primary hover:opacity-90 transition-opacity"
-            >
+              <Button
+                type="submit"
+                disabled={
+                  loading || 
+                  !formData.teamName.trim() || 
+                  (tournamentSkillLevels && tournamentSkillLevels.length > 1 && !formData.skillLevel) ||
+                  !players.every(p => p.name.trim()) ||
+                  !players.every(p => p.email.trim())
+                }
+                className="gradient-primary hover:opacity-90 transition-opacity"
+              >
               {loading ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
