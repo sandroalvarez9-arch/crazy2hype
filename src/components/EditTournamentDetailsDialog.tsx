@@ -1,4 +1,3 @@
-
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -7,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
+import { LocationAutocompleteInput } from "@/components/LocationAutocompleteInput";
 
 interface TournamentForEdit {
   id: string;
@@ -128,7 +128,11 @@ export default function EditTournamentDetailsDialog({ tournament, onSaved }: Edi
         <div className="space-y-4">
           <div className="space-y-2">
             <Label>Location</Label>
-            <Input value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Tournament location" />
+            <LocationAutocompleteInput
+              value={location}
+              onChange={setLocation}
+              placeholder="Tournament location"
+            />
           </div>
           <div className="space-y-2">
             <Label>First game time</Label>
