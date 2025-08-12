@@ -27,8 +27,12 @@ serve(async (req) => {
     const user = userData.user;
     if (!user?.id) throw new Error("User not authenticated");
 
-    const clientId = Deno.env.get("STRIPE_CLIENT_ID") || Deno.env.get("STRIPE_CONNECT_CLIENT_ID");
+    const clientId = Deno.env.get("STRIPE_CONNECT_CLIENT_ID") || Deno.env.get("STRIPE_CLIENT_ID");
     if (!clientId) throw new Error("Stripe Connect client ID is not configured");
+    // Must be a Connect Client ID (starts with 'ca_'), not a secret/public API key
+    if (!clientId.startsWith("ca_")) {
+      throw new Error("Invalid Stripe Connect client ID. Set STRIPE_CONNECT_CLIENT_ID (starts with 'ca_') in Supabase Edge Function secrets.");
+    }
 
     const origin = req.headers.get("origin") || "https://bsthkkljpqzuimkcbcfy.supabase.co";
     const redirectUri = `${origin}/stripe-connect/callback`;
