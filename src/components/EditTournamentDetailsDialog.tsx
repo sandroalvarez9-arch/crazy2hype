@@ -149,16 +149,6 @@ export default function EditTournamentDetailsDialog({ tournament, onSaved }: Edi
               placeholder="e.g., 09:00"
             />
           </div>
-          <div className="space-y-2">
-            <Label>Team limit</Label>
-            <Input
-              type="number"
-              min={1}
-              value={maxTeams}
-              onChange={(e) => setMaxTeams(Math.max(1, parseInt(e.target.value || '1', 10)))}
-              placeholder="e.g., 32"
-            />
-          </div>
           <div className="flex items-center justify-between rounded-md border p-3">
             <div>
               <p className="font-medium">Notify players about these changes</p>
