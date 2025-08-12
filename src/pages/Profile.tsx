@@ -11,34 +11,38 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { useToast } from "@/components/ui/use-toast";
+import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
+import { useToast } from "@/hooks/use-toast";
 
 interface ProfileFormValues {
   username: string;
   first_name?: string;
   last_name?: string;
+  shirt_size?: string | undefined;
 }
 
 const Profile = () => {
   const { profile, user, updateProfile, loading } = useAuth();
   const { toast } = useToast();
 
-  const form = useForm<ProfileFormValues>({
+const form = useForm<ProfileFormValues>({
     defaultValues: {
       username: profile?.username || "",
       first_name: profile?.first_name || "",
       last_name: profile?.last_name || "",
+      shirt_size: profile?.shirt_size ?? undefined,
     },
     mode: "onBlur",
   });
 
   // Reset form when profile loads/changes
   useEffect(() => {
-    if (profile) {
+if (profile) {
       form.reset({
         username: profile.username || "",
         first_name: profile.first_name || "",
         last_name: profile.last_name || "",
+        shirt_size: profile.shirt_size ?? undefined,
       });
     }
   }, [profile, form]);
@@ -47,8 +51,8 @@ const Profile = () => {
   useEffect(() => {
     document.title = "Profile Settings | VolleyTournament";
 
-    const description =
-      "Manage your player profile settings: username, first and last name.";
+const description =
+      "Manage your player profile: username, name, and optional shirt size.";
     let meta = document.querySelector('meta[name="description"]');
     if (!meta) {
       meta = document.createElement("meta");
@@ -69,8 +73,13 @@ const Profile = () => {
     canonical.setAttribute("href", href);
   }, []);
 
-  const onSubmit = async (values: ProfileFormValues) => {
-    const { error } = await updateProfile(values);
+const onSubmit = async (values: ProfileFormValues) => {
+    const payload = {
+      ...values,
+      shirt_size: values.shirt_size || null,
+    } as any;
+
+    const { error } = await updateProfile(payload);
     if (error) {
       toast({
         title: "Update failed",
@@ -149,6 +158,32 @@ const Profile = () => {
                     <FormControl>
                       <Input placeholder="Doe" {...field} />
                     </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="shirt_size"
+                render={({ field }) => (
+                  <FormItem className="sm:col-span-2">
+                    <FormLabel>Shirt size (optional)</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a size" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="XS">XS</SelectItem>
+                        <SelectItem value="S">S</SelectItem>
+                        <SelectItem value="M">M</SelectItem>
+                        <SelectItem value="L">L</SelectItem>
+                        <SelectItem value="XL">XL</SelectItem>
+                        <SelectItem value="XXL">XXL</SelectItem>
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}

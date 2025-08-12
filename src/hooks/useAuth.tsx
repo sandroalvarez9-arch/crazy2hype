@@ -9,6 +9,7 @@ interface Profile {
   email: string;
   first_name?: string;
   last_name?: string;
+  shirt_size?: string | null;
   role: 'player' | 'host' | 'admin';
 }
 

@@ -207,6 +207,7 @@ export type Database = {
           id: string
           last_name: string | null
           role: string
+          shirt_size: string | null
           stripe_account_id: string | null
           stripe_charges_enabled: boolean
           stripe_connected: boolean
@@ -222,6 +223,7 @@ export type Database = {
           id?: string
           last_name?: string | null
           role?: string
+          shirt_size?: string | null
           stripe_account_id?: string | null
           stripe_charges_enabled?: boolean
           stripe_connected?: boolean
@@ -237,6 +239,7 @@ export type Database = {
           id?: string
           last_name?: string | null
           role?: string
+          shirt_size?: string | null
           stripe_account_id?: string | null
           stripe_charges_enabled?: boolean
           stripe_connected?: boolean
