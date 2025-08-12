@@ -15,6 +15,7 @@ import NotFound from "./pages/NotFound";
 import PaymentSuccess from "./pages/PaymentSuccess";
 import PaymentCanceled from "./pages/PaymentCanceled";
 import StripeConnectCallback from "./pages/StripeConnectCallback";
+import Profile from "./pages/Profile";
 
 const queryClient = new QueryClient();
 
@@ -111,6 +112,11 @@ const App = () => (
               <Layout>
                 <StripeConnectCallback />
               </Layout>
+            } />
+            <Route path="/profile" element={
+              <ProtectedRoute>
+                <Profile />
+              </ProtectedRoute>
             } />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
