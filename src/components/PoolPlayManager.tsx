@@ -43,12 +43,28 @@ export function PoolPlayManager({ tournament, teams, onBracketsGenerated }: Pool
   const checkedInTeams = teams.filter(team => team.check_in_status === 'checked_in');
   const canGenerateBrackets = checkedInTeams.length >= 4 && !tournament.brackets_generated;
 
+  const firstGameDate = (() => {
+    const t = tournament.first_game_time;
+    if (!t) return null;
+    const d = new Date(t);
+    return isNaN(d.getTime()) ? null : d;
+  })();
+
   const handleGeneratePoolPlay = async () => {
     if (!canGenerateBrackets) return;
 
     setIsGenerating(true);
     try {
       const firstGameTime = new Date(tournament.first_game_time);
+      if (isNaN(firstGameTime.getTime())) {
+        toast({
+          title: "First game time required",
+          description: "Please set a valid first game time in tournament settings before generating.",
+          variant: "destructive",
+        });
+        setIsGenerating(false);
+        return;
+      }
       
       // Generate pools and matches using new optimal algorithm
       const { pools, matches, requiredCourts, skillLevelBreakdown } = generatePoolPlayScheduleBySkillLevel(
@@ -154,7 +170,7 @@ export function PoolPlayManager({ tournament, teams, onBracketsGenerated }: Pool
                   <Clock className="h-4 w-4 text-muted-foreground" />
                   <div>
                     <div className="font-medium">
-                      {format(new Date(tournament.first_game_time), "MMM dd, h:mm a")}
+                      {firstGameDate ? format(firstGameDate, "MMM dd, h:mm a") : "First game time not set"}
                     </div>
                     <div className="text-sm text-muted-foreground">First game starts</div>
                   </div>
@@ -218,7 +234,7 @@ export function PoolPlayManager({ tournament, teams, onBracketsGenerated }: Pool
                   <Clock className="h-4 w-4 text-muted-foreground" />
                   <div>
                     <div className="font-medium">
-                      {format(new Date(tournament.first_game_time), "h:mm a")}
+                      {firstGameDate ? format(firstGameDate, "h:mm a") : "Time not set"}
                     </div>
                     <div className="text-sm text-muted-foreground">Started</div>
                   </div>
