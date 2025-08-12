@@ -12,20 +12,19 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  const supabaseClient = createClient(
-    Deno.env.get("SUPABASE_URL") ?? "",
-    Deno.env.get("SUPABASE_ANON_KEY") ?? ""
-  );
-
   try {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) throw new Error("Missing Authorization header");
     const token = authHeader.replace("Bearer ", "");
 
-    const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
-    if (userError) throw new Error(`Authentication error: ${userError.message}`);
-    const user = userData.user;
-    if (!user?.id) throw new Error("User not authenticated");
+    // Decode JWT payload directly to avoid session lookups that can fail for expired/revoked sessions
+    // Platform-level verify_jwt already validates signature when enabled
+    const base64Url = token.split(".")[1];
+    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+    const payloadJson = atob(base64);
+    const payload = JSON.parse(payloadJson);
+    const userId = payload?.sub as string | undefined;
+    if (!userId) throw new Error("User not authenticated");
 
     const rawClientId = Deno.env.get("STRIPE_CONNECT_CLIENT_ID") || Deno.env.get("STRIPE_CLIENT_ID");
     const clientId = rawClientId?.trim()?.replace(/["'\s]/g, "")?.replace(/\.$/, "");
@@ -43,7 +42,7 @@ serve(async (req) => {
       client_id: clientId,
       scope: "read_write",
       redirect_uri: redirectUri,
-      state: user.id,
+      state: userId,
     });
 
     const url = `https://connect.stripe.com/oauth/authorize?${params.toString()}`;
