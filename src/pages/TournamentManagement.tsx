@@ -28,6 +28,7 @@ interface Tournament {
   bracket_version: number;
   allow_backup_teams: boolean;
   first_game_time: string;
+  start_date: string; // added for day-of checks
   estimated_game_duration: number;
   number_of_courts?: number;
   calculated_courts?: number;
@@ -274,6 +275,8 @@ export default function TournamentManagement() {
   const pendingTeams = teams.filter(t => t.check_in_status === 'pending').length;
   const paidTeams = teams.filter(t => t.payment_status === 'paid').length;
   const unpaidTeams = teams.filter(t => t.payment_status === 'pending').length;
+  const isTournamentDay = tournament ?
+    new Date().toDateString() === new Date(tournament.start_date).toDateString() : false;
 
   return (
     <div className="container mx-auto p-6">
@@ -375,7 +378,7 @@ export default function TournamentManagement() {
                       }>
                         {team.check_in_status.replace('_', ' ').toUpperCase()}
                       </Badge>
-                      {team.check_in_status === 'pending' && (
+                      {team.check_in_status === 'pending' && isTournamentDay && (
                         <div className="flex gap-2">
                           <Button
                             size="sm"
