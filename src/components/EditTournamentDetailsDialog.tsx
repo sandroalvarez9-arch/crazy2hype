@@ -13,6 +13,7 @@ interface TournamentForEdit {
   title: string;
   location?: string | null;
   first_game_time: string;
+  max_teams: number;
 }
 
 interface EditTournamentDetailsDialogProps {
@@ -25,6 +26,7 @@ export default function EditTournamentDetailsDialog({ tournament, onSaved }: Edi
   const [open, setOpen] = useState(false);
   const [location, setLocation] = useState<string>(tournament.location || "");
   const [firstGameTime, setFirstGameTime] = useState<string>(tournament.first_game_time || "");
+  const [maxTeams, setMaxTeams] = useState<number>(tournament.max_teams);
   const [notifyPlayers, setNotifyPlayers] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -32,8 +34,9 @@ export default function EditTournamentDetailsDialog({ tournament, onSaved }: Edi
     if (!open) return;
     setLocation(tournament.location || "");
     setFirstGameTime(tournament.first_game_time || "");
+    setMaxTeams(tournament.max_teams);
     setNotifyPlayers(true);
-  }, [open, tournament.location, tournament.first_game_time]);
+  }, [open, tournament.location, tournament.first_game_time, tournament.max_teams]);
 
   const changes = useMemo(() => {
     const diffs: { field: string; oldVal: string; newVal: string }[] = [];
@@ -43,8 +46,11 @@ export default function EditTournamentDetailsDialog({ tournament, onSaved }: Edi
     if ((tournament.first_game_time || "") !== (firstGameTime || "")) {
       diffs.push({ field: "First game time", oldVal: tournament.first_game_time || "(not set)", newVal: firstGameTime || "(not set)" });
     }
+    if (tournament.max_teams !== maxTeams) {
+      diffs.push({ field: "Team limit", oldVal: String(tournament.max_teams), newVal: String(maxTeams) });
+    }
     return diffs;
-  }, [tournament.location, tournament.first_game_time, location, firstGameTime]);
+  }, [tournament.location, tournament.first_game_time, tournament.max_teams, location, firstGameTime, maxTeams]);
 
   const onSave = async () => {
     if (changes.length === 0) {
@@ -58,6 +64,7 @@ export default function EditTournamentDetailsDialog({ tournament, onSaved }: Edi
       const updatePayload: any = {};
       if ((tournament.location || "") !== location) updatePayload.location = location || null;
       if ((tournament.first_game_time || "") !== (firstGameTime || "")) updatePayload.first_game_time = firstGameTime || null;
+      if (tournament.max_teams !== maxTeams) updatePayload.max_teams = maxTeams;
 
       const { error } = await supabase
         .from("tournaments")
@@ -140,6 +147,16 @@ export default function EditTournamentDetailsDialog({ tournament, onSaved }: Edi
               value={firstGameTime || ""}
               onChange={(e) => setFirstGameTime(e.target.value)}
               placeholder="e.g., 09:00"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Team limit</Label>
+            <Input
+              type="number"
+              min={1}
+              value={maxTeams}
+              onChange={(e) => setMaxTeams(Math.max(1, parseInt(e.target.value || '1', 10)))}
+              placeholder="e.g., 32"
             />
           </div>
           <div className="flex items-center justify-between rounded-md border p-3">

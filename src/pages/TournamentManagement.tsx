@@ -292,6 +292,7 @@ export default function TournamentManagement() {
               title: tournament.title,
               location: tournament.location || null,
               first_game_time: tournament.first_game_time,
+              max_teams: tournament.max_teams,
             }}
             onSaved={fetchTournamentData}
           />
