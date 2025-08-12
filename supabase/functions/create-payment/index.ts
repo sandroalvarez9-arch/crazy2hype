@@ -29,7 +29,7 @@ serve(async (req) => {
     const user = userData.user;
     if (!user?.email) throw new Error("User not authenticated or email missing");
 
-    const { tournamentId } = await req.json();
+    const { tournamentId, priceId } = await req.json();
     if (!tournamentId) throw new Error("tournamentId is required");
 
     // Read tournament to get entry fee and title
@@ -63,6 +63,17 @@ serve(async (req) => {
 
     const unitAmount = Math.round(entryFeeNumber * 100);
 
+    const lineItems = priceId
+      ? [{ price: priceId as string, quantity: 1 }]
+      : [{
+          price_data: {
+            currency: "usd",
+            product_data: { name: `Tournament Entry Fee — ${tournament.title}` },
+            unit_amount: unitAmount,
+          },
+          quantity: 1,
+        }];
+
     const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
     if (!stripeKey) throw new Error("Stripe secret key is not configured");
 
@@ -79,16 +90,7 @@ serve(async (req) => {
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       customer_email: customerId ? undefined : user.email!,
-      line_items: [
-        {
-          price_data: {
-            currency: "usd",
-            product_data: { name: `Tournament Entry Fee — ${tournament.title}` },
-            unit_amount: unitAmount,
-          },
-          quantity: 1,
-        },
-      ],
+      line_items: lineItems,
       mode: "payment",
       payment_intent_data: {
         application_fee_amount: platformFee,

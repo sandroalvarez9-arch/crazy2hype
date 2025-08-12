@@ -165,7 +165,7 @@ const TournamentDetails = () => {
     try {
       setPaying(true);
       const { data, error } = await supabase.functions.invoke('create-payment', {
-        body: { tournamentId: tournament.id },
+        body: { tournamentId: tournament.id, priceId: 'price_1Rv921CG0oWhnsaKrFJCIxin' },
       });
       if (error) throw error as any;
       if ((data as any)?.url) {
