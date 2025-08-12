@@ -18,6 +18,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import EmailPlayersDialog from "@/components/EmailPlayersDialog";
 import EditTournamentDetailsDialog from "@/components/EditTournamentDetailsDialog";
+import EditCapacityDialog from "@/components/EditCapacityDialog";
 
 interface Tournament {
   id: string;
@@ -33,6 +34,10 @@ interface Tournament {
   number_of_courts?: number;
   calculated_courts?: number;
   skill_levels: string[];
+  divisions?: string[];
+  skill_levels_by_division?: Record<string, string[]>;
+  max_teams_per_division_skill?: Record<string, Record<string, number>>;
+  max_teams_per_skill_level?: Record<string, number>;
   tournament_format: string;
   brackets_generated: boolean;
   sets_per_game: number;
@@ -95,7 +100,7 @@ export default function TournamentManagement() {
 
       if (tournamentError) throw tournamentError;
 
-      setTournament(tournamentData);
+      setTournament(tournamentData as unknown as Tournament);
       setIsOrganizer(tournamentData.organizer_id === user?.id);
 
       // Only allow organizers to access this page
@@ -286,16 +291,30 @@ export default function TournamentManagement() {
           <p className="text-muted-foreground">Manage teams, check-ins, communications, and logistics</p>
         </div>
         {tournament && (
-          <EditTournamentDetailsDialog
-            tournament={{
-              id: tournament.id,
-              title: tournament.title,
-              location: tournament.location || null,
-              first_game_time: tournament.first_game_time,
-              max_teams: tournament.max_teams,
-            }}
-            onSaved={fetchTournamentData}
-          />
+          <div className="flex gap-2">
+            <EditCapacityDialog
+              tournament={{
+                id: tournament.id,
+                title: tournament.title,
+                divisions: tournament.divisions || [],
+                skill_levels_by_division: tournament.skill_levels_by_division || {},
+                max_teams_per_division_skill: tournament.max_teams_per_division_skill || {},
+                max_teams_per_skill_level: tournament.max_teams_per_skill_level || {},
+                max_teams: tournament.max_teams,
+              }}
+              onSaved={fetchTournamentData}
+            />
+            <EditTournamentDetailsDialog
+              tournament={{
+                id: tournament.id,
+                title: tournament.title,
+                location: tournament.location || null,
+                first_game_time: tournament.first_game_time,
+                max_teams: tournament.max_teams,
+              }}
+              onSaved={fetchTournamentData}
+            />
+          </div>
         )}
       </div>
 
