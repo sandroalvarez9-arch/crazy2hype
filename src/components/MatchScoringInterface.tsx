@@ -68,6 +68,7 @@ export function MatchScoringInterface({
     match.set_scores || {}
   );
   const [isUpdating, setIsUpdating] = useState(false);
+  const [lastSwitchPoint, setLastSwitchPoint] = useState(0);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -77,6 +78,11 @@ export function MatchScoringInterface({
       setCurrentSetScores(allSetScores[currentSetKey]);
     }
   }, [match.current_set, allSetScores]);
+
+  // Reset side-switch tracker when set changes
+  useEffect(() => {
+    setLastSwitchPoint(0);
+  }, [match.current_set]);
 
   const getSetsWon = (teamNumber: 1 | 2) => {
     let setsWon = 0;
@@ -115,6 +121,12 @@ export function MatchScoringInterface({
     return isDecidingSet ? (format?.decidingPoints || tournament.deciding_set_points) : (format?.points || tournament.points_per_set);
   };
 
+  // Side switch interval: 7 points for regular sets, 5 points for deciding/short sets (<=15)
+  const getSideSwitchInterval = () => {
+    const target = getPointsNeededForSet();
+    return target <= 15 ? 5 : 7;
+  };
+
   const isSetWon = (team1Score: number, team2Score: number) => {
     const pointsNeeded = getPointsNeededForSet();
     const winBy = tournament.must_win_by;
@@ -132,9 +144,23 @@ export function MatchScoringInterface({
   const handleScoreUpdate = async (team: 'team1' | 'team2', increment: number) => {
     const newScores = { ...currentSetScores };
     newScores[team] = Math.max(0, newScores[team] + increment);
+
+    const interval = getSideSwitchInterval();
+    const total = newScores.team1 + newScores.team2;
+    const nextMultiple = Math.floor(total / interval) * interval;
+    const isWon = isSetWon(newScores.team1, newScores.team2);
+
+    // Notify refs to switch sides at configured intervals (7 or 5 on short/deciding sets)
+    if (!isWon && nextMultiple > 0 && nextMultiple > lastSwitchPoint && total >= nextMultiple) {
+      setLastSwitchPoint(nextMultiple);
+      toast({
+        title: 'Switch Sides',
+        description: `Total points: ${nextMultiple}. Switch every ${interval} points.`,
+      });
+    }
     
     // Check if set is won
-    if (isSetWon(newScores.team1, newScores.team2)) {
+    if (isWon) {
       // Set is finished, update set scores
       const currentSetKey = `set${match.current_set}`;
       const updatedSetScores = {
@@ -173,6 +199,7 @@ export function MatchScoringInterface({
         });
         
         setCurrentSetScores({ team1: 0, team2: 0 });
+        setLastSwitchPoint(0);
         toast({
           title: "Set Completed",
           description: `Set ${match.current_set}: ${newScores.team1 > newScores.team2 ? team1?.name : team2?.name} wins ${Math.max(newScores.team1, newScores.team2)}-${Math.min(newScores.team1, newScores.team2)}`,
@@ -217,6 +244,18 @@ export function MatchScoringInterface({
     });
     
     setAllSetScores(updatedSetScores);
+
+    // Evaluate side switch on manual updates as well
+    const interval = getSideSwitchInterval();
+    const total = currentSetScores.team1 + currentSetScores.team2;
+    const nextMultiple = Math.floor(total / interval) * interval;
+    if (nextMultiple > 0 && nextMultiple > lastSwitchPoint && total >= nextMultiple) {
+      setLastSwitchPoint(nextMultiple);
+      toast({
+        title: 'Switch Sides',
+        description: `Total points: ${nextMultiple}. Switch every ${interval} points.`,
+      });
+    }
   };
 
   const team1SetsWon = getSetsWon(1);
