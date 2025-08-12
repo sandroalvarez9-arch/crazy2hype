@@ -201,11 +201,13 @@ export type Database = {
       }
       profiles: {
         Row: {
+          avatar_url: string | null
           created_at: string
           email: string
           first_name: string | null
           id: string
           last_name: string | null
+          position: string | null
           role: string
           shirt_size: string | null
           stripe_account_id: string | null
@@ -217,11 +219,13 @@ export type Database = {
           username: string
         }
         Insert: {
+          avatar_url?: string | null
           created_at?: string
           email: string
           first_name?: string | null
           id?: string
           last_name?: string | null
+          position?: string | null
           role?: string
           shirt_size?: string | null
           stripe_account_id?: string | null
@@ -233,11 +237,13 @@ export type Database = {
           username: string
         }
         Update: {
+          avatar_url?: string | null
           created_at?: string
           email?: string
           first_name?: string | null
           id?: string
           last_name?: string | null
+          position?: string | null
           role?: string
           shirt_size?: string | null
           stripe_account_id?: string | null

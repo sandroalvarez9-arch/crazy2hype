@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,8 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
 interface ProfileFormValues {
@@ -19,21 +21,55 @@ interface ProfileFormValues {
   first_name?: string;
   last_name?: string;
   shirt_size?: string | undefined;
+  position?: string | undefined;
 }
 
 const Profile = () => {
   const { profile, user, updateProfile, loading } = useAuth();
   const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-const form = useForm<ProfileFormValues>({
+  const form = useForm<ProfileFormValues>({
     defaultValues: {
       username: profile?.username || "",
       first_name: profile?.first_name || "",
       last_name: profile?.last_name || "",
       shirt_size: profile?.shirt_size ?? undefined,
+      position: profile?.position ?? undefined,
     },
     mode: "onBlur",
   });
+
+  const onAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    try {
+      const file = e.target.files?.[0];
+      if (!file || !user) return;
+
+      const ext = file.name.split(".").pop() || "png";
+      const path = `${user.id}/avatar-${Date.now()}.${ext}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("avatars")
+        .upload(path, file, { upsert: true });
+      
+      if (uploadError) throw uploadError;
+
+      const { data: urlData } = supabase.storage
+        .from("avatars")
+        .getPublicUrl(path);
+
+      const publicUrl = urlData.publicUrl;
+
+      const { error: updateErr } = await updateProfile({ avatar_url: publicUrl });
+      if (updateErr) throw updateErr;
+
+      toast({ title: "Avatar updated", description: "Your profile picture has been updated." });
+    } catch (err: any) {
+      toast({ title: "Upload failed", description: err?.message || "Please try again.", variant: "destructive" });
+    } finally {
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
 
   // Reset form when profile loads/changes
   useEffect(() => {
@@ -43,6 +79,7 @@ if (profile) {
         first_name: profile.first_name || "",
         last_name: profile.last_name || "",
         shirt_size: profile.shirt_size ?? undefined,
+        position: profile.position ?? undefined,
       });
     }
   }, [profile, form]);
@@ -51,8 +88,8 @@ if (profile) {
   useEffect(() => {
     document.title = "Profile Settings | VolleyTournament";
 
-const description =
-      "Manage your player profile: username, name, and optional shirt size.";
+    const description =
+      "Manage your player profile: username, name, and optional shirt size and position.";
     let meta = document.querySelector('meta[name="description"]');
     if (!meta) {
       meta = document.createElement("meta");
@@ -77,6 +114,7 @@ const onSubmit = async (values: ProfileFormValues) => {
     const payload = {
       ...values,
       shirt_size: values.shirt_size || null,
+      position: values.position || null,
     } as any;
 
     const { error } = await updateProfile(payload);
@@ -109,6 +147,34 @@ const onSubmit = async (values: ProfileFormValues) => {
             onSubmit={form.handleSubmit(onSubmit)}
             className="space-y-6 bg-card border border-border rounded-lg p-6"
           >
+            <div className="flex items-center gap-4 sm:gap-6">
+              <Avatar className="h-16 w-16">
+                <AvatarImage
+                  src={profile?.avatar_url || ""}
+                  alt={profile?.username ? `${profile.username} avatar` : "Player avatar"}
+                />
+                <AvatarFallback>
+                  {(profile?.username || user?.email || "U").charAt(0).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              <div className="space-y-2">
+                <div className="text-sm text-muted-foreground">Profile picture</div>
+                <div className="flex items-center gap-3">
+                  <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()} disabled={loading}>
+                    Upload photo
+                  </Button>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={onAvatarChange}
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground">PNG or JPG up to 5MB.</p>
+              </div>
+            </div>
+
             <div className="grid gap-6 sm:grid-cols-2">
               <div className="sm:col-span-2">
                 <FormItem>
@@ -182,6 +248,31 @@ const onSubmit = async (values: ProfileFormValues) => {
                         <SelectItem value="L">L</SelectItem>
                         <SelectItem value="XL">XL</SelectItem>
                         <SelectItem value="XXL">XXL</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="position"
+                render={({ field }) => (
+                  <FormItem className="sm:col-span-2">
+                    <FormLabel>Position (optional)</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select your position" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="Setter">Setter</SelectItem>
+                        <SelectItem value="Outside Hitter">Outside Hitter</SelectItem>
+                        <SelectItem value="Opposite">Opposite</SelectItem>
+                        <SelectItem value="Middle Blocker">Middle Blocker</SelectItem>
+                        <SelectItem value="Libero">Libero</SelectItem>
+                        <SelectItem value="Defensive Specialist">Defensive Specialist</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
