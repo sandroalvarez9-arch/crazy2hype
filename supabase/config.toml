@@ -9,3 +9,12 @@ verify_jwt = false
 
 [functions.send-bulk-email]
 verify_jwt = false
+
+[functions.get-stripe-oauth-url]
+verify_jwt = true
+
+[functions.finish-stripe-connect]
+verify_jwt = true
+
+[functions.create-payment]
+verify_jwt = true
