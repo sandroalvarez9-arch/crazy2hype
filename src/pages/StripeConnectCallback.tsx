@@ -13,19 +13,39 @@ const StripeConnectCallback: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    console.log("StripeConnectCallback: useEffect triggered");
+    console.log("Current URL:", window.location.href);
+    console.log("Location search:", location.search);
+    
     const params = new URLSearchParams(location.search);
     const code = params.get("code");
+    const error = params.get("error");
+    const state = params.get("state");
+    
+    console.log("URL params:", { code: code ? "present" : "missing", error, state });
 
     const finish = async () => {
+      if (error) {
+        console.error("Stripe OAuth error:", error);
+        setError(`Stripe error: ${error}`);
+        setLoading(false);
+        return;
+      }
+      
       if (!code) {
+        console.error("Missing authorization code");
         setError("Missing authorization code.");
         setLoading(false);
         return;
       }
+      
+      console.log("Calling finish-stripe-connect function...");
       try {
         const { data, error } = await supabase.functions.invoke("finish-stripe-connect", {
           body: { code },
         });
+        console.log("finish-stripe-connect response:", { data, error });
+        
         if (error) throw error;
         toast({
           title: "Stripe connected",
@@ -33,7 +53,7 @@ const StripeConnectCallback: React.FC = () => {
         });
         navigate("/create-tournament");
       } catch (e: any) {
-        console.error(e);
+        console.error("Error in finish-stripe-connect:", e);
         setError(e?.message || "Failed to complete Stripe connection.");
       } finally {
         setLoading(false);
