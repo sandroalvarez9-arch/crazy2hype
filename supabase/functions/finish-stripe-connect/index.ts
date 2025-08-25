@@ -34,11 +34,31 @@ serve(async (req) => {
     const token = authHeader.replace("Bearer ", "");
     console.log("[finish-stripe-connect] Auth header found");
 
-    const { data: userData, error: userError } = await supabaseAnon.auth.getUser(token);
-    if (userError) throw new Error(`Authentication error: ${userError.message}`);
-    const user = userData.user;
-    if (!user?.id) throw new Error("User not authenticated");
-    console.log("[finish-stripe-connect] User authenticated:", user.id, user.email);
+    // Authenticate user: try JWT decode first (platform verifies signature), fallback to Supabase auth
+    let userId: string | undefined;
+    let userEmail: string | undefined;
+
+    try {
+      const base64Url = token.split(".")[1];
+      const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+      const payloadJson = atob(base64);
+      const payload = JSON.parse(payloadJson);
+      userId = payload?.sub;
+      userEmail = payload?.email;
+      console.log("[finish-stripe-connect] JWT decoded user:", { userId, userEmail });
+    } catch (e) {
+      console.log("[finish-stripe-connect] JWT decode failed, will fallback to auth.getUser");
+    }
+
+    if (!userId) {
+      const { data: userData, error: userError } = await supabaseAnon.auth.getUser(token);
+      if (userError) throw new Error(`Authentication error: ${userError.message}`);
+      userId = userData.user?.id;
+      userEmail = userData.user?.email || undefined;
+    }
+
+    if (!userId) throw new Error("User not authenticated");
+    console.log("[finish-stripe-connect] User authenticated:", userId, userEmail);
 
     const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
     if (!stripeKey) throw new Error("STRIPE_SECRET_KEY is not set");
@@ -80,7 +100,7 @@ serve(async (req) => {
         stripe_details_submitted: account.details_submitted ?? false,
         updated_at: new Date().toISOString(),
       })
-      .eq("user_id", user.id)
+      .eq("user_id", userId)
       .select();
 
     if (updateError) {

@@ -108,6 +108,18 @@ const CreateTournament = () => {
     }
   }, []);
 
+  // Optimistically apply local stripe_connected flag on mount
+  React.useEffect(() => {
+    try {
+      const flag = localStorage.getItem(STRIPE_CONNECTED_KEY);
+      if (flag === 'true') {
+        console.log('Found stripe_connected flag in localStorage; refreshing status');
+        setStripeConnected(true);
+        setTimeout(() => checkStripeStatus(), 500);
+      }
+    } catch {}
+  }, []);
+
   // Auto-save draft on any change
   React.useEffect(() => {
     const subscription = form.watch((values) => {
