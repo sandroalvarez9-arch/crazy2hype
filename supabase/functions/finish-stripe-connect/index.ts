@@ -9,6 +9,8 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
+  console.log("[finish-stripe-connect] Function called");
+
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -25,36 +27,51 @@ serve(async (req) => {
   );
 
   try {
+    console.log("[finish-stripe-connect] Processing request...");
+    
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) throw new Error("Missing Authorization header");
     const token = authHeader.replace("Bearer ", "");
+    console.log("[finish-stripe-connect] Auth header found");
 
     const { data: userData, error: userError } = await supabaseAnon.auth.getUser(token);
     if (userError) throw new Error(`Authentication error: ${userError.message}`);
     const user = userData.user;
     if (!user?.id) throw new Error("User not authenticated");
+    console.log("[finish-stripe-connect] User authenticated:", user.id, user.email);
 
     const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
     if (!stripeKey) throw new Error("STRIPE_SECRET_KEY is not set");
+    console.log("[finish-stripe-connect] Stripe key found");
 
     const { code } = await req.json();
     if (!code) throw new Error("Missing OAuth code");
+    console.log("[finish-stripe-connect] OAuth code received");
 
     const stripe = new Stripe(stripeKey, { apiVersion: "2023-10-16" });
 
     // Exchange the code for a connected account token
+    console.log("[finish-stripe-connect] Exchanging OAuth code...");
     const tokenResponse = await stripe.oauth.token({
       grant_type: "authorization_code",
       code,
     });
+    console.log("[finish-stripe-connect] Token exchange successful");
 
     const accountId = tokenResponse.stripe_user_id;
     if (!accountId) throw new Error("Stripe did not return an account id");
+    console.log("[finish-stripe-connect] Account ID:", accountId);
 
     const account = await stripe.accounts.retrieve(accountId);
+    console.log("[finish-stripe-connect] Account details:", {
+      id: account.id,
+      charges_enabled: account.charges_enabled,
+      details_submitted: account.details_submitted
+    });
 
     // Store on the profile
-    await supabaseService
+    console.log("[finish-stripe-connect] Updating profile in database...");
+    const { data: updateData, error: updateError } = await supabaseService
       .from("profiles")
       .update({
         stripe_account_id: accountId,
@@ -63,7 +80,15 @@ serve(async (req) => {
         stripe_details_submitted: account.details_submitted ?? false,
         updated_at: new Date().toISOString(),
       })
-      .eq("user_id", user.id);
+      .eq("user_id", user.id)
+      .select();
+
+    if (updateError) {
+      console.error("[finish-stripe-connect] Database update error:", updateError);
+      throw new Error(`Database update failed: ${updateError.message}`);
+    }
+    
+    console.log("[finish-stripe-connect] Database update successful:", updateData);
 
     return new Response(JSON.stringify({
       account_id: accountId,

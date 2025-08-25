@@ -123,9 +123,13 @@ const CreateTournament = () => {
   // Listen for Stripe connection signal from callback tab
   React.useEffect(() => {
     const onStorage = (e: StorageEvent) => {
+      console.log('localStorage event:', e.key, e.newValue);
       if (e.key === STRIPE_CONNECTED_KEY && e.newValue === 'true') {
+        console.log('✅ Stripe connected signal received!');
         setStripeConnected(true);
         toast({ title: 'Stripe connected', description: 'You can now submit your tournament.' });
+        // Re-check from database to be sure
+        setTimeout(() => checkStripeStatus(), 1000);
       }
     };
     window.addEventListener('storage', onStorage);
@@ -205,24 +209,29 @@ const CreateTournament = () => {
         const values = form.getValues();
         localStorage.setItem(DRAFT_KEY, JSON.stringify(values));
         localStorage.removeItem(STRIPE_CONNECTED_KEY);
+        console.log('🚀 Draft saved, starting Stripe connect...');
       } catch {}
 
       const { data, error } = await supabase.functions.invoke('get-stripe-oauth-url');
+      console.log('get-stripe-oauth-url response:', { data, error });
+      
       if (error || !data?.url) {
         throw new Error(error?.message || 'Failed to create Stripe connect link');
       }
       // Open Stripe connect in a new tab. If blocked, fallback to same tab.
       const w = window.open(data.url, '_blank', 'noopener');
       if (!w) {
+        console.log('Popup blocked, redirecting same tab');
         window.location.href = data.url;
       } else {
+        console.log('Opened Stripe in new tab:', data.url);
         toast({
           title: 'Opening Stripe…',
           description: 'Complete the connection in the new tab, then return here.',
         });
       }
     } catch (e: any) {
-      console.error(e);
+      console.error('connectStripe error:', e);
       toast({
         title: 'Could not start Stripe connection',
         description: e?.message || 'Please try again.',
@@ -233,12 +242,17 @@ const CreateTournament = () => {
 
   const checkStripeStatus = async () => {
     if (!user) return;
-    const { data } = await supabase
+    console.log('🔍 Checking Stripe status for user:', user.id);
+    const { data, error } = await supabase
       .from('profiles')
       .select('stripe_connected, stripe_account_id')
       .eq('user_id', user.id)
-      .single();
-    setStripeConnected(Boolean(data?.stripe_connected && data?.stripe_account_id));
+      .maybeSingle();
+    
+    console.log('Stripe status from DB:', { data, error });
+    const isConnected = Boolean(data?.stripe_connected && data?.stripe_account_id);
+    console.log('Setting stripeConnected to:', isConnected);
+    setStripeConnected(isConnected);
   };
 
   React.useEffect(() => {
