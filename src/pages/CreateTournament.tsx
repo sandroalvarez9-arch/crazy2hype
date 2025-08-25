@@ -25,6 +25,8 @@ import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { LocationAutocompleteInput } from '@/components/LocationAutocompleteInput';
 type Division = 'men' | 'women' | 'coed';
+const DRAFT_KEY = 'create_tournament_draft';
+const STRIPE_CONNECTED_KEY = 'stripe_connected';
 const formSchema = z.object({
   title: z.string().min(3, 'Tournament title must be at least 3 characters'),
   description: z.string().optional(),
@@ -86,6 +88,49 @@ const CreateTournament = () => {
     entry_fee: 0,
   },
   });
+
+  // Restore saved draft on mount
+  React.useEffect(() => {
+    try {
+      const raw = localStorage.getItem(DRAFT_KEY);
+      if (!raw) return;
+      const saved = JSON.parse(raw);
+      const toDate = (v: any) => (v ? new Date(v) : undefined);
+      const draft: Partial<FormValues> = {
+        ...saved,
+        start_date: toDate(saved.start_date),
+        end_date: toDate(saved.end_date),
+        registration_deadline: toDate(saved.registration_deadline),
+      };
+      form.reset({ ...form.getValues(), ...draft });
+    } catch (e) {
+      console.warn('Failed to restore draft', e);
+    }
+  }, []);
+
+  // Auto-save draft on any change
+  React.useEffect(() => {
+    const subscription = form.watch((values) => {
+      try {
+        localStorage.setItem(DRAFT_KEY, JSON.stringify(values));
+      } catch (e) {
+        console.warn('Failed to save draft', e);
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [form]);
+
+  // Listen for Stripe connection signal from callback tab
+  React.useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === STRIPE_CONNECTED_KEY && e.newValue === 'true') {
+        setStripeConnected(true);
+        toast({ title: 'Stripe connected', description: 'You can now submit your tournament.' });
+      }
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, [toast]);
 
   // Watch skill levels to update max_teams_per_skill_level
   const watchedSkillLevels = form.watch('skill_levels');
@@ -155,12 +200,27 @@ const CreateTournament = () => {
 
   const connectStripe = async () => {
     try {
+      // Save current draft so nothing is lost during OAuth
+      try {
+        const values = form.getValues();
+        localStorage.setItem(DRAFT_KEY, JSON.stringify(values));
+        localStorage.removeItem(STRIPE_CONNECTED_KEY);
+      } catch {}
+
       const { data, error } = await supabase.functions.invoke('get-stripe-oauth-url');
       if (error || !data?.url) {
         throw new Error(error?.message || 'Failed to create Stripe connect link');
       }
-      // Open Stripe connect in a new tab (recommended)
-      window.open(data.url, '_blank');
+      // Open Stripe connect in a new tab. If blocked, fallback to same tab.
+      const w = window.open(data.url, '_blank', 'noopener');
+      if (!w) {
+        window.location.href = data.url;
+      } else {
+        toast({
+          title: 'Opening Stripe…',
+          description: 'Complete the connection in the new tab, then return here.',
+        });
+      }
     } catch (e: any) {
       console.error(e);
       toast({
@@ -171,17 +231,18 @@ const CreateTournament = () => {
     }
   };
 
+  const checkStripeStatus = async () => {
+    if (!user) return;
+    const { data } = await supabase
+      .from('profiles')
+      .select('stripe_connected, stripe_account_id')
+      .eq('user_id', user.id)
+      .single();
+    setStripeConnected(Boolean(data?.stripe_connected && data?.stripe_account_id));
+  };
+
   React.useEffect(() => {
-    const fetchStripe = async () => {
-      if (!user) return;
-      const { data } = await supabase
-        .from('profiles')
-        .select('stripe_connected, stripe_account_id')
-        .eq('user_id', user.id)
-        .single();
-      setStripeConnected(Boolean(data?.stripe_connected && data?.stripe_account_id));
-    };
-    fetchStripe();
+    checkStripeStatus();
   }, [user]);
 
   const onSubmit = async (values: FormValues) => {
@@ -234,6 +295,9 @@ const CreateTournament = () => {
         description: "Your tournament has been created and is now open for registrations.",
       });
 
+      // Clear draft after successful creation
+      try { localStorage.removeItem(DRAFT_KEY); } catch {}
+
       navigate(`/tournament/${data.id}`);
     } catch (error) {
       console.error('Error creating tournament:', error);
@@ -273,8 +337,9 @@ const CreateTournament = () => {
           <AlertDescription>
             Hosts must connect a Stripe Standard account to receive entry fees. A 5% platform fee applies.
           </AlertDescription>
-          <div className="mt-3">
+          <div className="mt-3 flex gap-3 flex-wrap">
             <Button onClick={connectStripe} className="gradient-primary hover:opacity-90 transition-opacity">Connect with Stripe</Button>
+            <Button variant="outline" onClick={checkStripeStatus}>I've connected — refresh</Button>
           </div>
         </Alert>
       )}

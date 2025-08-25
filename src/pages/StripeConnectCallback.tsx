@@ -51,7 +51,13 @@ const StripeConnectCallback: React.FC = () => {
           title: "Stripe connected",
           description: "Your account is now ready to receive tournament payments.",
         });
-        navigate("/create-tournament");
+        try { localStorage.setItem('stripe_connected', 'true'); } catch {}
+        // If opened from the create-tournament page, close this tab to return
+        if (window.opener && !window.opener.closed) {
+          window.close();
+        } else {
+          navigate("/create-tournament");
+        }
       } catch (e: any) {
         console.error("Error in finish-stripe-connect:", e);
         setError(e?.message || "Failed to complete Stripe connection.");
