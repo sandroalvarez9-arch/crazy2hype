@@ -185,6 +185,33 @@ const TeamRegistrationDialog = ({
         description: `${formData.teamName} has been registered for the tournament.`,
       });
 
+      // If there's an entry fee, automatically initiate payment
+      if (entryFee > 0) {
+        try {
+          const { data: paymentData, error: paymentError } = await supabase.functions.invoke('create-payment', {
+            body: { tournamentId }
+          });
+
+          if (paymentError) throw paymentError;
+
+          if (paymentData?.url) {
+            // Open Stripe checkout in a new tab
+            window.open(paymentData.url, '_blank');
+            toast({
+              title: "Payment page opened",
+              description: "Complete your payment in the new tab to secure your tournament spot.",
+            });
+          }
+        } catch (paymentError) {
+          console.error('Payment initiation error:', paymentError);
+          toast({
+            title: "Payment setup failed",
+            description: "Team registered successfully, but automatic payment failed. Please use the payment instructions below.",
+            variant: "destructive",
+          });
+        }
+      }
+
       // Reset form
       setFormData({
         teamName: '',
