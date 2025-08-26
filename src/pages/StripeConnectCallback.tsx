@@ -69,6 +69,22 @@ const StripeConnectCallback: React.FC = () => {
     finish();
   }, [location.search, navigate, toast]);
 
+  const handleReconnect = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const { data, error } = await supabase.functions.invoke('get-stripe-oauth-url');
+      if (error) throw error;
+      const url = (data as any)?.url;
+      if (!url) throw new Error('Failed to generate Stripe OAuth URL');
+      window.location.href = url;
+    } catch (e: any) {
+      setLoading(false);
+      setError(e?.message || 'Failed to start Stripe connection.');
+    }
+  };
+
+
   if (loading) {
     return (
       <div className="container mx-auto px-4 py-10">
@@ -86,20 +102,28 @@ const StripeConnectCallback: React.FC = () => {
   }
 
   if (error) {
+    const isPlatformAccountError = error.includes("Authorization code provided does not belong to you") || error.toLowerCase().includes("invalid_grant");
     return (
       <div className="container mx-auto px-4 py-10">
         <Card>
           <CardHeader>
             <CardTitle>Stripe connection failed</CardTitle>
-            <CardDescription>{error}</CardDescription>
+            <CardDescription>
+              {error}
+              {isPlatformAccountError && (
+                <> — Stripe does not allow connecting the platform's own Stripe account. Please use a different Stripe account.</>
+              )}
+            </CardDescription>
           </CardHeader>
-          <CardContent>
-            <Button onClick={() => navigate("/create-tournament")}>Back to Create Tournament</Button>
+          <CardContent className="flex gap-3">
+            <Button onClick={handleReconnect}>Connect a different Stripe account</Button>
+            <Button variant="secondary" onClick={() => navigate("/create-tournament")}>Back to Create Tournament</Button>
           </CardContent>
         </Card>
       </div>
     );
   }
+
 
   return null;
 };
