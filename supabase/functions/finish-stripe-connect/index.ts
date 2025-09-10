@@ -89,18 +89,22 @@ serve(async (req) => {
       details_submitted: account.details_submitted
     });
 
-    // Store on the profile
-    console.log("[finish-stripe-connect] Updating profile in database...");
+    // Store on the profile using UPSERT to ensure profile exists
+    console.log("[finish-stripe-connect] Upserting profile in database...");
     const { data: updateData, error: updateError } = await supabaseService
       .from("profiles")
-      .update({
+      .upsert({
+        user_id: userId,
+        username: userEmail?.split('@')[0] || `user_${userId.slice(0, 8)}`,
+        email: userEmail || '',
         stripe_account_id: accountId,
         stripe_connected: true,
         stripe_charges_enabled: account.charges_enabled ?? false,
         stripe_details_submitted: account.details_submitted ?? false,
         updated_at: new Date().toISOString(),
+      }, {
+        onConflict: 'user_id'
       })
-      .eq("user_id", userId)
       .select();
 
     if (updateError) {
