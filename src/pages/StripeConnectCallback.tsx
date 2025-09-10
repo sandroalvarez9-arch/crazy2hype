@@ -47,10 +47,23 @@ const StripeConnectCallback: React.FC = () => {
         console.log("finish-stripe-connect response:", { data, error });
         
         if (error) throw error;
-        toast({
-          title: "Stripe connected",
-          description: "Your account is now ready to receive tournament payments.",
-        });
+        
+        // Verify the connection actually worked
+        console.log("Verifying Stripe connection...");
+        const { data: verificationData, error: verifyError } = await supabase.functions.invoke("check-stripe-connect");
+        
+        if (!verifyError && verificationData?.connected) {
+          toast({
+            title: "Stripe connected successfully ✓",
+            description: `Your account is verified and ready to receive tournament payments.${verificationData.charges_enabled ? '' : ' Complete your account setup in Stripe to accept payments.'}`,
+          });
+        } else {
+          toast({
+            title: "Stripe connected",
+            description: "Connection completed. Please check your account status on the create tournament page.",
+          });
+        }
+        
         try { localStorage.setItem('stripe_connected', 'true'); } catch {}
         // If opened from the create-tournament page, close this tab to return
         if (window.opener && !window.opener.closed) {

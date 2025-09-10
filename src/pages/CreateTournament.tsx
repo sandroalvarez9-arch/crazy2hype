@@ -255,16 +255,49 @@ const CreateTournament = () => {
   const checkStripeStatus = async () => {
     if (!user) return;
     console.log('🔍 Checking Stripe status for user:', user.id);
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('stripe_connected, stripe_account_id')
-      .eq('user_id', user.id)
-      .maybeSingle();
     
-    console.log('Stripe status from DB:', { data, error });
-    const isConnected = Boolean(data?.stripe_connected && data?.stripe_account_id);
-    console.log('Setting stripeConnected to:', isConnected);
-    setStripeConnected(isConnected);
+    try {
+      // Use the verification function to check and update Stripe status
+      const { data, error } = await supabase.functions.invoke('check-stripe-connect');
+      
+      if (error) {
+        console.error('Error checking Stripe connection:', error);
+        setStripeConnected(false);
+        return;
+      }
+      
+      console.log('Stripe verification response:', data);
+      const isConnected = Boolean(data?.connected);
+      console.log('Setting stripeConnected to:', isConnected);
+      setStripeConnected(isConnected);
+      
+      // Show helpful toast messages
+      if (isConnected && data?.charges_enabled) {
+        toast({
+          title: 'Stripe Connected ✓',
+          description: 'Your Stripe account is verified and ready to accept payments.',
+        });
+      } else if (isConnected && !data?.charges_enabled) {
+        toast({
+          title: 'Stripe Connected - Setup Incomplete',
+          description: 'Please complete your Stripe account setup to accept payments.',
+          variant: 'destructive',
+        });
+      }
+      
+    } catch (err) {
+      console.error('Failed to check Stripe status:', err);
+      // Fallback to database check
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('stripe_connected, stripe_account_id')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      
+      const isConnected = Boolean(data?.stripe_connected && data?.stripe_account_id);
+      console.log('Fallback - Setting stripeConnected to:', isConnected);
+      setStripeConnected(isConnected);
+    }
   };
 
   React.useEffect(() => {
@@ -362,10 +395,18 @@ const CreateTournament = () => {
           <AlertTitle>Connect Stripe to accept payments</AlertTitle>
           <AlertDescription>
             Hosts must connect a Stripe Standard account to receive entry fees. A 5% platform fee applies.
+            <br />
+            <span className="text-sm text-muted-foreground mt-2 block">
+              💡 Testing tip: Use "Skip this form" in Stripe's test mode, or create a separate Stripe account for testing.
+            </span>
           </AlertDescription>
           <div className="mt-3 flex gap-3 flex-wrap">
-            <Button onClick={connectStripe} className="gradient-primary hover:opacity-90 transition-opacity">Connect with Stripe</Button>
-            <Button variant="outline" onClick={checkStripeStatus}>I've connected — refresh</Button>
+            <Button onClick={connectStripe} className="gradient-primary hover:opacity-90 transition-opacity">
+              Connect with Stripe
+            </Button>
+            <Button variant="outline" onClick={checkStripeStatus}>
+              Check Connection Status
+            </Button>
           </div>
         </Alert>
       )}
