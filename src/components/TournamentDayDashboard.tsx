@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { MatchScoringInterface } from "@/components/MatchScoringInterface";
 import { TeamScheduleView } from "@/components/TeamScheduleView";
+import { PoolDetailsView } from "@/components/PoolDetailsView";
 import { format } from "date-fns";
 import { Trophy, Clock, Users, Play, Pause, CheckCircle } from "lucide-react";
 
@@ -63,6 +64,7 @@ export function TournamentDayDashboard({ tournament, teams }: TournamentDayDashb
   const [matches, setMatches] = useState<Match[]>([]);
   const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
+  const [selectedPool, setSelectedPool] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
@@ -142,6 +144,20 @@ export function TournamentDayDashboard({ tournament, teams }: TournamentDayDashb
   };
 
   const checkedInTeams = teams.filter(team => team.check_in_status === 'checked_in');
+  
+  // Get unique pools from matches
+  const pools = Array.from(new Set(matches.map(match => match.pool_name).filter(Boolean)));
+  
+  // If a pool is selected, show pool details
+  if (selectedPool) {
+    return (
+      <PoolDetailsView
+        poolName={selectedPool}
+        matches={matches}
+        onBack={() => setSelectedPool(null)}
+      />
+    );
+  }
 
   if (!tournament.brackets_generated) {
     return (
@@ -214,8 +230,9 @@ export function TournamentDayDashboard({ tournament, teams }: TournamentDayDashb
       </div>
 
       <Tabs defaultValue="matches" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="matches">Live Matches</TabsTrigger>
+          <TabsTrigger value="pools">Pool Play</TabsTrigger>
           <TabsTrigger value="schedule">Full Schedule</TabsTrigger>
           <TabsTrigger value="teams">Team Schedules</TabsTrigger>
         </TabsList>
@@ -309,6 +326,60 @@ export function TournamentDayDashboard({ tournament, teams }: TournamentDayDashb
               </CardContent>
             </Card>
           )}
+        </TabsContent>
+
+        <TabsContent value="pools" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Trophy className="h-5 w-5" />
+                Pool Play Overview
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {pools.length === 0 ? (
+                <div className="text-center py-8">
+                  <p className="text-muted-foreground">No pools found</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {pools.map(pool => {
+                    const poolMatches = matches.filter(m => m.pool_name === pool);
+                    const completedMatches = poolMatches.filter(m => m.status === 'completed');
+                    const inProgressMatches = poolMatches.filter(m => m.status === 'in_progress');
+                    const scheduledMatches = poolMatches.filter(m => m.status === 'scheduled');
+                    
+                    return (
+                      <Card 
+                        key={pool} 
+                        className="cursor-pointer hover:bg-accent/50 transition-colors"
+                        onClick={() => setSelectedPool(pool)}
+                      >
+                        <CardContent className="pt-6">
+                          <div className="text-center space-y-2">
+                            <h3 className="font-semibold text-lg">{pool}</h3>
+                            <div className="text-sm text-muted-foreground">
+                              {poolMatches.length} matches • Court {poolMatches[0]?.court_number}
+                            </div>
+                            <div className="flex justify-center gap-4 text-xs">
+                              <span className="text-green-600">{completedMatches.length} done</span>
+                              <span className="text-blue-600">{inProgressMatches.length} live</span>
+                              <span className="text-yellow-600">{scheduledMatches.length} pending</span>
+                            </div>
+                            <div className="pt-2">
+                              <Badge variant="outline" className="text-xs">
+                                Click to view details
+                              </Badge>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="schedule">
