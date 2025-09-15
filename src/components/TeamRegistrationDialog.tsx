@@ -87,6 +87,13 @@ const TeamRegistrationDialog = ({
       fetchTeamCounts();
     }
   }, [isOpen, tournamentId, tournamentSkillLevels]);
+
+  // Auto-set skill level when there's only one option
+  React.useEffect(() => {
+    if (isOpen && tournamentSkillLevels && tournamentSkillLevels.length === 1 && !formData.skillLevel) {
+      setFormData(prev => ({ ...prev, skillLevel: tournamentSkillLevels[0] }));
+    }
+  }, [isOpen, tournamentSkillLevels, formData.skillLevel]);
   
   // Initialize players array with proper defensive checks
   const initializePlayers = (count: number) => {
@@ -466,7 +473,7 @@ const TeamRegistrationDialog = ({
                 disabled={
                   loading || 
                   !formData.teamName.trim() || 
-                  (tournamentSkillLevels && tournamentSkillLevels.length > 1 && !formData.skillLevel) ||
+                  (tournamentSkillLevels && tournamentSkillLevels.length > 0 && !formData.skillLevel) ||
                   !players.every(p => p.name.trim()) ||
                   !players.every(p => p.email.trim())
                 }
