@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ArrowLeft, Trophy, Target } from "lucide-react";
 import { format } from "date-fns";
+import { TeamDetailsView } from "@/components/TeamDetailsView";
 
 interface Match {
   id: string;
@@ -48,6 +49,7 @@ interface PoolDetailsViewProps {
 export function PoolDetailsView({ poolName, matches, onBack }: PoolDetailsViewProps) {
   const [poolMatches, setPoolMatches] = useState<Match[]>([]);
   const [standings, setStandings] = useState<PoolRecord[]>([]);
+  const [selectedTeam, setSelectedTeam] = useState<{ id: string; name: string } | null>(null);
 
   useEffect(() => {
     // Filter matches for this pool
@@ -201,7 +203,11 @@ export function PoolDetailsView({ poolName, matches, onBack }: PoolDetailsViewPr
                 </TableHeader>
                 <TableBody>
                   {standings.map((team, index) => (
-                    <TableRow key={team.teamId}>
+                    <TableRow 
+                      key={team.teamId}
+                      className="cursor-pointer hover:bg-accent/50 transition-colors"
+                      onClick={() => setSelectedTeam({ id: team.teamId, name: team.teamName })}
+                    >
                       <TableCell className="text-center">
                         <div className="flex items-center justify-center">
                           {getPositionIcon(index)}
