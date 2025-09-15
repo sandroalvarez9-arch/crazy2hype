@@ -40,27 +40,29 @@ export async function generateTestTeams(tournamentId: string, teamCount: number 
     // Use tournament skill levels or fallback to test data skill levels
     const availableSkillLevels = skillLevels.length > 0 ? skillLevels : ['advanced', 'intermediate', 'beginner'];
     
-    // Select teams to create (up to teamCount) and map their skill levels to tournament's skill levels
-    const teamsToCreate = TEST_TEAMS.slice(0, teamCount);
+    // Create teamCount teams for EACH skill level
+    const teamsData: any[] = [];
     
-    const teamsData = teamsToCreate.map((team, index) => {
-      // Cycle through available skill levels to distribute teams evenly
-      const skillLevelIndex = index % availableSkillLevels.length;
-      const assignedSkillLevel = availableSkillLevels[skillLevelIndex];
-      
-      return {
-        tournament_id: tournamentId,
-        name: team.name,
-        skill_level: assignedSkillLevel,
-        division: team.division || null,
-        players_count: team.players_count,
-        captain_id: currentUser.id, // Use current user as captain for testing
-        contact_email: team.captain_email,
-        check_in_status: 'pending',
-        payment_status: 'pending',
-        is_registered: true,
-        is_backup: false
-      };
+    availableSkillLevels.forEach((skillLevel, skillIndex) => {
+      for (let i = 0; i < teamCount; i++) {
+        // Cycle through TEST_TEAMS to get different names
+        const teamIndex = (skillIndex * teamCount + i) % TEST_TEAMS.length;
+        const baseTeam = TEST_TEAMS[teamIndex];
+        
+        teamsData.push({
+          tournament_id: tournamentId,
+          name: `${baseTeam.name} (${skillLevel.toUpperCase()})`,
+          skill_level: skillLevel,
+          division: baseTeam.division || null,
+          players_count: baseTeam.players_count,
+          captain_id: currentUser.id, // Use current user as captain for testing
+          contact_email: baseTeam.captain_email,
+          check_in_status: 'pending',
+          payment_status: 'pending',
+          is_registered: true,
+          is_backup: false
+        });
+      }
     });
 
     const { data, error } = await supabase
