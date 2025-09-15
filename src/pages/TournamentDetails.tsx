@@ -99,7 +99,7 @@ const TournamentDetails = () => {
         .from('tournaments')
         .select(`
           *,
-          organizer:profiles!tournaments_organizer_id_fkey(username, first_name, last_name)
+          organizer:profiles_public!tournaments_organizer_id_fkey(username, first_name, last_name)
         `)
         .eq('id', id)
         .single();
@@ -120,7 +120,7 @@ const TournamentDetails = () => {
         .from('teams')
         .select(`
           *,
-          captain:profiles!teams_captain_id_fkey(username, first_name, last_name)
+          captain:profiles_public!teams_captain_id_fkey(username, first_name, last_name)
         `)
         .eq('tournament_id', id)
         .order('name');

@@ -40,7 +40,7 @@ const Index = () => {
         .from('tournaments')
         .select(`
           *,
-          organizer:profiles!tournaments_organizer_id_fkey(username),
+          organizer:profiles_public!tournaments_organizer_id_fkey(username),
           teams(count)
         `)
         .eq('status', 'open')
