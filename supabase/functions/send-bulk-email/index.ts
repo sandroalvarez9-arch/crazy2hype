@@ -102,22 +102,26 @@ serve(async (req) => {
     const teamIds = (teams || []).map((t) => t.id);
     const teamEmails = (teams || []).map((t) => t.contact_email).filter(isValidEmail);
 
-    // Get players for these teams
+    // Get players contact info for these teams from secure table
     let playerEmails: string[] = [];
     if (teamIds.length > 0) {
-      const { data: players, error: playersErr } = await supabase
-        .from("players")
-        .select("email, team_id")
-        .in("team_id", teamIds);
+      const { data: playerContacts, error: contactsErr } = await supabase
+        .from("player_contacts")
+        .select(`
+          email,
+          player_id,
+          players!inner(team_id)
+        `)
+        .in("players.team_id", teamIds);
 
-      if (playersErr) {
+      if (contactsErr) {
         return new Response(
-          JSON.stringify({ error: "Failed to fetch players" }),
+          JSON.stringify({ error: "Failed to fetch player contacts" }),
           { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
 
-      playerEmails = (players || []).map((p) => p.email).filter(isValidEmail);
+      playerEmails = (playerContacts || []).map((pc) => pc.email).filter(isValidEmail);
     }
 
     const uniqueRecipients = Array.from(new Set([...teamEmails, ...playerEmails]));

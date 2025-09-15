@@ -167,24 +167,43 @@ const TeamRegistrationDialog = ({
 
       if (teamError) throw teamError;
 
-      // Then, insert all players
+      // Then, insert all players (without contact info in main table)
       const playersData = players
         .filter(player => player.name.trim())
         .map(player => ({
           team_id: teamData.id,
           name: player.name.trim(),
-          email: player.email.trim() || null,
-          phone: player.phone.trim() || null,
           position: player.position.trim() || null,
           jersey_number: player.jerseyNumber ? parseInt(player.jerseyNumber) : null
         }));
 
+      let insertedPlayers: any[] = [];
       if (playersData.length > 0) {
-        const { error: playersError } = await supabase
+        const { data: playerRecords, error: playersError } = await supabase
           .from('players')
-          .insert(playersData);
+          .insert(playersData)
+          .select();
 
         if (playersError) throw playersError;
+        insertedPlayers = playerRecords || [];
+      }
+
+      // Insert player contact information into secure table
+      const playerContactsData = players
+        .filter((player, index) => player.name.trim() && insertedPlayers[index])
+        .map((player, index) => ({
+          player_id: insertedPlayers[index].id,
+          email: player.email.trim() || null,
+          phone: player.phone.trim() || null
+        }))
+        .filter(contact => contact.email || contact.phone); // Only insert if there's contact info
+
+      if (playerContactsData.length > 0) {
+        const { error: contactsError } = await supabase
+          .from('player_contacts')
+          .insert(playerContactsData);
+
+        if (contactsError) throw contactsError;
       }
 
       toast({

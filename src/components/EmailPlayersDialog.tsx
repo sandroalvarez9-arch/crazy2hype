@@ -41,13 +41,18 @@ export default function EmailPlayersDialog({ tournamentId, defaultSubject }: Ema
 
       let playerEmails: string[] = [];
       if (teamIds.length > 0) {
-        const { data: players } = await supabase
-          .from("players")
-          .select("email, team_id")
-          .in("team_id", teamIds);
+        // Fetch player emails from secure player_contacts table
+        const { data: playerContacts } = await supabase
+          .from("player_contacts")
+          .select(`
+            email,
+            player_id,
+            players!inner(team_id)
+          `)
+          .in("players.team_id", teamIds);
 
-        playerEmails = (players || [])
-          .map(p => p.email)
+        playerEmails = (playerContacts || [])
+          .map(pc => pc.email)
           .filter((e): e is string => !!e && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e));
       }
 
