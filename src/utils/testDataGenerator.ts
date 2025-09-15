@@ -32,27 +32,36 @@ const TEST_TEAMS: TestTeamData[] = [
   { name: "Starter Squad", skill_level: "beginner", players_count: 5, captain_email: "starters@test.com" },
 ];
 
-export async function generateTestTeams(tournamentId: string, teamCount: number = 12) {
+export async function generateTestTeams(tournamentId: string, teamCount: number = 12, skillLevels: string[] = []) {
   try {
     const currentUser = (await supabase.auth.getUser()).data.user;
     if (!currentUser) throw new Error("Not authenticated");
 
-    // Select teams to create (up to teamCount)
+    // Use tournament skill levels or fallback to test data skill levels
+    const availableSkillLevels = skillLevels.length > 0 ? skillLevels : ['advanced', 'intermediate', 'beginner'];
+    
+    // Select teams to create (up to teamCount) and map their skill levels to tournament's skill levels
     const teamsToCreate = TEST_TEAMS.slice(0, teamCount);
     
-    const teamsData = teamsToCreate.map(team => ({
-      tournament_id: tournamentId,
-      name: team.name,
-      skill_level: team.skill_level,
-      division: team.division || null,
-      players_count: team.players_count,
-      captain_id: currentUser.id, // Use current user as captain for testing
-      contact_email: team.captain_email,
-      check_in_status: 'pending',
-      payment_status: 'pending',
-      is_registered: true,
-      is_backup: false
-    }));
+    const teamsData = teamsToCreate.map((team, index) => {
+      // Cycle through available skill levels to distribute teams evenly
+      const skillLevelIndex = index % availableSkillLevels.length;
+      const assignedSkillLevel = availableSkillLevels[skillLevelIndex];
+      
+      return {
+        tournament_id: tournamentId,
+        name: team.name,
+        skill_level: assignedSkillLevel,
+        division: team.division || null,
+        players_count: team.players_count,
+        captain_id: currentUser.id, // Use current user as captain for testing
+        contact_email: team.captain_email,
+        check_in_status: 'pending',
+        payment_status: 'pending',
+        is_registered: true,
+        is_backup: false
+      };
+    });
 
     const { data, error } = await supabase
       .from('teams')

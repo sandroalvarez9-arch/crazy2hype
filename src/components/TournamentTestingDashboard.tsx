@@ -15,6 +15,7 @@ interface Tournament {
   title: string;
   brackets_generated: boolean;
   status: string;
+  skill_levels: string[];
 }
 
 interface Team {
@@ -51,7 +52,7 @@ export function TournamentTestingDashboard({
   const handleGenerateTeams = async () => {
     setLoading('teams');
     try {
-      const result = await generateTestTeams(tournament.id, teamCount);
+      const result = await generateTestTeams(tournament.id, teamCount, tournament.skill_levels);
       if (result.success) {
         toast({
           title: "Test Teams Generated",
