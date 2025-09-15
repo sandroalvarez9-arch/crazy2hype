@@ -50,12 +50,15 @@ export function PoolPlayManager({ tournament, teams, onBracketsGenerated }: Pool
     console.log("DEBUG: tournament.first_game_time:", t);
     console.log("DEBUG: tournament.start_date:", tournament.start_date);
     
-    // If first_game_time is set and it's just a time (e.g., "09:00"), combine with start date
-    if (t && t.match(/^\d{2}:\d{2}$/)) {
+    // If first_game_time is set and it's a time format (e.g., "09:00" or "09:00:00"), combine with start date
+    if (t && t.match(/^\d{2}:\d{2}(:\d{2})?$/)) {
       const startDate = new Date(tournament.start_date);
-      const [hours, minutes] = t.split(':').map(Number);
-      startDate.setHours(hours, minutes, 0, 0);
-      console.log("DEBUG: Parsed time-only format result:", startDate);
+      const timeParts = t.split(':').map(Number);
+      const hours = timeParts[0];
+      const minutes = timeParts[1];
+      const seconds = timeParts[2] || 0; // Default to 0 if no seconds provided
+      startDate.setHours(hours, minutes, seconds, 0);
+      console.log("DEBUG: Parsed time format result:", startDate);
       return startDate;
     }
     
@@ -82,13 +85,16 @@ export function PoolPlayManager({ tournament, teams, onBracketsGenerated }: Pool
       console.log("DEBUG: Generation - tournament.first_game_time:", tournament.first_game_time);
       console.log("DEBUG: Generation - tournament.start_date:", tournament.start_date);
       
-      // Handle time-only format (e.g., "09:00")
-      if (tournament.first_game_time?.match(/^\d{2}:\d{2}$/)) {
+      // Handle time format (e.g., "09:00" or "09:00:00")
+      if (tournament.first_game_time?.match(/^\d{2}:\d{2}(:\d{2})?$/)) {
         const startDate = new Date(tournament.start_date);
-        const [hours, minutes] = tournament.first_game_time.split(':').map(Number);
+        const timeParts = tournament.first_game_time.split(':').map(Number);
+        const hours = timeParts[0];
+        const minutes = timeParts[1];
+        const seconds = timeParts[2] || 0; // Default to 0 if no seconds provided
         firstGameTime = new Date(startDate);
-        firstGameTime.setHours(hours, minutes, 0, 0);
-        console.log("DEBUG: Generated firstGameTime from time-only:", firstGameTime);
+        firstGameTime.setHours(hours, minutes, seconds, 0);
+        console.log("DEBUG: Generated firstGameTime from time format:", firstGameTime);
       } else if (tournament.first_game_time) {
         firstGameTime = new Date(tournament.first_game_time);
         console.log("DEBUG: Generated firstGameTime from full date:", firstGameTime);
