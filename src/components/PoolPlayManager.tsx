@@ -21,6 +21,7 @@ interface Tournament {
   id: string;
   title: string;
   first_game_time: string;
+  start_date: string;
   estimated_game_duration: number;
   warm_up_duration?: number;
   number_of_courts?: number;
@@ -46,6 +47,16 @@ export function PoolPlayManager({ tournament, teams, onBracketsGenerated }: Pool
   const firstGameDate = (() => {
     const t = tournament.first_game_time;
     if (!t) return null;
+    
+    // If it's just a time (e.g., "09:00"), combine with start date
+    if (t.match(/^\d{2}:\d{2}$/)) {
+      const startDate = new Date(tournament.start_date);
+      const [hours, minutes] = t.split(':').map(Number);
+      startDate.setHours(hours, minutes, 0, 0);
+      return startDate;
+    }
+    
+    // Otherwise try to parse as full date
     const d = new Date(t);
     return isNaN(d.getTime()) ? null : d;
   })();
@@ -55,7 +66,18 @@ export function PoolPlayManager({ tournament, teams, onBracketsGenerated }: Pool
 
     setIsGenerating(true);
     try {
-      const firstGameTime = new Date(tournament.first_game_time);
+      let firstGameTime: Date;
+      
+      // Handle time-only format (e.g., "09:00")
+      if (tournament.first_game_time?.match(/^\d{2}:\d{2}$/)) {
+        const startDate = new Date(tournament.start_date);
+        const [hours, minutes] = tournament.first_game_time.split(':').map(Number);
+        firstGameTime = new Date(startDate);
+        firstGameTime.setHours(hours, minutes, 0, 0);
+      } else {
+        firstGameTime = new Date(tournament.first_game_time);
+      }
+      
       if (isNaN(firstGameTime.getTime())) {
         toast({
           title: "First game time required",
