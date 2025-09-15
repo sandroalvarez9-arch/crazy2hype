@@ -234,66 +234,98 @@ export function scheduleMatches(
   numberOfCourts: number,
   warmUpDuration: number = 7
 ): Match[] {
+  console.log(`DEBUG: scheduleMatches called with ${matches.length} matches and ${numberOfCourts} courts`);
+  
   const scheduledMatches = [...matches];
-  const courtSchedules = new Map<number, Date>();
-  const teamLastGameTime = new Map<string, Date>();
+  
+  // Group matches by pool for pool play scheduling
+  const matchesByPool = matches.reduce((acc, match) => {
+    if (!acc[match.pool_name]) acc[match.pool_name] = [];
+    acc[match.pool_name].push(match);
+    return acc;
+  }, {} as Record<string, Match[]>);
+  
+  console.log('DEBUG: Matches grouped by pool:', Object.keys(matchesByPool).map(poolName => ({ 
+    pool: poolName, 
+    matches: matchesByPool[poolName].length 
+  })));
+  
+  // Assign each pool to a specific court
+  const poolCourtAssignment = new Map<string, number>();
+  const poolNames = Object.keys(matchesByPool);
+  poolNames.forEach((poolName, index) => {
+    const courtNumber = (index % numberOfCourts) + 1; // Round-robin assignment to courts
+    poolCourtAssignment.set(poolName, courtNumber);
+    console.log(`DEBUG: Assigned pool ${poolName} to court ${courtNumber}`);
+  });
   
   // Initialize court schedules
+  const courtSchedules = new Map<number, Date>();
   for (let court = 1; court <= numberOfCourts; court++) {
     courtSchedules.set(court, new Date(firstGameTime));
   }
   
-  scheduledMatches.forEach((match, index) => {
-    const team1LastGame = teamLastGameTime.get(match.team1_id);
-    const team2LastGame = teamLastGameTime.get(match.team2_id);
-    const refTeamLastGame = match.referee_team_id ? teamLastGameTime.get(match.referee_team_id) : undefined;
+  // Schedule matches pool by pool
+  Object.entries(matchesByPool).forEach(([poolName, poolMatches]) => {
+    const assignedCourt = poolCourtAssignment.get(poolName)!;
+    const teamLastGameTime = new Map<string, Date>();
     
-    // Find the best court considering back-to-back matches
-    let bestCourt = 1;
-    let bestTime = courtSchedules.get(1)!;
-    let minRestTime = Infinity;
+    console.log(`DEBUG: Scheduling ${poolMatches.length} matches for pool ${poolName} on court ${assignedCourt}`);
     
-    // Check all courts to find the one that gives the most rest time for teams
-    for (let court = 1; court <= numberOfCourts; court++) {
-      const courtTime = courtSchedules.get(court)!;
+    poolMatches.forEach((match, index) => {
+      const team1LastGame = teamLastGameTime.get(match.team1_id);
+      const team2LastGame = teamLastGameTime.get(match.team2_id);
+      const refTeamLastGame = match.referee_team_id ? teamLastGameTime.get(match.referee_team_id) : undefined;
       
-      // Calculate rest time for each team
-      let team1Rest = team1LastGame ? courtTime.getTime() - team1LastGame.getTime() : Infinity;
-      let team2Rest = team2LastGame ? courtTime.getTime() - team2LastGame.getTime() : Infinity;
-      let refRest = refTeamLastGame ? courtTime.getTime() - refTeamLastGame.getTime() : Infinity;
+      let courtTime = courtSchedules.get(assignedCourt)!;
       
-      // We want at least one game duration + warmup as rest time to avoid back-to-back
+      // Ensure teams get proper rest between games
       const minDesiredRest = (estimatedGameDuration + warmUpDuration) * 60000;
       
-      // Calculate how much we're violating the desired rest time
-      const team1Violation = Math.max(0, minDesiredRest - team1Rest);
-      const team2Violation = Math.max(0, minDesiredRest - team2Rest);
-      const refViolation = refTeamLastGame ? Math.max(0, minDesiredRest - refRest) : 0;
-      
-      const totalViolation = team1Violation + team2Violation + refViolation;
-      
-      // Prefer courts with less violation, and if equal, prefer earlier time
-      if (totalViolation < minRestTime || (totalViolation === minRestTime && courtTime < bestTime)) {
-        minRestTime = totalViolation;
-        bestTime = courtTime;
-        bestCourt = court;
+      if (team1LastGame) {
+        const team1Rest = courtTime.getTime() - team1LastGame.getTime();
+        if (team1Rest < minDesiredRest) {
+          courtTime = new Date(team1LastGame.getTime() + minDesiredRest);
+        }
       }
-    }
-    
-    // Assign court and time
-    match.court_number = bestCourt;
-    match.scheduled_time = bestTime.toISOString();
-    
-    // Update team last game times
-    teamLastGameTime.set(match.team1_id, bestTime);
-    teamLastGameTime.set(match.team2_id, bestTime);
-    if (match.referee_team_id) {
-      teamLastGameTime.set(match.referee_team_id, bestTime);
-    }
-    
-    // Update court schedule (add game duration + warm-up + 5 minute transition)
-    const nextGameTime = new Date(bestTime.getTime() + (estimatedGameDuration + warmUpDuration + 5) * 60000);
-    courtSchedules.set(bestCourt, nextGameTime);
+      
+      if (team2LastGame) {
+        const team2Rest = courtTime.getTime() - team2LastGame.getTime();
+        if (team2Rest < minDesiredRest) {
+          courtTime = new Date(Math.max(courtTime.getTime(), team2LastGame.getTime() + minDesiredRest));
+        }
+      }
+      
+      if (refTeamLastGame) {
+        const refRest = courtTime.getTime() - refTeamLastGame.getTime();
+        if (refRest < minDesiredRest) {
+          courtTime = new Date(Math.max(courtTime.getTime(), refTeamLastGame.getTime() + minDesiredRest));
+        }
+      }
+      
+      // Ensure court is available
+      const currentCourtTime = courtSchedules.get(assignedCourt)!;
+      if (courtTime < currentCourtTime) {
+        courtTime = new Date(currentCourtTime);
+      }
+      
+      // Assign court and time
+      match.court_number = assignedCourt;
+      match.scheduled_time = courtTime.toISOString();
+      
+      console.log(`DEBUG: Match ${index + 1} in pool ${poolName}: Court ${assignedCourt} at ${courtTime.toLocaleTimeString()}`);
+      
+      // Update team last game times
+      teamLastGameTime.set(match.team1_id, courtTime);
+      teamLastGameTime.set(match.team2_id, courtTime);
+      if (match.referee_team_id) {
+        teamLastGameTime.set(match.referee_team_id, courtTime);
+      }
+      
+      // Update court schedule
+      const nextAvailableTime = new Date(courtTime.getTime() + (estimatedGameDuration + warmUpDuration + 5) * 60000);
+      courtSchedules.set(assignedCourt, nextAvailableTime);
+    });
   });
   
   return scheduledMatches;
