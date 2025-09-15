@@ -641,6 +641,36 @@ export type Database = {
       }
     }
     Views: {
+      players_public: {
+        Row: {
+          created_at: string | null
+          id: string | null
+          jersey_number: number | null
+          name: string | null
+          position: string | null
+          team_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string | null
+          jersey_number?: number | null
+          name?: string | null
+          position?: string | null
+          team_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string | null
+          jersey_number?: number | null
+          name?: string | null
+          position?: string | null
+          team_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       profiles_public: {
         Row: {
           avatar_url: string | null
