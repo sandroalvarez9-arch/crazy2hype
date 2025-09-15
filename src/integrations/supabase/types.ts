@@ -432,6 +432,7 @@ export type Database = {
           id: string
           is_backup: boolean | null
           is_registered: boolean | null
+          is_test_data: boolean
           name: string
           payment_date: string | null
           payment_method: string | null
@@ -454,6 +455,7 @@ export type Database = {
           id?: string
           is_backup?: boolean | null
           is_registered?: boolean | null
+          is_test_data?: boolean
           name: string
           payment_date?: string | null
           payment_method?: string | null
@@ -476,6 +478,7 @@ export type Database = {
           id?: string
           is_backup?: boolean | null
           is_registered?: boolean | null
+          is_test_data?: boolean
           name?: string
           payment_date?: string | null
           payment_method?: string | null

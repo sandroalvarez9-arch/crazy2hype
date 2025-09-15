@@ -60,7 +60,8 @@ export async function generateTestTeams(tournamentId: string, teamCount: number 
           check_in_status: 'pending',
           payment_status: 'pending',
           is_registered: true,
-          is_backup: false
+          is_backup: false,
+          is_test_data: true // Mark as test data for safe deletion
         });
       }
     });
@@ -85,7 +86,8 @@ export async function simulateCheckins(tournamentId: string, checkinPercentage: 
       .from('teams')
       .select('*')
       .eq('tournament_id', tournamentId)
-      .eq('check_in_status', 'pending');
+      .eq('check_in_status', 'pending')
+      .eq('is_test_data', true); // Only simulate checkins for test teams
 
     if (error) throw error;
     if (!teams) return { success: false, error: 'No pending teams found' };
@@ -124,7 +126,8 @@ export async function simulatePayments(tournamentId: string, paymentPercentage: 
       .from('teams')
       .select('*')
       .eq('tournament_id', tournamentId)
-      .eq('payment_status', 'pending');
+      .eq('payment_status', 'pending')
+      .eq('is_test_data', true); // Only simulate payments for test teams
 
     if (error) throw error;
     if (!teams) return { success: false, error: 'No pending payments found' };
@@ -156,23 +159,45 @@ export async function simulatePayments(tournamentId: string, paymentPercentage: 
 
 export async function clearTestData(tournamentId: string) {
   try {
-    // Delete matches first (they reference teams)
+    // Get test team IDs first
+    const { data: testTeams, error: testTeamsError } = await supabase
+      .from('teams')
+      .select('id')
+      .eq('tournament_id', tournamentId)
+      .eq('is_test_data', true);
+
+    if (testTeamsError) throw testTeamsError;
+    if (!testTeams || testTeams.length === 0) {
+      return { success: true, message: 'No test teams found to clear' };
+    }
+
+    const testTeamIds = testTeams.map(team => team.id);
+
+    // Delete matches involving test teams
     await supabase
       .from('matches')
       .delete()
-      .eq('tournament_id', tournamentId);
+      .eq('tournament_id', tournamentId)
+      .or(`team1_id.in.(${testTeamIds.join(',')}),team2_id.in.(${testTeamIds.join(',')})`);
 
-    // Delete team stats
+    // Delete team stats for test teams
     await supabase
       .from('team_stats')
       .delete()
-      .eq('tournament_id', tournamentId);
+      .in('team_id', testTeamIds);
 
-    // Delete teams
+    // Delete players for test teams
+    await supabase
+      .from('players')
+      .delete()
+      .in('team_id', testTeamIds);
+
+    // Delete test teams only
     const { error } = await supabase
       .from('teams')
       .delete()
-      .eq('tournament_id', tournamentId);
+      .eq('tournament_id', tournamentId)
+      .eq('is_test_data', true);
 
     if (error) throw error;
 

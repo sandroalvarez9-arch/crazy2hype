@@ -23,6 +23,7 @@ interface Team {
   name: string;
   check_in_status: string;
   payment_status: string;
+  is_test_data?: boolean;
 }
 
 interface TournamentTestingDashboardProps {
@@ -42,11 +43,20 @@ export function TournamentTestingDashboard({
   const [paymentPercentage, setPaymentPercentage] = useState(90);
   const { toast } = useToast();
 
+  const testTeams = teams.filter(t => t.is_test_data === true);
+  const realTeams = teams.filter(t => t.is_test_data !== true);
+
   const stats = {
     totalTeams: teams.length,
+    testTeams: testTeams.length,
+    realTeams: realTeams.length,
     checkedIn: teams.filter(t => t.check_in_status === 'checked_in').length,
     paid: teams.filter(t => t.payment_status === 'paid').length,
-    pending: teams.filter(t => t.check_in_status === 'pending').length
+    pending: teams.filter(t => t.check_in_status === 'pending').length,
+    testCheckedIn: testTeams.filter(t => t.check_in_status === 'checked_in').length,
+    testPaid: testTeams.filter(t => t.payment_status === 'paid').length,
+    realCheckedIn: realTeams.filter(t => t.check_in_status === 'checked_in').length,
+    realPaid: realTeams.filter(t => t.payment_status === 'paid').length
   };
 
   const handleGenerateTeams = async () => {
@@ -125,7 +135,7 @@ export function TournamentTestingDashboard({
       if (result.success) {
         toast({
           title: "Test Data Cleared",
-          description: "All test teams and matches have been removed.",
+          description: result.message || `Only test teams and their matches have been removed. Real registrations are safe.`,
         });
         onDataChange();
       } else {
@@ -151,23 +161,43 @@ export function TournamentTestingDashboard({
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Current Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="text-center">
-            <div className="text-2xl font-bold text-primary">{stats.totalTeams}</div>
-            <div className="text-sm text-muted-foreground">Total Teams</div>
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="text-center">
+              <div className="text-2xl font-bold text-primary">{stats.totalTeams}</div>
+              <div className="text-sm text-muted-foreground">Total Teams</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-green-600">{stats.checkedIn}</div>
+              <div className="text-sm text-muted-foreground">Checked In</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-blue-600">{stats.paid}</div>
+              <div className="text-sm text-muted-foreground">Paid</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-yellow-600">{stats.pending}</div>
+              <div className="text-sm text-muted-foreground">Pending</div>
+            </div>
           </div>
-          <div className="text-center">
-            <div className="text-2xl font-bold text-green-600">{stats.checkedIn}</div>
-            <div className="text-sm text-muted-foreground">Checked In</div>
-          </div>
-          <div className="text-center">
-            <div className="text-2xl font-bold text-blue-600">{stats.paid}</div>
-            <div className="text-sm text-muted-foreground">Paid</div>
-          </div>
-          <div className="text-center">
-            <div className="text-2xl font-bold text-yellow-600">{stats.pending}</div>
-            <div className="text-sm text-muted-foreground">Pending</div>
-          </div>
+
+          {/* Test vs Real Teams Breakdown */}
+          {(stats.testTeams > 0 || stats.realTeams > 0) && (
+            <div className="grid grid-cols-2 gap-4 pt-2 border-t">
+              <div className="text-center p-3 bg-primary/5 rounded-lg border border-primary/20">
+                <div className="text-lg font-semibold text-primary">{stats.testTeams}</div>
+                <div className="text-xs text-muted-foreground">Test Teams</div>
+                <div className="text-xs text-green-600">{stats.testCheckedIn} checked in</div>
+                <div className="text-xs text-blue-600">{stats.testPaid} paid</div>
+              </div>
+              <div className="text-center p-3 bg-green-50 rounded-lg border border-green-200">
+                <div className="text-lg font-semibold text-green-700">{stats.realTeams}</div>
+                <div className="text-xs text-muted-foreground">Real Teams</div>
+                <div className="text-xs text-green-600">{stats.realCheckedIn} checked in</div>
+                <div className="text-xs text-blue-600">{stats.realPaid} paid</div>
+              </div>
+            </div>
+          )}
         </div>
 
         <Separator />
@@ -230,7 +260,7 @@ export function TournamentTestingDashboard({
               
               <Button 
                 onClick={handleSimulateCheckins}
-                disabled={loading === 'checkins' || stats.totalTeams === 0}
+                disabled={loading === 'checkins' || stats.testTeams === 0}
                 className="w-full"
                 variant="secondary"
               >
@@ -254,7 +284,7 @@ export function TournamentTestingDashboard({
               
               <Button 
                 onClick={handleSimulatePayments}
-                disabled={loading === 'payments' || stats.totalTeams === 0}
+                disabled={loading === 'payments' || stats.testTeams === 0}
                 className="w-full"
                 variant="secondary"
               >
@@ -318,25 +348,28 @@ export function TournamentTestingDashboard({
             <AlertDialogTrigger asChild>
               <Button 
                 variant="destructive" 
-                disabled={loading === 'clear' || stats.totalTeams === 0}
+                disabled={loading === 'clear' || stats.testTeams === 0}
                 className="w-full"
               >
                 <RotateCcw className="h-4 w-4 mr-2" />
-                {loading === 'clear' ? 'Clearing...' : 'Clear All Test Data'}
+                {loading === 'clear' ? 'Clearing...' : `Clear Test Data (${stats.testTeams} teams)`}
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
                 <AlertDialogTitle>Clear Test Data</AlertDialogTitle>
                 <AlertDialogDescription>
-                  This will permanently delete all test teams, matches, and reset the tournament brackets. 
+                  This will permanently delete <strong>only test teams</strong> ({stats.testTeams} teams) and their related matches. 
+                  <br /><br />
+                  <strong>Real team registrations ({stats.realTeams} teams) will be preserved and safe.</strong>
+                  <br /><br />
                   This action cannot be undone.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel>Cancel</AlertDialogCancel>
                 <AlertDialogAction onClick={handleClearData} className="bg-destructive">
-                  Clear Data
+                  Clear Test Data Only
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
