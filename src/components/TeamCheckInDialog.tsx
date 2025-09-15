@@ -84,7 +84,7 @@ export default function TeamCheckInDialog({ tournament, userTeams, onCheckInComp
           <Badge variant="secondary">{teamsNeedingCheckIn.length}</Badge>
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md max-h-[80vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <UserCheck className="h-5 w-5" />
@@ -92,7 +92,7 @@ export default function TeamCheckInDialog({ tournament, userTeams, onCheckInComp
           </DialogTitle>
         </DialogHeader>
         
-        <div className="space-y-4">
+        <div className="space-y-4 flex-1 overflow-hidden">
           <div className="text-sm text-muted-foreground">
             <p className="font-medium">{tournament.title}</p>
             <p>Tournament starts: {new Date(tournament.start_date).toLocaleString()}</p>
@@ -108,7 +108,7 @@ export default function TeamCheckInDialog({ tournament, userTeams, onCheckInComp
             </div>
           )}
 
-          <div className="space-y-3">
+          <div className="space-y-3 overflow-y-auto flex-1 pr-2">
             {userTeams.map((team) => (
               <Card key={team.id}>
                 <CardContent className="p-4">
