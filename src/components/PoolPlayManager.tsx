@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -8,7 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { generatePoolPlayScheduleBySkillLevel } from "@/utils/poolPlayGenerator";
 import { OptimalPoolPreview } from "@/components/OptimalPoolPreview";
 import { format } from "date-fns";
-import { Trophy, Users, Clock, AlertTriangle } from "lucide-react";
+import { Trophy, Users, Clock, AlertTriangle, MapPin } from "lucide-react";
 
 interface Team {
   id: string;
@@ -37,12 +37,88 @@ interface PoolPlayManagerProps {
   onBracketsGenerated: () => void;
 }
 
+interface GeneratedPool {
+  name: string;
+  teams: Team[];
+  court_number?: number;
+  matches_count?: number;
+}
+
 export function PoolPlayManager({ tournament, teams, onBracketsGenerated }: PoolPlayManagerProps) {
   const [isGenerating, setIsGenerating] = useState(false);
+  const [generatedPools, setGeneratedPools] = useState<GeneratedPool[]>([]);
   const { toast } = useToast();
 
   const checkedInTeams = teams.filter(team => team.check_in_status === 'checked_in');
   const canGenerateBrackets = checkedInTeams.length >= 4 && !tournament.brackets_generated;
+
+  // Fetch generated pools data when brackets are already generated
+  useEffect(() => {
+    if (tournament.brackets_generated) {
+      fetchGeneratedPools();
+    }
+  }, [tournament.brackets_generated, tournament.id]);
+
+  const fetchGeneratedPools = async () => {
+    try {
+      // Fetch matches to reconstruct pool information
+      const { data: matches, error } = await supabase
+        .from('matches')
+        .select(`
+          pool_name,
+          court_number,
+          team1_id,
+          team2_id,
+          teams!matches_team1_id_fkey(id, name, skill_level),
+          teams_team2:teams!matches_team2_id_fkey(id, name, skill_level)
+        `)
+        .eq('tournament_id', tournament.id)
+        .eq('tournament_phase', 'pool_play');
+
+      if (error) throw error;
+
+      // Group matches by pool and reconstruct pool data
+      const poolsMap = new Map<string, { teams: Set<string>, teamData: Team[], court_number: number, matches_count: number }>();
+
+      matches?.forEach(match => {
+        if (!match.pool_name) return;
+        
+        if (!poolsMap.has(match.pool_name)) {
+          poolsMap.set(match.pool_name, {
+            teams: new Set(),
+            teamData: [],
+            court_number: match.court_number || 1,
+            matches_count: 0
+          });
+        }
+
+        const poolData = poolsMap.get(match.pool_name)!;
+        poolData.matches_count++;
+
+        // Add teams to the pool
+        if (match.teams && !poolData.teams.has(match.team1_id)) {
+          poolData.teams.add(match.team1_id);
+          poolData.teamData.push(match.teams as any);
+        }
+        if (match.teams_team2 && !poolData.teams.has(match.team2_id)) {
+          poolData.teams.add(match.team2_id);
+          poolData.teamData.push(match.teams_team2 as any);
+        }
+      });
+
+      // Convert to GeneratedPool format
+      const pools: GeneratedPool[] = Array.from(poolsMap.entries()).map(([name, data]) => ({
+        name,
+        teams: data.teamData,
+        court_number: data.court_number,
+        matches_count: data.matches_count
+      }));
+
+      setGeneratedPools(pools);
+    } catch (error) {
+      console.error('Error fetching generated pools:', error);
+    }
+  };
 
   const firstGameDate = (() => {
     const t = tournament.first_game_time;
@@ -173,6 +249,9 @@ export function PoolPlayManager({ tournament, teams, onBracketsGenerated }: Pool
         description: `Created ${pools.length} pools with ${matches.length} matches across ${requiredCourts} courts.`,
       });
 
+      // Refresh the pools display
+      await fetchGeneratedPools();
+      
       onBracketsGenerated();
     } catch (error) {
       console.error('Error generating pool play:', error);
@@ -296,6 +375,59 @@ export function PoolPlayManager({ tournament, teams, onBracketsGenerated }: Pool
                   View the matches tab to see the complete schedule.
                 </p>
               </div>
+
+              {/* Display Generated Pools */}
+              {generatedPools.length > 0 && (
+                <div className="space-y-4">
+                  <h4 className="font-medium flex items-center gap-2">
+                    <Trophy className="h-4 w-4" />
+                    Pool Breakdown
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {generatedPools.map((pool) => (
+                      <Card key={pool.name} className="border-l-4 border-l-primary">
+                        <CardHeader className="pb-3">
+                          <CardTitle className="text-base flex items-center justify-between">
+                            <span className="flex items-center gap-2">
+                              Pool {pool.name}
+                              {pool.court_number && (
+                                <Badge variant="outline" className="flex items-center gap-1">
+                                  <MapPin className="h-3 w-3" />
+                                  Court {pool.court_number}
+                                </Badge>
+                              )}
+                            </span>
+                            {pool.matches_count && (
+                              <Badge variant="secondary">
+                                {pool.matches_count} matches
+                              </Badge>
+                            )}
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-2">
+                            <div className="text-sm font-medium text-muted-foreground">
+                              Teams ({pool.teams.length}):
+                            </div>
+                            <div className="space-y-1">
+                              {pool.teams.map((team, index) => (
+                                <div key={team.id} className="flex items-center justify-between p-2 bg-muted/50 rounded">
+                                  <span className="font-medium">{team.name}</span>
+                                  {team.skill_level && (
+                                    <Badge variant="outline" className="text-xs">
+                                      {team.skill_level}
+                                    </Badge>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
