@@ -171,10 +171,13 @@ export function MatchScoringInterface({
       const team1SetsWon = getSetsWon(1) + (newScores.team1 > newScores.team2 ? 1 : 0);
       const team2SetsWon = getSetsWon(2) + (newScores.team2 > newScores.team1 ? 1 : 0);
       
+      // Update local state immediately
+      setAllSetScores(updatedSetScores);
+      
       // Check if match is won
       if (isMatchWon(team1SetsWon, team2SetsWon)) {
         // Match is finished
-        await updateMatchInDatabase({
+        const success = await updateMatchInDatabase({
           set_scores: updatedSetScores,
           sets_won_team1: team1SetsWon,
           sets_won_team2: team2SetsWon,
@@ -185,34 +188,39 @@ export function MatchScoringInterface({
           completed_at: new Date().toISOString()
         });
         
-        toast({
-          title: "Match Completed!",
-          description: `${team1SetsWon > team2SetsWon ? team1?.name : team2?.name} wins ${Math.max(team1SetsWon, team2SetsWon)}-${Math.min(team1SetsWon, team2SetsWon)}`,
-        });
+        if (success) {
+          toast({
+            title: "Match Completed!",
+            description: `${team1SetsWon > team2SetsWon ? team1?.name : team2?.name} wins ${Math.max(team1SetsWon, team2SetsWon)}-${Math.min(team1SetsWon, team2SetsWon)}`,
+          });
+        }
       } else {
         // Move to next set
-        await updateMatchInDatabase({
+        const success = await updateMatchInDatabase({
           set_scores: updatedSetScores,
           sets_won_team1: team1SetsWon,
           sets_won_team2: team2SetsWon,
-          current_set: match.current_set + 1
+          current_set: match.current_set + 1,
+          status: 'in_progress'
         });
         
-        setCurrentSetScores({ team1: 0, team2: 0 });
-        setLastSwitchPoint(0);
-        toast({
-          title: "Set Completed",
-          description: `Set ${match.current_set}: ${newScores.team1 > newScores.team2 ? team1?.name : team2?.name} wins ${Math.max(newScores.team1, newScores.team2)}-${Math.min(newScores.team1, newScores.team2)}`,
-        });
+        if (success) {
+          // Update local state for next set
+          setCurrentSetScores({ team1: 0, team2: 0 });
+          setLastSwitchPoint(0);
+          
+          toast({
+            title: "Set Completed",
+            description: `Set ${match.current_set}: ${newScores.team1 > newScores.team2 ? team1?.name : team2?.name} wins ${Math.max(newScores.team1, newScores.team2)}-${Math.min(newScores.team1, newScores.team2)}. Starting Set ${match.current_set + 1}`,
+          });
+        }
       }
-      
-      setAllSetScores(updatedSetScores);
     } else {
       setCurrentSetScores(newScores);
     }
   };
 
-  const updateMatchInDatabase = async (updates: Partial<Match>) => {
+  const updateMatchInDatabase = async (updates: Partial<Match>): Promise<boolean> => {
     setIsUpdating(true);
     try {
       const { error } = await supabase
@@ -221,15 +229,21 @@ export function MatchScoringInterface({
         .eq('id', match.id);
 
       if (error) throw error;
+      
+      // Call the callback to refresh parent state
       onMatchUpdate();
+      return true;
     } catch (error) {
+      console.error('Error updating match:', error);
       toast({
         variant: "destructive",
         title: "Error updating match",
         description: error instanceof Error ? error.message : "Unknown error occurred",
       });
+      return false;
+    } finally {
+      setIsUpdating(false);
     }
-    setIsUpdating(false);
   };
 
   const handleManualScoreEntry = async () => {
