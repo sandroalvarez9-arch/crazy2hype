@@ -312,7 +312,10 @@ const TournamentDetails = () => {
               {tournament.title}
             </h1>
             <p className="text-muted-foreground">
-              Organized by {tournament.organizer.first_name} {tournament.organizer.last_name} (@{tournament.organizer.username})
+              Organized by {tournament.organizer ? 
+                `${tournament.organizer.first_name} ${tournament.organizer.last_name} (@${tournament.organizer.username})` : 
+                'Unknown Organizer'
+              }
             </p>
           </div>
           
@@ -508,7 +511,10 @@ const TournamentDetails = () => {
                   <CardHeader className="pb-3">
                     <CardTitle className="text-lg">{team.name}</CardTitle>
                     <CardDescription>
-                      Captain: {team.captain.first_name} {team.captain.last_name}
+                      Captain: {team.captain ? 
+                        `${team.captain.first_name} ${team.captain.last_name}` : 
+                        'Unknown Captain'
+                      }
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
