@@ -19,6 +19,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import EmailPlayersDialog from "@/components/EmailPlayersDialog";
 import EditTournamentDetailsDialog from "@/components/EditTournamentDetailsDialog";
 import EditCapacityDialog from "@/components/EditCapacityDialog";
+import { TournamentTestingDashboard } from "@/components/TournamentTestingDashboard";
+import { TournamentDayDashboard } from "@/components/TournamentDayDashboard";
 
 interface Tournament {
   id: string;
@@ -82,6 +84,7 @@ export default function TournamentManagement() {
   const [backupTeams, setBackupTeams] = useState<BackupTeam[]>([]);
   const [loading, setLoading] = useState(true);
   const [isOrganizer, setIsOrganizer] = useState(false);
+  const [activeTab, setActiveTab] = useState("teams");
 
   useEffect(() => {
     if (id && user) {
@@ -360,14 +363,15 @@ export default function TournamentManagement() {
         </Card>
       </div>
 
-      <Tabs defaultValue="teams" className="space-y-4">
-        <TabsList>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+        <TabsList className="grid w-full grid-cols-4 lg:grid-cols-8">
           <TabsTrigger value="teams">Team Management</TabsTrigger>
           {tournament?.entry_fee > 0 && <TabsTrigger value="payments">Payment Management</TabsTrigger>}
           <TabsTrigger value="backup">Backup Teams</TabsTrigger>
           <TabsTrigger value="format">Game Format</TabsTrigger>
           <TabsTrigger value="poolplay">Pool Play</TabsTrigger>
-          <TabsTrigger value="bracket">Bracket Control</TabsTrigger>
+          <TabsTrigger value="tournament-day">Live</TabsTrigger>
+          <TabsTrigger value="testing">Testing</TabsTrigger>
           <TabsTrigger value="communications">Communications</TabsTrigger>
         </TabsList>
 
@@ -592,52 +596,43 @@ export default function TournamentManagement() {
           )}
         </TabsContent>
 
-        <TabsContent value="bracket" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Trophy className="h-5 w-5" />
-                Bracket Management
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="flex items-center gap-2 p-4 bg-muted rounded-lg">
-                  <AlertTriangle className="h-5 w-5 text-yellow-600" />
-                  <div>
-                    <p className="font-medium">Current Bracket Version: {tournament?.bracket_version}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {checkedInTeams} teams checked in, {noShowTeams} no-shows
-                    </p>
-                  </div>
-                </div>
-                
-                {noShowTeams > 0 && (
-                  <div className="p-4 border border-orange-200 bg-orange-50 rounded-lg">
-                    <h4 className="font-medium text-orange-800 mb-2">Action Required</h4>
-                    <p className="text-sm text-orange-700 mb-3">
-                      You have {noShowTeams} no-show teams. Consider promoting backup teams or regenerating brackets.
-                    </p>
-                    <div className="flex gap-2">
-                      <Button variant="outline" size="sm">
-                        Regenerate Bracket
-                      </Button>
-                      <Button variant="outline" size="sm">
-                        Generate Matches
-                      </Button>
-                    </div>
-                  </div>
-                )}
-                
-                <div className="text-center p-8 text-muted-foreground">
-                  <Trophy className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>Bracket generation and match management coming soon</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+        <TabsContent value="tournament-day" className="space-y-4">
+          {tournament && (
+            <TournamentDayDashboard 
+              tournament={tournament}
+              teams={teams}
+            />
+          )}
         </TabsContent>
 
+        <TabsContent value="testing" className="space-y-4">
+          {tournament && (
+            <TournamentTestingDashboard 
+              tournament={tournament}
+              teams={teams}
+              onDataChange={fetchTournamentData}
+            />
+          )}
+        </TabsContent>
+
+        <TabsContent value="tournament-day" className="space-y-4">
+          {tournament && (
+            <TournamentDayDashboard 
+              tournament={tournament}
+              teams={teams}
+            />
+          )}
+        </TabsContent>
+
+        <TabsContent value="testing" className="space-y-4">
+          {tournament && (
+            <TournamentTestingDashboard 
+              tournament={tournament}
+              teams={teams}
+              onDataChange={fetchTournamentData}
+            />
+          )}
+        </TabsContent>
         <TabsContent value="communications" className="space-y-4">
           <Card>
             <CardHeader>
