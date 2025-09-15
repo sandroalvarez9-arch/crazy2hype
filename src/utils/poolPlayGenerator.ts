@@ -118,6 +118,7 @@ export function generateRoundRobinMatches(pool: Pool): Match[] {
   let matchNumber = 1;
   
   // Generate all possible matches within the pool (round robin)
+  // Each team plays every other team exactly once
   for (let i = 0; i < teams.length; i++) {
     for (let j = i + 1; j < teams.length; j++) {
       matches.push({
