@@ -20,7 +20,7 @@ interface Team {
 interface Tournament {
   id: string;
   title: string;
-  first_game_time: string;
+  first_game_time?: string;
   start_date: string;
   estimated_game_duration: number;
   warm_up_duration?: number;
@@ -46,19 +46,24 @@ export function PoolPlayManager({ tournament, teams, onBracketsGenerated }: Pool
 
   const firstGameDate = (() => {
     const t = tournament.first_game_time;
-    if (!t) return null;
     
-    // If it's just a time (e.g., "09:00"), combine with start date
-    if (t.match(/^\d{2}:\d{2}$/)) {
+    // If first_game_time is set and it's just a time (e.g., "09:00"), combine with start date
+    if (t && t.match(/^\d{2}:\d{2}$/)) {
       const startDate = new Date(tournament.start_date);
       const [hours, minutes] = t.split(':').map(Number);
       startDate.setHours(hours, minutes, 0, 0);
       return startDate;
     }
     
-    // Otherwise try to parse as full date
-    const d = new Date(t);
-    return isNaN(d.getTime()) ? null : d;
+    // If first_game_time is a full date/time, use it
+    if (t) {
+      const d = new Date(t);
+      if (!isNaN(d.getTime())) return d;
+    }
+    
+    // Fall back to tournament start_date
+    const startDate = new Date(tournament.start_date);
+    return isNaN(startDate.getTime()) ? null : startDate;
   })();
 
   const handleGeneratePoolPlay = async () => {
@@ -74,14 +79,17 @@ export function PoolPlayManager({ tournament, teams, onBracketsGenerated }: Pool
         const [hours, minutes] = tournament.first_game_time.split(':').map(Number);
         firstGameTime = new Date(startDate);
         firstGameTime.setHours(hours, minutes, 0, 0);
-      } else {
+      } else if (tournament.first_game_time) {
         firstGameTime = new Date(tournament.first_game_time);
+      } else {
+        // Use tournament start date as fallback
+        firstGameTime = new Date(tournament.start_date);
       }
       
       if (isNaN(firstGameTime.getTime())) {
         toast({
-          title: "First game time required",
-          description: "Please set a valid first game time in tournament settings before generating.",
+          title: "Invalid tournament date",
+          description: "Tournament start date is invalid. Please check tournament settings.",
           variant: "destructive",
         });
         setIsGenerating(false);
