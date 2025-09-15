@@ -60,6 +60,19 @@ export function PoolDetailsView({ poolName, matches, onBack }: PoolDetailsViewPr
     calculateStandings(filteredMatches);
   }, [poolName, matches]);
 
+  // If a team is selected, show team details
+  if (selectedTeam) {
+    console.log('Rendering team details for:', selectedTeam);
+    return (
+      <TeamDetailsView
+        teamId={selectedTeam.id}
+        teamName={selectedTeam.name}
+        allMatches={matches}
+        onBack={() => setSelectedTeam(null)}
+      />
+    );
+  }
+
   const calculateStandings = (matches: Match[]) => {
     const teamStats: Record<string, PoolRecord> = {};
 
@@ -206,7 +219,10 @@ export function PoolDetailsView({ poolName, matches, onBack }: PoolDetailsViewPr
                     <TableRow 
                       key={team.teamId}
                       className="cursor-pointer hover:bg-accent/50 transition-colors"
-                      onClick={() => setSelectedTeam({ id: team.teamId, name: team.teamName })}
+                      onClick={() => {
+                        console.log('Team clicked:', team.teamName, team.teamId);
+                        setSelectedTeam({ id: team.teamId, name: team.teamName });
+                      }}
                     >
                       <TableCell className="text-center">
                         <div className="flex items-center justify-center">
