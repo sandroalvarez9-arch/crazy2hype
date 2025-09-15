@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "13.0.4"
@@ -141,10 +141,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "matches_team1_id_fkey"
+            columns: ["team1_id"]
+            isOneToOne: false
+            referencedRelation: "teams_public"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "matches_team2_id_fkey"
             columns: ["team2_id"]
             isOneToOne: false
             referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "matches_team2_id_fkey"
+            columns: ["team2_id"]
+            isOneToOne: false
+            referencedRelation: "teams_public"
             referencedColumns: ["id"]
           },
           {
@@ -159,6 +173,13 @@ export type Database = {
             columns: ["winner_id"]
             isOneToOne: false
             referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "matches_winner_id_fkey"
+            columns: ["winner_id"]
+            isOneToOne: false
+            referencedRelation: "teams_public"
             referencedColumns: ["id"]
           },
         ]
@@ -256,6 +277,30 @@ export type Database = {
         }
         Relationships: []
       }
+      stripe_oauth_states: {
+        Row: {
+          created_at: string | null
+          org_id: string | null
+          redirect_uri: string | null
+          state: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          org_id?: string | null
+          redirect_uri?: string | null
+          state: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          org_id?: string | null
+          redirect_uri?: string | null
+          state?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       team_stats: {
         Row: {
           created_at: string
@@ -302,6 +347,13 @@ export type Database = {
             columns: ["team_id"]
             isOneToOne: false
             referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_stats_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams_public"
             referencedColumns: ["id"]
           },
           {
@@ -575,20 +627,88 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      teams_public: {
+        Row: {
+          captain_id: string | null
+          check_in_status: string | null
+          check_in_time: string | null
+          created_at: string | null
+          division: string | null
+          id: string | null
+          is_backup: boolean | null
+          is_registered: boolean | null
+          name: string | null
+          payment_status: string | null
+          players_count: number | null
+          seed_number: number | null
+          skill_level: string | null
+          tournament_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          captain_id?: string | null
+          check_in_status?: string | null
+          check_in_time?: string | null
+          created_at?: string | null
+          division?: string | null
+          id?: string | null
+          is_backup?: boolean | null
+          is_registered?: boolean | null
+          name?: string | null
+          payment_status?: string | null
+          players_count?: number | null
+          seed_number?: number | null
+          skill_level?: string | null
+          tournament_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          captain_id?: string | null
+          check_in_status?: string | null
+          check_in_time?: string | null
+          created_at?: string | null
+          division?: string | null
+          id?: string | null
+          is_backup?: boolean | null
+          is_registered?: boolean | null
+          name?: string | null
+          payment_status?: string | null
+          players_count?: number | null
+          seed_number?: number | null
+          skill_level?: string | null
+          tournament_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "teams_captain_id_fkey"
+            columns: ["captain_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "teams_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: false
+            referencedRelation: "tournaments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       log_format_change: {
         Args: {
-          tournament_id: string
-          old_format: Json
-          new_format: Json
           change_reason?: string
+          new_format: Json
+          old_format: Json
+          tournament_id: string
         }
         Returns: undefined
       }
       log_tournament_action: {
-        Args: { tournament_id: string; action: string; details?: Json }
+        Args: { action: string; details?: Json; tournament_id: string }
         Returns: undefined
       }
     }
