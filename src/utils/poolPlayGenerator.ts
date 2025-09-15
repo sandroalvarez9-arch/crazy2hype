@@ -115,15 +115,60 @@ export function generatePools(teams: Team[], skillLevel?: string): Pool[] {
 export function generateRoundRobinMatches(pool: Pool): Match[] {
   const matches: Match[] = [];
   const teams = pool.teams;
+  const teamCount = teams.length;
   let matchNumber = 1;
   
-  // Generate all possible matches within the pool (round robin)
-  // Each team plays every other team exactly once
-  for (let i = 0; i < teams.length; i++) {
-    for (let j = i + 1; j < teams.length; j++) {
+  if (teamCount < 2) return matches;
+  
+  // Use simple round-robin algorithm - generates matches in rounds
+  // so teams get rest between games instead of playing consecutively
+  
+  // Create all unique pairings first
+  const allPairings: { team1: Team; team2: Team }[] = [];
+  for (let i = 0; i < teamCount; i++) {
+    for (let j = i + 1; j < teamCount; j++) {
+      allPairings.push({
+        team1: teams[i],
+        team2: teams[j]
+      });
+    }
+  }
+  
+  // Group pairings into rounds where each team appears at most once per round
+  const rounds: { team1: Team; team2: Team }[][] = [];
+  const usedPairings = new Set<string>();
+  
+  while (usedPairings.size < allPairings.length) {
+    const currentRound: { team1: Team; team2: Team }[] = [];
+    const teamsInThisRound = new Set<string>();
+    
+    for (const pairing of allPairings) {
+      const pairingKey = `${pairing.team1.id}-${pairing.team2.id}`;
+      
+      if (!usedPairings.has(pairingKey) && 
+          !teamsInThisRound.has(pairing.team1.id) && 
+          !teamsInThisRound.has(pairing.team2.id)) {
+        currentRound.push(pairing);
+        usedPairings.add(pairingKey);
+        teamsInThisRound.add(pairing.team1.id);
+        teamsInThisRound.add(pairing.team2.id);
+      }
+    }
+    
+    if (currentRound.length > 0) {
+      rounds.push(currentRound);
+    } else {
+      // Safety break to prevent infinite loop
+      break;
+    }
+  }
+  
+  // Convert rounds to matches
+  rounds.forEach(roundMatches => {
+    roundMatches.forEach(roundMatch => {
       matches.push({
-        team1_id: teams[i].id,
-        team2_id: teams[j].id,
+        team1_id: roundMatch.team1.id,
+        team2_id: roundMatch.team2.id,
         referee_team_id: '', // Will be assigned later
         round_number: 1, // Pool play is considered round 1
         match_number: matchNumber++,
@@ -131,8 +176,8 @@ export function generateRoundRobinMatches(pool: Pool): Match[] {
         court_number: 1, // Will be assigned later
         scheduled_time: '', // Will be assigned later
       });
-    }
-  }
+    });
+  });
   
   return matches;
 }
