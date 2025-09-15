@@ -52,11 +52,11 @@ serve(async (req) => {
     }
 
     // Get user's profile
-    const { data: profile } = await supabaseClient
+    const { data: profile } = await supabaseService
       .from("profiles")
       .select("stripe_account_id, stripe_connected, stripe_charges_enabled, stripe_details_submitted")
       .eq("user_id", user.id)
-      .single();
+      .maybeSingle();
 
     console.log("[check-stripe-connect] Profile data:", profile);
 
