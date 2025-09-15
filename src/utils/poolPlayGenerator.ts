@@ -29,12 +29,17 @@ export function calculateOptimalPoolConfiguration(teamCount: number): PoolConfig
   // Prioritize 4-team pools (6 matches each) over 5-team pools (10 matches each)
   // This significantly reduces tournament duration
   
+  console.log(`DEBUG: calculateOptimalPoolConfiguration called with ${teamCount} teams`);
+  
   if (teamCount <= 0) {
+    console.log(`DEBUG: No teams, returning empty configuration`);
     return { numPools: 0, teamsPerPool: [], totalMatches: 0 };
   }
   
   if (teamCount <= 4) {
-    return { numPools: 1, teamsPerPool: [teamCount], totalMatches: Math.floor((teamCount * (teamCount - 1)) / 2) };
+    const config = { numPools: 1, teamsPerPool: [teamCount], totalMatches: Math.floor((teamCount * (teamCount - 1)) / 2) };
+    console.log(`DEBUG: Small team count (${teamCount}), returning single pool:`, config);
+    return config;
   }
   
   // Calculate pools to minimize 5+ team pools
@@ -80,12 +85,18 @@ export function calculateOptimalPoolConfiguration(teamCount: number): PoolConfig
   const totalMatches = teamsPerPool.reduce((sum, teamCount) => 
     sum + Math.floor((teamCount * (teamCount - 1)) / 2), 0);
   
-  return { numPools, teamsPerPool, totalMatches };
+  const config = { numPools, teamsPerPool, totalMatches };
+  console.log(`DEBUG: Final pool configuration for ${teamCount} teams:`, config);
+  
+  return config;
 }
 
 export function generatePools(teams: Team[], skillLevel?: string): Pool[] {
   const config = calculateOptimalPoolConfiguration(teams.length);
   const pools: Pool[] = [];
+  
+  console.log(`DEBUG: generatePools called with ${teams.length} teams, skillLevel: ${skillLevel}`);
+  console.log('DEBUG: Pool configuration:', config);
   
   // Create pool names (A, B, C, etc. or A1, A2, B1, B2 if skill level provided)
   for (let i = 0; i < config.numPools; i++) {
@@ -98,6 +109,8 @@ export function generatePools(teams: Team[], skillLevel?: string): Pool[] {
     });
   }
   
+  console.log(`DEBUG: Created ${pools.length} pools:`, pools.map(p => p.name));
+  
   // Distribute teams according to optimal configuration
   let teamIndex = 0;
   for (let poolIndex = 0; poolIndex < config.numPools; poolIndex++) {
@@ -108,6 +121,8 @@ export function generatePools(teams: Team[], skillLevel?: string): Pool[] {
       teamIndex++;
     }
   }
+  
+  console.log('DEBUG: Final pools with teams:', pools.map(p => ({ name: p.name, teamCount: p.teams.length, teamNames: p.teams.map(t => t.name) })));
   
   return pools;
 }
@@ -301,6 +316,8 @@ export function generatePoolPlayScheduleBySkillLevel(
     acc[level].push(team);
     return acc;
   }, {} as Record<string, Team[]>);
+  
+  console.log('DEBUG: Teams grouped by skill level:', teamsBySkillLevel);
   
   let allPools: Pool[] = [];
   let allMatches: Match[] = [];
