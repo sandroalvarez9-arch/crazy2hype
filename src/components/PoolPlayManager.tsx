@@ -47,22 +47,28 @@ export function PoolPlayManager({ tournament, teams, onBracketsGenerated }: Pool
   const firstGameDate = (() => {
     const t = tournament.first_game_time;
     
+    console.log("DEBUG: tournament.first_game_time:", t);
+    console.log("DEBUG: tournament.start_date:", tournament.start_date);
+    
     // If first_game_time is set and it's just a time (e.g., "09:00"), combine with start date
     if (t && t.match(/^\d{2}:\d{2}$/)) {
       const startDate = new Date(tournament.start_date);
       const [hours, minutes] = t.split(':').map(Number);
       startDate.setHours(hours, minutes, 0, 0);
+      console.log("DEBUG: Parsed time-only format result:", startDate);
       return startDate;
     }
     
     // If first_game_time is a full date/time, use it
     if (t) {
       const d = new Date(t);
+      console.log("DEBUG: Parsed full date format result:", d);
       if (!isNaN(d.getTime())) return d;
     }
     
     // Fall back to tournament start_date
     const startDate = new Date(tournament.start_date);
+    console.log("DEBUG: Fallback to start_date result:", startDate);
     return isNaN(startDate.getTime()) ? null : startDate;
   })();
 
@@ -73,17 +79,23 @@ export function PoolPlayManager({ tournament, teams, onBracketsGenerated }: Pool
     try {
       let firstGameTime: Date;
       
+      console.log("DEBUG: Generation - tournament.first_game_time:", tournament.first_game_time);
+      console.log("DEBUG: Generation - tournament.start_date:", tournament.start_date);
+      
       // Handle time-only format (e.g., "09:00")
       if (tournament.first_game_time?.match(/^\d{2}:\d{2}$/)) {
         const startDate = new Date(tournament.start_date);
         const [hours, minutes] = tournament.first_game_time.split(':').map(Number);
         firstGameTime = new Date(startDate);
         firstGameTime.setHours(hours, minutes, 0, 0);
+        console.log("DEBUG: Generated firstGameTime from time-only:", firstGameTime);
       } else if (tournament.first_game_time) {
         firstGameTime = new Date(tournament.first_game_time);
+        console.log("DEBUG: Generated firstGameTime from full date:", firstGameTime);
       } else {
         // Use tournament start date as fallback
         firstGameTime = new Date(tournament.start_date);
+        console.log("DEBUG: Generated firstGameTime from start_date fallback:", firstGameTime);
       }
       
       if (isNaN(firstGameTime.getTime())) {
