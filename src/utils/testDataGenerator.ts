@@ -37,10 +37,19 @@ export async function generateTestTeams(tournamentId: string, teamCount: number 
     const currentUser = (await supabase.auth.getUser()).data.user;
     if (!currentUser) throw new Error("Not authenticated");
 
+    // Check for existing test teams first
+    const { data: existingTestTeams } = await supabase
+      .from('teams')
+      .select('name')
+      .eq('tournament_id', tournamentId)
+      .eq('is_test_data', true);
+
+    const existingNames = new Set(existingTestTeams?.map(team => team.name) || []);
+
     // Use tournament skill levels or fallback to test data skill levels
     const availableSkillLevels = skillLevels.length > 0 ? skillLevels : ['advanced', 'intermediate', 'beginner'];
     
-    // Create teamCount teams for EACH skill level
+    // Create teamCount teams for EACH skill level, but skip existing ones
     const teamsData: any[] = [];
     
     availableSkillLevels.forEach((skillLevel, skillIndex) => {
@@ -48,10 +57,16 @@ export async function generateTestTeams(tournamentId: string, teamCount: number 
         // Cycle through TEST_TEAMS to get different names
         const teamIndex = (skillIndex * teamCount + i) % TEST_TEAMS.length;
         const baseTeam = TEST_TEAMS[teamIndex];
+        const teamName = `${baseTeam.name} (${skillLevel.toUpperCase()})`;
+        
+        // Skip if team with this name already exists
+        if (existingNames.has(teamName)) {
+          continue;
+        }
         
         teamsData.push({
           tournament_id: tournamentId,
-          name: `${baseTeam.name} (${skillLevel.toUpperCase()})`,
+          name: teamName,
           skill_level: skillLevel,
           division: baseTeam.division || null,
           players_count: baseTeam.players_count,
@@ -65,6 +80,11 @@ export async function generateTestTeams(tournamentId: string, teamCount: number 
         });
       }
     });
+
+    // If no new teams to create, return early
+    if (teamsData.length === 0) {
+      return { success: true, teams: [], count: 0, message: 'All test teams already exist' };
+    }
 
     const { data, error } = await supabase
       .from('teams')
