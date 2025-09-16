@@ -136,17 +136,23 @@ export function TournamentDayDashboard({ tournament, teams }: TournamentDayDashb
     }
   };
 
+  // Separate matches by phase
+  const poolPlayMatches = matches.filter(m => m.tournament_phase === 'pool_play' || !m.tournament_phase);
+  const playoffMatches = matches.filter(m => m.tournament_phase === 'playoffs' || m.tournament_phase === 'bracket');
+
   const stats = {
     totalMatches: matches.length,
     completed: matches.filter(m => m.status === 'completed').length,
     inProgress: matches.filter(m => m.status === 'in_progress').length,
-    scheduled: matches.filter(m => m.status === 'scheduled').length
+    scheduled: matches.filter(m => m.status === 'scheduled').length,
+    poolPlayTotal: poolPlayMatches.length,
+    playoffTotal: playoffMatches.length
   };
 
   const checkedInTeams = teams.filter(team => team.check_in_status === 'checked_in');
   
-  // Get unique pools from matches
-  const pools = Array.from(new Set(matches.map(match => match.pool_name).filter(Boolean)));
+  // Get unique pools from pool play matches only
+  const pools = Array.from(new Set(poolPlayMatches.map(match => match.pool_name).filter(Boolean)));
   
   // If a pool is selected, show pool details
   if (selectedPool) {
@@ -230,9 +236,10 @@ export function TournamentDayDashboard({ tournament, teams }: TournamentDayDashb
       </div>
 
       <Tabs defaultValue="matches" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="matches">Live Matches</TabsTrigger>
           <TabsTrigger value="pools">Pool Play</TabsTrigger>
+          <TabsTrigger value="brackets">Brackets</TabsTrigger>
           <TabsTrigger value="schedule">Full Schedule</TabsTrigger>
           <TabsTrigger value="teams">Team Schedules</TabsTrigger>
         </TabsList>
@@ -261,12 +268,12 @@ export function TournamentDayDashboard({ tournament, teams }: TournamentDayDashb
                       <div key={match.id} className="border rounded-lg p-4">
                         <div className="flex justify-between items-start mb-4">
                           <div>
-                            <h4 className="font-semibold">
-                              {match.team1_name} vs {match.team2_name}
-                            </h4>
-                            <p className="text-sm text-muted-foreground">
-                              Court {match.court_number} • {match.pool_name} • Round {match.round_number}
-                            </p>
+                             <h4 className="font-semibold">
+                               {match.team1_name} vs {match.team2_name}
+                             </h4>
+                             <p className="text-sm text-muted-foreground">
+                               Court {match.court_number} • {match.pool_name || (match.tournament_phase === 'playoffs' ? 'Playoffs' : 'Pool Play')} • Round {match.round_number}
+                             </p>
                             {match.scheduled_time && (
                               <p className="text-sm text-muted-foreground">
                                 {format(new Date(match.scheduled_time), 'h:mm a')}
@@ -342,9 +349,9 @@ export function TournamentDayDashboard({ tournament, teams }: TournamentDayDashb
                   <p className="text-muted-foreground">No pools found</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {pools.map(pool => {
-                    const poolMatches = matches.filter(m => m.pool_name === pool);
+                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                   {pools.map(pool => {
+                     const poolMatches = poolPlayMatches.filter(m => m.pool_name === pool);
                     const completedMatches = poolMatches.filter(m => m.status === 'completed');
                     const inProgressMatches = poolMatches.filter(m => m.status === 'in_progress');
                     const scheduledMatches = poolMatches.filter(m => m.status === 'scheduled');
@@ -382,6 +389,89 @@ export function TournamentDayDashboard({ tournament, teams }: TournamentDayDashb
           </Card>
         </TabsContent>
 
+        <TabsContent value="brackets" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Trophy className="h-5 w-5" />
+                Playoff Brackets
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {playoffMatches.length === 0 ? (
+                <div className="text-center py-8">
+                  <Trophy className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                  <p className="text-lg font-semibold mb-2">No Bracket Matches Yet</p>
+                  <p className="text-muted-foreground mb-4">
+                    Playoff brackets will appear here once pool play is completed.
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Complete pool play matches to generate playoff brackets.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {/* Bracket matches organized by round */}
+                  {Array.from(new Set(playoffMatches.map(m => m.round_number)))
+                    .sort((a, b) => a - b)
+                    .map(round => {
+                      const roundMatches = playoffMatches.filter(m => m.round_number === round);
+                      const roundName = round === Math.max(...playoffMatches.map(m => m.round_number)) 
+                        ? 'Finals' 
+                        : round === Math.max(...playoffMatches.map(m => m.round_number)) - 1 
+                        ? 'Semifinals' 
+                        : `Round ${round}`;
+                      
+                      return (
+                        <div key={round}>
+                          <h3 className="text-lg font-semibold mb-4">{roundName}</h3>
+                          <div className="grid gap-4">
+                            {roundMatches.map(match => (
+                              <div key={match.id} className="border rounded-lg p-4">
+                                <div className="flex justify-between items-start mb-2">
+                                  <div>
+                                    <h4 className="font-semibold">
+                                      {match.team1_name} vs {match.team2_name}
+                                    </h4>
+                                    <p className="text-sm text-muted-foreground">
+                                      Court {match.court_number} • Match {match.match_number}
+                                    </p>
+                                    {match.scheduled_time && (
+                                      <p className="text-sm text-muted-foreground">
+                                        {format(new Date(match.scheduled_time), 'h:mm a')}
+                                      </p>
+                                    )}
+                                  </div>
+                                  {getMatchStatusBadge(match)}
+                                </div>
+                                
+                                {match.status === 'completed' && (
+                                  <div className="text-sm font-medium">
+                                    Score: {match.sets_won_team1}-{match.sets_won_team2}
+                                  </div>
+                                )}
+                                
+                                {(match.status === 'in_progress' || match.status === 'scheduled') && (
+                                  <Button
+                                    onClick={() => setSelectedMatch(match)}
+                                    size="sm"
+                                    variant={match.status === 'in_progress' ? 'default' : 'outline'}
+                                  >
+                                    {match.status === 'in_progress' ? 'Continue Scoring' : 'Start Match'}
+                                  </Button>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         <TabsContent value="schedule">
           <Card>
             <CardHeader>
@@ -411,7 +501,7 @@ export function TournamentDayDashboard({ tournament, teams }: TournamentDayDashb
                       <TableCell>
                         {match.team1_name} vs {match.team2_name}
                       </TableCell>
-                      <TableCell>{match.pool_name}</TableCell>
+                      <TableCell>{match.pool_name || (match.tournament_phase === 'playoffs' ? 'Playoffs' : 'Pool Play')}</TableCell>
                       <TableCell>{getMatchStatusBadge(match)}</TableCell>
                       <TableCell>
                         {match.status === 'completed' 
