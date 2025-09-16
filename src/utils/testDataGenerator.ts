@@ -370,18 +370,34 @@ export async function clearTestData(tournamentId: string) {
 
     const testTeamIds = testTeams.map(team => team.id);
 
-    // Delete matches involving test teams
+    // Get test player IDs for contact cleanup
+    const { data: testPlayers } = await supabase
+      .from('players')
+      .select('id')
+      .in('team_id', testTeamIds);
+
+    const testPlayerIds = testPlayers?.map(player => player.id) || [];
+
+    // Delete player contacts for test teams
+    if (testPlayerIds.length > 0) {
+      await supabase
+        .from('player_contacts')
+        .delete()
+        .in('player_id', testPlayerIds);
+    }
+
+    // Delete ALL matches for the tournament (not just test team matches)
+    // This ensures we can regenerate everything cleanly
     await supabase
       .from('matches')
       .delete()
-      .eq('tournament_id', tournamentId)
-      .or(`team1_id.in.(${testTeamIds.join(',')}),team2_id.in.(${testTeamIds.join(',')})`);
+      .eq('tournament_id', tournamentId);
 
-    // Delete team stats for test teams
+    // Delete ALL team stats for the tournament
     await supabase
       .from('team_stats')
       .delete()
-      .in('team_id', testTeamIds);
+      .eq('tournament_id', tournamentId);
 
     // Delete players for test teams
     await supabase
@@ -398,17 +414,20 @@ export async function clearTestData(tournamentId: string) {
 
     if (error) throw error;
 
-    // Reset tournament brackets
+    // Comprehensive tournament reset for fresh testing
     await supabase
       .from('tournaments')
       .update({
         brackets_generated: false,
         calculated_courts: null,
-        pools_per_skill_level: null
+        pools_per_skill_level: null,
+        bracket_version: 1,
+        pool_play_format: null,
+        playoff_format: null
       })
       .eq('id', tournamentId);
 
-    return { success: true };
+    return { success: true, message: 'All test data cleared successfully - tournament reset for fresh testing' };
   } catch (error) {
     console.error('Error clearing test data:', error);
     return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
