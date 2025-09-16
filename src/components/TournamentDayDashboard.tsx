@@ -77,6 +77,7 @@ export function TournamentDayDashboard({ tournament, teams }: TournamentDayDashb
   const [generatingBrackets, setGeneratingBrackets] = useState(false);
   const [playoffBracketsExist, setPlayoffBracketsExist] = useState(false);
   const [bracketFormat, setBracketFormat] = useState<'simple' | 'detailed'>('simple');
+  const [selectedBracketCategory, setSelectedBracketCategory] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
