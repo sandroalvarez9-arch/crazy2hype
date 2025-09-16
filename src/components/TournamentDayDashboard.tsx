@@ -72,6 +72,7 @@ export function TournamentDayDashboard({ tournament, teams }: TournamentDayDashb
   const [showAdvancementDialog, setShowAdvancementDialog] = useState(false);
   const [poolCompletion, setPoolCompletion] = useState<any>(null);
   const [generatingBrackets, setGeneratingBrackets] = useState(false);
+  const [playoffBracketsExist, setPlayoffBracketsExist] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -99,13 +100,10 @@ export function TournamentDayDashboard({ tournament, teams }: TournamentDayDashb
     setPoolCompletion(completionStatus);
     
     // Auto-show advancement dialog when pools are complete and no playoffs exist yet
-    if (completionStatus.readyForBrackets && !hasPlayoffMatches()) {
+    // Only show if dialog hasn't been shown before and brackets don't exist
+    if (completionStatus.readyForBrackets && !playoffBracketsExist && !showAdvancementDialog) {
       setShowAdvancementDialog(true);
     }
-  };
-
-  const hasPlayoffMatches = () => {
-    return matches.some(m => m.tournament_phase === 'playoffs' || m.tournament_phase === 'bracket');
   };
 
   const fetchMatches = async () => {
@@ -141,6 +139,11 @@ export function TournamentDayDashboard({ tournament, teams }: TournamentDayDashb
       }));
 
       setMatches(formattedMatches);
+      
+      // Check if playoff brackets exist
+      const hasPlayoffs = formattedMatches.some(m => m.tournament_phase === 'playoffs' || m.tournament_phase === 'bracket');
+      setPlayoffBracketsExist(hasPlayoffs);
+      
     } catch (error) {
       console.error('Error fetching matches:', error);
       toast({
@@ -170,6 +173,7 @@ export function TournamentDayDashboard({ tournament, teams }: TournamentDayDashb
           description: result.message,
         });
         setShowAdvancementDialog(false);
+        setPlayoffBracketsExist(true); // Mark that brackets now exist
         // Refresh matches to show new bracket matches
         await fetchMatches();
       } else {
@@ -267,7 +271,7 @@ export function TournamentDayDashboard({ tournament, teams }: TournamentDayDashb
   return (
     <div className="space-y-6">
       {/* Pool Completion Alert */}
-      {poolCompletion?.readyForBrackets && !hasPlayoffMatches() && (
+      {poolCompletion?.readyForBrackets && !playoffBracketsExist && (
         <Card className="border-green-200 bg-green-50">
           <CardContent className="pt-4">
             <div className="flex items-center gap-3">
@@ -330,7 +334,7 @@ export function TournamentDayDashboard({ tournament, teams }: TournamentDayDashb
           <TabsTrigger value="matches">Live Matches</TabsTrigger>
           <TabsTrigger value="pools" className="relative">
             Pool Play
-            {poolCompletion?.readyForBrackets && !hasPlayoffMatches() && (
+            {poolCompletion?.readyForBrackets && !playoffBracketsExist && (
               <Badge className="ml-2 bg-green-600 text-white text-xs">Complete</Badge>
             )}
           </TabsTrigger>
@@ -444,7 +448,7 @@ export function TournamentDayDashboard({ tournament, teams }: TournamentDayDashb
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {poolCompletion?.readyForBrackets && !hasPlayoffMatches() && (
+              {poolCompletion?.readyForBrackets && !playoffBracketsExist && (
                 <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg">
                   <div className="flex items-center justify-between">
                     <div>
