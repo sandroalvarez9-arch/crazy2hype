@@ -11,7 +11,7 @@ import { TeamScheduleView } from "@/components/TeamScheduleView";
 import { PoolDetailsView } from "@/components/PoolDetailsView";
 import { AdvancementConfigurationDialog } from "@/components/AdvancementConfigurationDialog";
 import BracketVisualization from './BracketVisualization';
-import TraditionalBracketView from './TraditionalBracketView';
+import EnhancedBracketView from './EnhancedBracketView';
 import { format } from "date-fns";
 import { Trophy, Clock, Users, Play, Pause, CheckCircle, Target } from "lucide-react";
 import { checkPoolCompletion } from "@/utils/poolCompletionDetector";
@@ -703,7 +703,7 @@ export function TournamentDayDashboard({ tournament, teams }: TournamentDayDashb
             <div className="text-sm text-muted-foreground mb-4">
               Debug: Found {matches.filter(m => m.tournament_phase === 'playoffs' || m.tournament_phase === 'bracket').length} playoff matches
             </div>
-            <TraditionalBracketView 
+            <EnhancedBracketView 
               matches={matches
                 .filter(m => m.tournament_phase === 'playoffs' || m.tournament_phase === 'bracket')
                 .map(m => {
@@ -724,12 +724,12 @@ export function TournamentDayDashboard({ tournament, teams }: TournamentDayDashb
                     status: m.status,
                     round_number: m.round_number,
                     referee_team_name: m.referee_team_name || 'TBD',
-                    court_number: m.court_number || 1
+                    court: m.court_number || 1
                   };
                 })
               }
               title={`${tournament.title} - Playoff Bracket`}
-              bracketFormat={bracketFormat}
+              format={bracketFormat}
               onFormatChange={setBracketFormat}
               onMatchSelect={(match) => {
                 const fullMatch = matches.find(m => m.id === match.id);
