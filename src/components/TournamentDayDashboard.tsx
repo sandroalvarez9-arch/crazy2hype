@@ -11,6 +11,7 @@ import { TeamScheduleView } from "@/components/TeamScheduleView";
 import { PoolDetailsView } from "@/components/PoolDetailsView";
 import { AdvancementConfigurationDialog } from "@/components/AdvancementConfigurationDialog";
 import BracketVisualization from './BracketVisualization';
+import TraditionalBracketView from './TraditionalBracketView';
 import { format } from "date-fns";
 import { Trophy, Clock, Users, Play, Pause, CheckCircle, Target } from "lucide-react";
 import { checkPoolCompletion } from "@/utils/poolCompletionDetector";
@@ -75,6 +76,7 @@ export function TournamentDayDashboard({ tournament, teams }: TournamentDayDashb
   const [poolCompletion, setPoolCompletion] = useState<any>(null);
   const [generatingBrackets, setGeneratingBrackets] = useState(false);
   const [playoffBracketsExist, setPlayoffBracketsExist] = useState(false);
+  const [bracketFormat, setBracketFormat] = useState<'simple' | 'detailed'>('simple');
   const { toast } = useToast();
 
   useEffect(() => {
@@ -702,7 +704,7 @@ export function TournamentDayDashboard({ tournament, teams }: TournamentDayDashb
             <div className="text-sm text-muted-foreground mb-4">
               Debug: Found {matches.filter(m => m.tournament_phase === 'playoffs' || m.tournament_phase === 'bracket').length} playoff matches
             </div>
-            <BracketVisualization 
+            <TraditionalBracketView 
               matches={matches
                 .filter(m => m.tournament_phase === 'playoffs' || m.tournament_phase === 'bracket')
                 .map(m => {
@@ -726,6 +728,8 @@ export function TournamentDayDashboard({ tournament, teams }: TournamentDayDashb
                 })
               }
               title={`${tournament.title} - Playoff Bracket`}
+              bracketFormat={bracketFormat}
+              onFormatChange={setBracketFormat}
             />
           </TabsContent>
         </Tabs>
