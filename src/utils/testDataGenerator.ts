@@ -57,7 +57,17 @@ export async function generateTestTeams(tournamentId: string, teamCount: number 
         // Cycle through TEST_TEAMS to get different names
         const teamIndex = (skillIndex * teamCount + i) % TEST_TEAMS.length;
         const baseTeam = TEST_TEAMS[teamIndex];
-        const teamName = `${baseTeam.name} (${skillLevel.toUpperCase()})`;
+        
+        // Create unique team name with timestamp to avoid duplicates
+        const skillAbbrev = skillLevel === 'open' ? 'OPEN' : 
+                           skillLevel === 'a' ? 'A' : 
+                           skillLevel === 'bb' ? 'BB' :
+                           skillLevel === 'advanced' ? 'ADV' :
+                           skillLevel === 'intermediate' ? 'INT' :
+                           skillLevel === 'beginner' ? 'BEG' :
+                           skillLevel.toUpperCase();
+        
+        const teamName = `${baseTeam.name} (${skillAbbrev})`;
         
         // Skip if team with this name already exists
         if (existingNames.has(teamName)) {
@@ -85,6 +95,8 @@ export async function generateTestTeams(tournamentId: string, teamCount: number 
     if (teamsData.length === 0) {
       return { success: true, teams: [], count: 0, message: 'All test teams already exist' };
     }
+
+    console.log('Creating teams:', teamsData.map(t => t.name));
 
     const { data, error } = await supabase
       .from('teams')
