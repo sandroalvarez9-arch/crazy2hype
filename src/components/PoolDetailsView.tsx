@@ -108,7 +108,7 @@ export function PoolDetailsView({ poolName, matches, onBack }: PoolDetailsViewPr
 
     // Calculate stats from completed matches
     matches
-      .filter(match => match.status === 'completed' && match.winner_id)
+      .filter(match => match.status === 'completed')
       .forEach(match => {
         if (match.team1_id && match.team2_id) {
           const team1Stats = teamStats[match.team1_id];
@@ -124,11 +124,17 @@ export function PoolDetailsView({ poolName, matches, onBack }: PoolDetailsViewPr
             team2Stats.setsWon += team2Sets;
             team2Stats.setsLost += team1Sets;
             
+            // Determine winner from set scores if winner_id is not set
+            let winnerId = match.winner_id;
+            if (!winnerId && (team1Sets > 0 || team2Sets > 0)) {
+              winnerId = team1Sets > team2Sets ? match.team1_id : match.team2_id;
+            }
+            
             // Add wins/losses
-            if (match.winner_id === match.team1_id) {
+            if (winnerId === match.team1_id) {
               team1Stats.wins++;
               team2Stats.losses++;
-            } else if (match.winner_id === match.team2_id) {
+            } else if (winnerId === match.team2_id) {
               team2Stats.wins++;
               team1Stats.losses++;
             }

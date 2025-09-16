@@ -184,7 +184,7 @@ export async function simulatePoolPlayResults(tournamentId: string) {
     const updates = [];
     for (const match of matches) {
       // Generate realistic volleyball scores
-      const simulatedResult = generateRealisticVolleyballScore(tournament);
+      const simulatedResult = generateRealisticVolleyballScore(tournament, match);
       
       updates.push({
         id: match.id,
@@ -212,7 +212,7 @@ export async function simulatePoolPlayResults(tournamentId: string) {
   }
 }
 
-function generateRealisticVolleyballScore(tournament: any) {
+function generateRealisticVolleyballScore(tournament: any, match: any) {
   const setsPerGame = tournament.sets_per_game || 3;
   const pointsPerSet = tournament.points_per_set || 25;
   const mustWinBy = tournament.must_win_by || 2;
@@ -283,7 +283,8 @@ function generateRealisticVolleyballScore(tournament: any) {
     else setsWonTeam2++;
   }
 
-  const winnerId = setsWonTeam1 > setsWonTeam2 ? 'team1_id' : 'team2_id';
+  // Determine the actual winner using the match's team IDs
+  const winnerId = setsWonTeam1 > setsWonTeam2 ? match.team1_id : match.team2_id;
 
   return {
     set_scores: setScores,
@@ -291,7 +292,7 @@ function generateRealisticVolleyballScore(tournament: any) {
     sets_won_team2: setsWonTeam2,
     team1_score: totalPointsTeam1,
     team2_score: totalPointsTeam2,
-    winner_id: winnerId === 'team1_id' ? null : null, // Will be handled by trigger or app logic
+    winner_id: winnerId,
   };
 }
 
