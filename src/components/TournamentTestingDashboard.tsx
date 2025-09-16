@@ -405,7 +405,7 @@ export function TournamentTestingDashboard({
             <AlertDialogTrigger asChild>
               <Button 
                 variant="destructive" 
-                disabled={loading === 'clear' || stats.testTeams === 0}
+                disabled={loading === 'clear'}
                 className="w-full"
               >
                 <RotateCcw className="h-4 w-4 mr-2" />
