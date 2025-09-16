@@ -361,10 +361,6 @@ export function TournamentDayDashboard({ tournament, teams }: TournamentDayDashb
               <Badge className="ml-2 bg-blue-600 text-white text-xs">Active</Badge>
             </TabsTrigger>
           )}
-          {/* Debug info */}
-          <div className="text-xs text-muted-foreground">
-            Debug: Playoffs={playoffBracketsExist ? 'Yes' : 'No'}
-          </div>
           <TabsTrigger value="brackets">Brackets</TabsTrigger>
           <TabsTrigger value="schedule">Full Schedule</TabsTrigger>
           <TabsTrigger value="teams">Team Schedules</TabsTrigger>
@@ -702,44 +698,36 @@ export function TournamentDayDashboard({ tournament, teams }: TournamentDayDashb
           </TabsContent>
 
           {/* Bracket Visualization Tab */}
-          {playoffBracketsExist ? (
-            <TabsContent value="brackets" className="space-y-6">
-              <div className="text-sm text-muted-foreground mb-4">
-                Debug: Found {matches.filter(m => m.tournament_phase === 'playoffs' || m.tournament_phase === 'bracket').length} playoff matches
-              </div>
-              <BracketVisualization 
-                matches={matches
-                  .filter(m => m.tournament_phase === 'playoffs' || m.tournament_phase === 'bracket')
-                  .map(m => {
-                    // Determine winner name based on winner_id
-                    let winner_name: string | undefined;
-                    if (m.winner_id) {
-                      winner_name = m.winner_id === m.team1_id ? m.team1_name : m.team2_name;
-                    }
-                    
-                    return {
-                      id: m.id,
-                      team1_name: m.team1_name,
-                      team2_name: m.team2_name,
-                      team1_score: m.sets_won_team1 || 0,
-                      team2_score: m.sets_won_team2 || 0,
-                      winner_name,
-                      bracket_position: m.bracket_position || `Match ${m.match_number}`,
-                      status: m.status,
-                      round_number: m.round_number
-                    };
-                  })
-                }
-                title={`${tournament.title} - Playoff Bracket`}
-              />
-            </TabsContent>
-          ) : (
-            <TabsContent value="brackets" className="space-y-6">
-              <div className="text-center text-muted-foreground py-8">
-                No playoff brackets generated yet.
-              </div>
-            </TabsContent>
-          )}
+          <TabsContent value="brackets" className="space-y-6">
+            <div className="text-sm text-muted-foreground mb-4">
+              Debug: Found {matches.filter(m => m.tournament_phase === 'playoffs' || m.tournament_phase === 'bracket').length} playoff matches
+            </div>
+            <BracketVisualization 
+              matches={matches
+                .filter(m => m.tournament_phase === 'playoffs' || m.tournament_phase === 'bracket')
+                .map(m => {
+                  // Determine winner name based on winner_id
+                  let winner_name: string | undefined;
+                  if (m.winner_id) {
+                    winner_name = m.winner_id === m.team1_id ? m.team1_name : m.team2_name;
+                  }
+                  
+                  return {
+                    id: m.id,
+                    team1_name: m.team1_name,
+                    team2_name: m.team2_name,
+                    team1_score: m.sets_won_team1 || 0,
+                    team2_score: m.sets_won_team2 || 0,
+                    winner_name,
+                    bracket_position: m.bracket_position || `Match ${m.match_number}`,
+                    status: m.status,
+                    round_number: m.round_number
+                  };
+                })
+              }
+              title={`${tournament.title} - Playoff Bracket`}
+            />
+          </TabsContent>
         </Tabs>
 
       {/* Advancement Configuration Dialog */}
