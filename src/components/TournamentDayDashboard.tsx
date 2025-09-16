@@ -99,9 +99,17 @@ export function TournamentDayDashboard({ tournament, teams }: TournamentDayDashb
     const completionStatus = await checkPoolCompletion(tournament.id);
     setPoolCompletion(completionStatus);
     
+    console.log('Pool completion check:', {
+      readyForBrackets: completionStatus.readyForBrackets,
+      playoffBracketsExist,
+      showAdvancementDialog,
+      shouldShow: completionStatus.readyForBrackets && !playoffBracketsExist && !showAdvancementDialog
+    });
+    
     // Auto-show advancement dialog when pools are complete and no playoffs exist yet
     // Only show if dialog hasn't been shown before and brackets don't exist
     if (completionStatus.readyForBrackets && !playoffBracketsExist && !showAdvancementDialog) {
+      console.log('Showing advancement dialog');
       setShowAdvancementDialog(true);
     }
   };
@@ -142,6 +150,7 @@ export function TournamentDayDashboard({ tournament, teams }: TournamentDayDashb
       
       // Check if playoff brackets exist
       const hasPlayoffs = formattedMatches.some(m => m.tournament_phase === 'playoffs' || m.tournament_phase === 'bracket');
+      console.log('Checking for playoff matches:', { hasPlayoffs, totalMatches: formattedMatches.length, playoffMatches: formattedMatches.filter(m => m.tournament_phase === 'playoffs' || m.tournament_phase === 'bracket').length });
       setPlayoffBracketsExist(hasPlayoffs);
       
     } catch (error) {
