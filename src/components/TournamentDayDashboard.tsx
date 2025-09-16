@@ -153,6 +153,12 @@ export function TournamentDayDashboard({ tournament, teams }: TournamentDayDashb
       
       // Check if playoff brackets exist
       const hasPlayoffs = formattedMatches.some(m => m.tournament_phase === 'playoffs' || m.tournament_phase === 'bracket');
+      console.log('DEBUG: Playoff bracket check:', { 
+        hasPlayoffs, 
+        totalMatches: formattedMatches.length, 
+        playoffMatches: formattedMatches.filter(m => m.tournament_phase === 'playoffs' || m.tournament_phase === 'bracket'),
+        allPhases: [...new Set(formattedMatches.map(m => m.tournament_phase))]
+      });
       setPlayoffBracketsExist(hasPlayoffs);
       
     } catch (error) {
@@ -355,6 +361,10 @@ export function TournamentDayDashboard({ tournament, teams }: TournamentDayDashb
               <Badge className="ml-2 bg-blue-600 text-white text-xs">Active</Badge>
             </TabsTrigger>
           )}
+          {/* Debug info */}
+          <div className="text-xs text-muted-foreground">
+            Debug: Playoffs={playoffBracketsExist ? 'Yes' : 'No'}
+          </div>
           <TabsTrigger value="brackets">Brackets</TabsTrigger>
           <TabsTrigger value="schedule">Full Schedule</TabsTrigger>
           <TabsTrigger value="teams">Team Schedules</TabsTrigger>
@@ -692,8 +702,11 @@ export function TournamentDayDashboard({ tournament, teams }: TournamentDayDashb
           </TabsContent>
 
           {/* Bracket Visualization Tab */}
-          {playoffBracketsExist && (
+          {playoffBracketsExist ? (
             <TabsContent value="brackets" className="space-y-6">
+              <div className="text-sm text-muted-foreground mb-4">
+                Debug: Found {matches.filter(m => m.tournament_phase === 'playoffs' || m.tournament_phase === 'bracket').length} playoff matches
+              </div>
               <BracketVisualization 
                 matches={matches
                   .filter(m => m.tournament_phase === 'playoffs' || m.tournament_phase === 'bracket')
@@ -719,6 +732,12 @@ export function TournamentDayDashboard({ tournament, teams }: TournamentDayDashb
                 }
                 title={`${tournament.title} - Playoff Bracket`}
               />
+            </TabsContent>
+          ) : (
+            <TabsContent value="brackets" className="space-y-6">
+              <div className="text-center text-muted-foreground py-8">
+                No playoff brackets generated yet.
+              </div>
             </TabsContent>
           )}
         </Tabs>
