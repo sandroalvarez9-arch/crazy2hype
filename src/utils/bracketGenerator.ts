@@ -24,6 +24,8 @@ interface BracketMatch {
   tournament_phase: 'playoffs';
   bracket_position: string;
   status: 'scheduled';
+  division?: string;
+  skill_level?: string;
 }
 
 export async function generatePlayoffBrackets(
@@ -324,7 +326,9 @@ function generateBracketMatchesForCategory(
         court_number: 1, // Default court, can be updated
         tournament_phase: 'playoffs',
         bracket_position: bracketPosition,
-        status: 'scheduled'
+        status: 'scheduled',
+        division: division,
+        skill_level: skillLevel
       });
     }
   }
@@ -354,7 +358,9 @@ function generateFirstRoundMatchesForCategory(teams: TeamStanding[], bracketSize
         court_number: (i % 4) + 1, // Distribute across 4 courts
         tournament_phase: 'playoffs',
         bracket_position: `${division} ${skillLevel.toUpperCase()} - Round 1 - Match ${i + 1}`,
-        status: 'scheduled'
+        status: 'scheduled',
+        division: division,
+        skill_level: skillLevel
       });
     }
   }

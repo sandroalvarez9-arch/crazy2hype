@@ -63,6 +63,7 @@ export type Database = {
           court_number: number | null
           created_at: string
           current_set: number | null
+          division: string | null
           id: string
           match_number: number
           pool_name: string | null
@@ -72,6 +73,7 @@ export type Database = {
           set_scores: Json | null
           sets_won_team1: number | null
           sets_won_team2: number | null
+          skill_level: string | null
           status: string
           team1_id: string | null
           team1_score: number | null
@@ -88,6 +90,7 @@ export type Database = {
           court_number?: number | null
           created_at?: string
           current_set?: number | null
+          division?: string | null
           id?: string
           match_number: number
           pool_name?: string | null
@@ -97,6 +100,7 @@ export type Database = {
           set_scores?: Json | null
           sets_won_team1?: number | null
           sets_won_team2?: number | null
+          skill_level?: string | null
           status?: string
           team1_id?: string | null
           team1_score?: number | null
@@ -113,6 +117,7 @@ export type Database = {
           court_number?: number | null
           created_at?: string
           current_set?: number | null
+          division?: string | null
           id?: string
           match_number?: number
           pool_name?: string | null
@@ -122,6 +127,7 @@ export type Database = {
           set_scores?: Json | null
           sets_won_team1?: number | null
           sets_won_team2?: number | null
+          skill_level?: string | null
           status?: string
           team1_id?: string | null
           team1_score?: number | null

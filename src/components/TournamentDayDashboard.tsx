@@ -231,6 +231,25 @@ export function TournamentDayDashboard({ tournament, teams }: TournamentDayDashb
   const poolPlayMatches = matches.filter(m => m.tournament_phase === 'pool_play' || !m.tournament_phase);
   const playoffMatches = matches.filter(m => m.tournament_phase === 'playoffs' || m.tournament_phase === 'bracket');
 
+  // Auto-select first bracket category when playoff matches are loaded
+  useEffect(() => {
+    if (playoffMatches.length > 0 && !selectedBracketCategory) {
+      const categories = new Set<string>();
+      playoffMatches.forEach(match => {
+        if (match.bracket_position) {
+          const parts = match.bracket_position.split(' - ');
+          if (parts.length >= 2) {
+            categories.add(parts[0]);
+          }
+        }
+      });
+      
+      if (categories.size > 0) {
+        setSelectedBracketCategory(Array.from(categories)[0]);
+      }
+    }
+  }, [playoffMatches.length, selectedBracketCategory]);
+
   const stats = {
     totalMatches: matches.length,
     completed: matches.filter(m => m.status === 'completed').length,
@@ -561,61 +580,159 @@ export function TournamentDayDashboard({ tournament, teams }: TournamentDayDashb
                 </div>
               ) : (
                 <div className="space-y-6">
-                  {/* Bracket matches organized by round */}
-                  {Array.from(new Set(playoffMatches.map(m => m.round_number)))
-                    .sort((a, b) => a - b)
-                    .map(round => {
-                      const roundMatches = playoffMatches.filter(m => m.round_number === round);
-                      const roundName = round === Math.max(...playoffMatches.map(m => m.round_number)) 
-                        ? 'Finals' 
-                        : round === Math.max(...playoffMatches.map(m => m.round_number)) - 1 
-                        ? 'Semifinals' 
-                        : `Round ${round}`;
-                      
+                  {/* Bracket Category Selector */}
+                  <div className="mb-6">
+                    <h3 className="text-sm font-medium text-muted-foreground mb-3">Select Bracket Category:</h3>
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+                      {(() => {
+                        const categories = new Set<string>();
+                        playoffMatches.forEach(match => {
+                          if (match.bracket_position) {
+                            // Extract category from bracket position (e.g., "Men's Open - Final" -> "Men's Open")
+                            const parts = match.bracket_position.split(' - ');
+                            if (parts.length >= 2) {
+                              const category = parts[0];
+                              categories.add(category);
+                            }
+                          }
+                        });
+                        
+                        return Array.from(categories).map(category => (
+                          <Button
+                            key={category}
+                            variant={selectedBracketCategory === category ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => setSelectedBracketCategory(category)}
+                          >
+                            {category}
+                          </Button>
+                        ));
+                      })()}
+                    </div>
+                  </div>
+
+                  {/* Show message if no category selected */}
+                  {!selectedBracketCategory && (
+                    <div className="text-center py-8">
+                      <Trophy className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                      <p className="text-muted-foreground">
+                        Select a bracket category above to view the playoff bracket.
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Show bracket for selected category */}
+                  {selectedBracketCategory && (() => {
+                    // Filter matches for the selected category
+                    const categoryMatches = playoffMatches.filter(match => 
+                      match.bracket_position?.startsWith(selectedBracketCategory + ' - ')
+                    );
+
+                    if (categoryMatches.length === 0) {
                       return (
-                        <div key={round}>
-                          <h3 className="text-lg font-semibold mb-4">{roundName}</h3>
-                          <div className="grid gap-4">
-                            {roundMatches.map(match => (
-                              <div key={match.id} className="border rounded-lg p-4">
-                                <div className="flex justify-between items-start mb-2">
-                                  <div>
-                                    <h4 className="font-semibold">
-                                      {match.team1_name} vs {match.team2_name}
-                                    </h4>
-                                    <p className="text-sm text-muted-foreground">
-                                      Court {match.court_number} • Match {match.match_number}
-                                    </p>
-                                    {match.scheduled_time && (
-                                      <p className="text-sm text-muted-foreground">
-                                        {format(new Date(match.scheduled_time), 'h:mm a')}
-                                      </p>
-                                    )}
-                                  </div>
-                                  {getMatchStatusBadge(match)}
-                                </div>
-                                
-                                {match.status === 'completed' && (
-                                  <div className="text-sm font-medium">
-                                    Score: {match.sets_won_team1}-{match.sets_won_team2}
-                                  </div>
-                                )}
-                                
-                                {(match.status === 'in_progress' || match.status === 'scheduled') && (
-                                  <Button
-                                    onClick={() => setSelectedMatch(match)}
-                                    size="sm"
-                                    variant={match.status === 'in_progress' ? 'default' : 'outline'}
-                                  >
-                                    {match.status === 'in_progress' ? 'Continue Scoring' : 'Start Match'}
-                                  </Button>
-                                )}
-                              </div>
-                            ))}
-                          </div>
+                        <div className="text-center py-8">
+                          <p className="text-muted-foreground">
+                            No matches found for {selectedBracketCategory}.
+                          </p>
                         </div>
                       );
-                    })}
+                    }
+
+                    return (
+                      <div>
+                        <h3 className="text-lg font-semibold mb-4">{selectedBracketCategory} Bracket</h3>
+                        
+                        {/* Bracket Format Toggle */}
+                        <div className="flex justify-end mb-4">
+                          <div className="flex items-center space-x-2">
+                            <Button
+                              variant={bracketFormat === 'simple' ? 'default' : 'outline'}
+                              size="sm"
+                              onClick={() => setBracketFormat('simple')}
+                            >
+                              Simple View
+                            </Button>
+                            <Button
+                              variant={bracketFormat === 'detailed' ? 'default' : 'outline'}
+                              size="sm"
+                              onClick={() => setBracketFormat('detailed')}
+                            >
+                              Detailed View
+                            </Button>
+                          </div>
+                        </div>
+
+                        {bracketFormat === 'detailed' ? (
+                          <EnhancedBracketView
+                            matches={categoryMatches as any}
+                            onMatchSelect={setSelectedMatch as any}
+                          />
+                        ) : (
+                          <div className="space-y-6">
+                            {/* Simple bracket view by rounds */}
+                            {(() => {
+                              const rounds = Array.from(new Set(categoryMatches.map(m => m.round_number))).sort((a, b) => a - b);
+                              
+                              return rounds.map(round => {
+                                const roundMatches = categoryMatches.filter(m => m.round_number === round);
+                                const maxRound = Math.max(...categoryMatches.map(m => m.round_number));
+                                
+                                const roundName = round === maxRound 
+                                  ? 'Final' 
+                                  : round === maxRound - 1 
+                                  ? 'Semifinals' 
+                                  : `Round ${round}`;
+                                
+                                return (
+                                  <div key={round}>
+                                    <h4 className="text-md font-semibold mb-3">{roundName}</h4>
+                                    <div className="grid gap-3">
+                                      {roundMatches.map(match => (
+                                        <div key={match.id} className="border rounded-lg p-4">
+                                          <div className="flex justify-between items-start mb-2">
+                                            <div>
+                                              <h5 className="font-semibold">
+                                                {match.team1_name} vs {match.team2_name}
+                                              </h5>
+                                              <p className="text-sm text-muted-foreground">
+                                                Court {match.court_number} • Ref: {match.referee_team_name}
+                                              </p>
+                                              {match.scheduled_time && (
+                                                <p className="text-sm text-muted-foreground">
+                                                  {format(new Date(match.scheduled_time), 'h:mm a')}
+                                                </p>
+                                              )}
+                                            </div>
+                                            {getMatchStatusBadge(match)}
+                                          </div>
+                                          
+                                          {match.status === 'completed' && (
+                                            <div className="text-sm font-medium">
+                                              Score: {match.sets_won_team1}-{match.sets_won_team2}
+                                            </div>
+                                          )}
+                                          
+                                          {(match.status === 'in_progress' || match.status === 'scheduled') && (
+                                            <Button
+                                              onClick={() => setSelectedMatch(match)}
+                                              size="sm"
+                                              variant={match.status === 'in_progress' ? 'default' : 'outline'}
+                                            >
+                                              {match.status === 'in_progress' ? 'Continue Scoring' : 'Start Match'}
+                                            </Button>
+                                          )}
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                );
+                              });
+                            })()}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </div>
               )}
             </CardContent>
