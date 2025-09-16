@@ -37,19 +37,18 @@ export async function generateTestTeams(tournamentId: string, teamCount: number 
     const currentUser = (await supabase.auth.getUser()).data.user;
     if (!currentUser) throw new Error("Not authenticated");
 
-    // Get tournament info to use the correct skill levels
+    // Get tournament info to use the correct skill levels and divisions
     const { data: tournament } = await supabase
       .from('tournaments')
-      .select('skill_levels')
+      .select('skill_levels, divisions, skill_levels_by_division')
       .eq('id', tournamentId)
       .single();
 
-    // Use provided skill levels, tournament skill levels, or fallback
-    const availableSkillLevels = skillLevels.length > 0 
-      ? skillLevels 
-      : tournament?.skill_levels || ['advanced', 'intermediate', 'beginner'];
+    const divisions = tournament?.divisions || [];
+    const skillLevelsByDivision = tournament?.skill_levels_by_division || {};
 
-    console.log('Generating teams for skill levels:', availableSkillLevels);
+    console.log('Tournament divisions:', divisions);
+    console.log('Skill levels by division:', skillLevelsByDivision);
 
     // Check for existing test teams first
     const { data: existingTestTeams } = await supabase
@@ -60,48 +59,88 @@ export async function generateTestTeams(tournamentId: string, teamCount: number 
 
     const existingNames = new Set(existingTestTeams?.map(team => team.name) || []);
     
-    // Create teamCount teams for EACH skill level, but skip existing ones
+    // Create teams for each division and skill level combination
     const teamsData: any[] = [];
     
-    availableSkillLevels.forEach((skillLevel, skillIndex) => {
-      for (let i = 0; i < teamCount; i++) {
-        // Cycle through TEST_TEAMS to get different names
-        const teamIndex = (skillIndex * teamCount + i) % TEST_TEAMS.length;
-        const baseTeam = TEST_TEAMS[teamIndex];
-        
-        // Create skill level abbreviation that matches tournament format
-        const skillAbbrev = skillLevel.toUpperCase();
-        const teamName = `${baseTeam.name} (${skillAbbrev})`;
-        
-        // Skip if team with this name already exists
-        if (existingNames.has(teamName)) {
-          console.log('Skipping existing team:', teamName);
-          continue;
+    divisions.forEach((division) => {
+      const divisionSkillLevels = skillLevelsByDivision[division] || tournament?.skill_levels || ['open', 'a', 'bb'];
+      
+      divisionSkillLevels.forEach((skillLevel, skillIndex) => {
+        for (let i = 0; i < teamCount; i++) {
+          // Cycle through TEST_TEAMS to get different names
+          const teamIndex = (skillIndex * teamCount + i) % TEST_TEAMS.length;
+          const baseTeam = TEST_TEAMS[teamIndex];
+          
+          // Create team name that includes both division and skill level
+          const divisionAbbrev = division.charAt(0).toUpperCase(); // M for men, W for women
+          const skillAbbrev = skillLevel.toUpperCase();
+          const teamName = `${baseTeam.name} (${divisionAbbrev}-${skillAbbrev})`;
+          
+          // Skip if team with this name already exists
+          if (existingNames.has(teamName)) {
+            console.log('Skipping existing team:', teamName);
+            continue;
+          }
+          
+          teamsData.push({
+            tournament_id: tournamentId,
+            name: teamName,
+            skill_level: skillLevel, 
+            division: division, // Assign the division
+            players_count: baseTeam.players_count,
+            captain_id: currentUser.id,
+            contact_email: baseTeam.captain_email,
+            check_in_status: 'pending',
+            payment_status: 'pending',
+            is_registered: true,
+            is_backup: false,
+            is_test_data: true
+          });
         }
-        
-        teamsData.push({
-          tournament_id: tournamentId,
-          name: teamName,
-          skill_level: skillLevel, // Use exact skill level from tournament
-          division: baseTeam.division || null,
-          players_count: baseTeam.players_count,
-          captain_id: currentUser.id, // Use current user as captain for testing
-          contact_email: baseTeam.captain_email,
-          check_in_status: 'pending',
-          payment_status: 'pending',
-          is_registered: true,
-          is_backup: false,
-          is_test_data: true // Mark as test data for safe deletion
-        });
-      }
+      });
     });
+
+    // If no divisions, fall back to skill levels only
+    if (divisions.length === 0) {
+      const availableSkillLevels = skillLevels.length > 0 
+        ? skillLevels 
+        : tournament?.skill_levels || ['open', 'a', 'bb'];
+
+      availableSkillLevels.forEach((skillLevel, skillIndex) => {
+        for (let i = 0; i < teamCount; i++) {
+          const teamIndex = (skillIndex * teamCount + i) % TEST_TEAMS.length;
+          const baseTeam = TEST_TEAMS[teamIndex];
+          const teamName = `${baseTeam.name} (${skillLevel.toUpperCase()})`;
+          
+          if (existingNames.has(teamName)) {
+            continue;
+          }
+          
+          teamsData.push({
+            tournament_id: tournamentId,
+            name: teamName,
+            skill_level: skillLevel,
+            division: null,
+            players_count: baseTeam.players_count,
+            captain_id: currentUser.id,
+            contact_email: baseTeam.captain_email,
+            check_in_status: 'pending',
+            payment_status: 'pending',
+            is_registered: true,
+            is_backup: false,
+            is_test_data: true
+          });
+        }
+      });
+    }
 
     // If no new teams to create, return early
     if (teamsData.length === 0) {
       return { success: true, teams: [], count: 0, message: 'All test teams already exist' };
     }
 
-    console.log('Creating teams with skill levels:', teamsData.map(t => `${t.name}: ${t.skill_level}`));
+    console.log('Creating teams with divisions and skill levels:', 
+      teamsData.map(t => `${t.name}: ${t.division}-${t.skill_level}`));
 
     const { data, error } = await supabase
       .from('teams')
@@ -110,7 +149,8 @@ export async function generateTestTeams(tournamentId: string, teamCount: number 
 
     if (error) throw error;
 
-    console.log('Successfully created teams:', data?.map(t => `${t.name} (${t.skill_level})`));
+    console.log('Successfully created teams:', 
+      data?.map(t => `${t.name} (${t.division}-${t.skill_level})`));
 
     return { success: true, teams: data, count: data?.length || 0 };
   } catch (error) {
