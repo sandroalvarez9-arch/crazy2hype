@@ -99,16 +99,25 @@ export function TournamentDayDashboard({ tournament, teams }: TournamentDayDashb
     const completionStatus = await checkPoolCompletion(tournament.id);
     setPoolCompletion(completionStatus);
     
+    // Check directly in the database for playoff matches instead of relying on state
+    const { data: playoffMatches } = await supabase
+      .from('matches')
+      .select('id')
+      .eq('tournament_id', tournament.id)
+      .in('tournament_phase', ['playoffs', 'bracket']);
+    
+    const hasPlayoffs = playoffMatches && playoffMatches.length > 0;
+    
     console.log('Pool completion check:', {
       readyForBrackets: completionStatus.readyForBrackets,
-      playoffBracketsExist,
+      hasPlayoffs,
       showAdvancementDialog,
-      shouldShow: completionStatus.readyForBrackets && !playoffBracketsExist && !showAdvancementDialog
+      shouldShow: completionStatus.readyForBrackets && !hasPlayoffs && !showAdvancementDialog
     });
     
     // Auto-show advancement dialog when pools are complete and no playoffs exist yet
-    // Only show if dialog hasn't been shown before and brackets don't exist
-    if (completionStatus.readyForBrackets && !playoffBracketsExist && !showAdvancementDialog) {
+    // Check database directly to avoid race conditions with state
+    if (completionStatus.readyForBrackets && !hasPlayoffs && !showAdvancementDialog) {
       console.log('Showing advancement dialog');
       setShowAdvancementDialog(true);
     }
