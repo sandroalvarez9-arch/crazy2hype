@@ -14,6 +14,7 @@ interface BracketMatch {
   bracket_position: string;
   status: string;
   round_number: number;
+  referee_team_name?: string;
 }
 
 interface TraditionalBracketViewProps {
@@ -229,6 +230,11 @@ const TraditionalBracketView: React.FC<TraditionalBracketViewProps> = ({
                               score={match.team2_score}
                               format={bracketFormat}
                             />
+                            {match.referee_team_name && (
+                              <div className="text-xs text-center text-muted-foreground mt-2 px-2 py-1 bg-orange-50 border border-orange-200 rounded">
+                                📋 Ref: {match.referee_team_name}
+                              </div>
+                            )}
                             {match.winner_name && (
                               <div className="mt-4 p-3 bg-yellow-400 text-yellow-900 font-bold text-center rounded-md">
                                 🏆 CHAMPION 🏆<br/>
@@ -244,18 +250,25 @@ const TraditionalBracketView: React.FC<TraditionalBracketViewProps> = ({
                           {isLeftSide && (
                             <>
                               <div className="flex flex-col gap-1">
-                                <TeamBox 
-                                  teamName={match.team1_name}
-                                  isWinner={team1Winner}
-                                  score={match.team1_score}
-                                  format={bracketFormat}
-                                />
-                                <TeamBox 
-                                  teamName={match.team2_name}
-                                  isWinner={team2Winner}
-                                  score={match.team2_score}
-                                  format={bracketFormat}
-                                />
+                                <div className="flex flex-col gap-1">
+                                  <TeamBox 
+                                    teamName={match.team1_name}
+                                    isWinner={team1Winner}
+                                    score={match.team1_score}
+                                    format={bracketFormat}
+                                  />
+                                  <TeamBox 
+                                    teamName={match.team2_name}
+                                    isWinner={team2Winner}
+                                    score={match.team2_score}
+                                    format={bracketFormat}
+                                  />
+                                </div>
+                                {match.referee_team_name && (
+                                  <div className="text-xs text-center text-muted-foreground mt-1 px-2 py-1 bg-orange-50 border border-orange-200 rounded">
+                                    📋 Ref: {match.referee_team_name}
+                                  </div>
+                                )}
                               </div>
                               {roundIndex < rounds.length - 1 && (
                                 <BracketConnector 
@@ -275,18 +288,25 @@ const TraditionalBracketView: React.FC<TraditionalBracketViewProps> = ({
                                 />
                               )}
                               <div className="flex flex-col gap-1">
-                                <TeamBox 
-                                  teamName={match.team1_name}
-                                  isWinner={team1Winner}
-                                  score={match.team1_score}
-                                  format={bracketFormat}
-                                />
-                                <TeamBox 
-                                  teamName={match.team2_name}
-                                  isWinner={team2Winner}
-                                  score={match.team2_score}
-                                  format={bracketFormat}
-                                />
+                                <div className="flex flex-col gap-1">
+                                  <TeamBox 
+                                    teamName={match.team1_name}
+                                    isWinner={team1Winner}
+                                    score={match.team1_score}
+                                    format={bracketFormat}
+                                  />
+                                  <TeamBox 
+                                    teamName={match.team2_name}
+                                    isWinner={team2Winner}
+                                    score={match.team2_score}
+                                    format={bracketFormat}
+                                  />
+                                </div>
+                                {match.referee_team_name && (
+                                  <div className="text-xs text-center text-muted-foreground mt-1 px-2 py-1 bg-orange-50 border border-orange-200 rounded">
+                                    📋 Ref: {match.referee_team_name}
+                                  </div>
+                                )}
                               </div>
                             </>
                           )}

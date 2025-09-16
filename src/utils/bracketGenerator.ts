@@ -18,6 +18,7 @@ interface BracketMatch {
   match_number: number;
   team1_id: string | null;
   team2_id: string | null;
+  referee_team_id: string | null;
   scheduled_time: string | null;
   court_number: number;
   tournament_phase: 'playoffs';
@@ -64,8 +65,20 @@ export async function generatePlayoffBrackets(
       return { success: false, error: 'No teams available to advance' };
     }
 
-    // Generate bracket matches
-    const bracketMatches = generateBracketMatches(advancingTeams, tournamentId);
+    // Get all teams for referee assignment (including non-advancing teams)
+    const { data: allTeams } = await supabase
+      .from('teams')
+      .select('id, name')
+      .eq('tournament_id', tournamentId)
+      .eq('check_in_status', 'checked_in');
+
+    const allTeamLookup = (allTeams || []).reduce((acc, team) => {
+      acc[team.id] = team.name;
+      return acc;
+    }, {} as Record<string, string>);
+
+    // Generate bracket matches with referee assignments
+    const bracketMatches = generateBracketMatches(advancingTeams, tournamentId, poolStandings, allTeamLookup);
 
     // Insert bracket matches
     const { error: insertError } = await supabase
@@ -223,7 +236,12 @@ function getAdvancingTeams(poolStandings: Record<string, TeamStanding[]>, teamsP
   });
 }
 
-function generateBracketMatches(advancingTeams: TeamStanding[], tournamentId: string): BracketMatch[] {
+function generateBracketMatches(
+  advancingTeams: TeamStanding[], 
+  tournamentId: string, 
+  poolStandings: Record<string, TeamStanding[]>,
+  allTeamLookup: Record<string, string>
+): BracketMatch[] {
   const numTeams = advancingTeams.length;
   
   // Find the next power of 2 that fits all teams
@@ -233,8 +251,11 @@ function generateBracketMatches(advancingTeams: TeamStanding[], tournamentId: st
   // Calculate number of rounds
   const totalRounds = Math.log2(bracketSize);
 
-  // Generate first round matches with seeding
-  const firstRoundMatches = generateFirstRoundMatches(advancingTeams, bracketSize, tournamentId);
+  // Find the 3rd place team (first non-advancing team) to referee first round
+  const thirdPlaceTeam = findThirdPlaceTeam(poolStandings, advancingTeams);
+
+  // Generate first round matches with seeding and referee assignment
+  const firstRoundMatches = generateFirstRoundMatches(advancingTeams, bracketSize, tournamentId, thirdPlaceTeam?.teamId || null);
   matches.push(...firstRoundMatches);
 
   // Generate subsequent rounds (empty matches that will be filled as previous rounds complete)
@@ -250,6 +271,7 @@ function generateBracketMatches(advancingTeams: TeamStanding[], tournamentId: st
         match_number: matchNum,
         team1_id: null, // Will be filled when previous round completes
         team2_id: null,
+        referee_team_id: null, // Will be assigned based on previous round losers
         scheduled_time: null, // Will be scheduled when teams are determined
         court_number: 1, // Default court, can be updated
         tournament_phase: 'playoffs',
@@ -262,7 +284,7 @@ function generateBracketMatches(advancingTeams: TeamStanding[], tournamentId: st
   return matches;
 }
 
-function generateFirstRoundMatches(teams: TeamStanding[], bracketSize: number, tournamentId: string): BracketMatch[] {
+function generateFirstRoundMatches(teams: TeamStanding[], bracketSize: number, tournamentId: string, refereeTeamId: string | null): BracketMatch[] {
   const matches: BracketMatch[] = [];
   const numFirstRoundMatches = bracketSize / 2;
   
@@ -279,6 +301,7 @@ function generateFirstRoundMatches(teams: TeamStanding[], bracketSize: number, t
         match_number: i + 1,
         team1_id: higherSeed?.teamId || null,
         team2_id: lowerSeed?.teamId || null,
+        referee_team_id: refereeTeamId, // 3rd place team refs first round
         scheduled_time: null, // Will be scheduled
         court_number: (i % 4) + 1, // Distribute across 4 courts
         tournament_phase: 'playoffs',
@@ -289,6 +312,44 @@ function generateFirstRoundMatches(teams: TeamStanding[], bracketSize: number, t
   }
 
   return matches;
+}
+
+function findThirdPlaceTeam(poolStandings: Record<string, TeamStanding[]>, advancingTeams: TeamStanding[]): TeamStanding | null {
+  // Get all teams from pools, sorted by their overall standing
+  const allTeams: TeamStanding[] = [];
+  
+  Object.values(poolStandings).forEach(standings => {
+    allTeams.push(...standings);
+  });
+
+  // Sort all teams by their pool position and overall record
+  allTeams.sort((a, b) => {
+    // Find pool position for each team
+    const aPoolPosition = Object.values(poolStandings).find(pool => 
+      pool.some(team => team.teamId === a.teamId)
+    )?.findIndex(team => team.teamId === a.teamId) || 0;
+    
+    const bPoolPosition = Object.values(poolStandings).find(pool => 
+      pool.some(team => team.teamId === b.teamId)
+    )?.findIndex(team => team.teamId === b.teamId) || 0;
+
+    if (aPoolPosition !== bPoolPosition) {
+      return aPoolPosition - bPoolPosition;
+    }
+
+    // Then by overall record
+    if (a.winPercentage !== b.winPercentage) {
+      return b.winPercentage - a.winPercentage;
+    }
+    if (a.setsDifferential !== b.setsDifferential) {
+      return b.setsDifferential - a.setsDifferential;
+    }
+    return b.setsWon - a.setsWon;
+  });
+
+  // Find the first team that didn't advance (3rd place overall)
+  const advancingTeamIds = new Set(advancingTeams.map(team => team.teamId));
+  return allTeams.find(team => !advancingTeamIds.has(team.teamId)) || null;
 }
 
 function getBracketPositionName(round: number, matchNumber: number, totalRounds: number): string {
