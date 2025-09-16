@@ -173,7 +173,7 @@ export async function simulatePoolPlayResults(tournamentId: string) {
       .from('matches')
       .select('*')
       .eq('tournament_id', tournamentId)
-      .eq('tournament_phase', 'pool_play')
+      .in('tournament_phase', ['pool_play', null]) // Handle both explicit pool_play and null values
       .neq('status', 'completed');
 
     if (matchesError) throw matchesError;

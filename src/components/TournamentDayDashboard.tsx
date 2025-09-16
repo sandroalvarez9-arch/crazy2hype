@@ -9,8 +9,11 @@ import { useToast } from "@/hooks/use-toast";
 import { MatchScoringInterface } from "@/components/MatchScoringInterface";
 import { TeamScheduleView } from "@/components/TeamScheduleView";
 import { PoolDetailsView } from "@/components/PoolDetailsView";
+import { AdvancementConfigurationDialog } from "@/components/AdvancementConfigurationDialog";
 import { format } from "date-fns";
-import { Trophy, Clock, Users, Play, Pause, CheckCircle } from "lucide-react";
+import { Trophy, Clock, Users, Play, Pause, CheckCircle, Target } from "lucide-react";
+import { checkPoolCompletion } from "@/utils/poolCompletionDetector";
+import { generatePlayoffBrackets } from "@/utils/bracketGenerator";
 
 interface Match {
   id: string;
@@ -66,6 +69,9 @@ export function TournamentDayDashboard({ tournament, teams }: TournamentDayDashb
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
   const [selectedPool, setSelectedPool] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showAdvancementDialog, setShowAdvancementDialog] = useState(false);
+  const [poolCompletion, setPoolCompletion] = useState<any>(null);
+  const [generatingBrackets, setGeneratingBrackets] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -73,6 +79,34 @@ export function TournamentDayDashboard({ tournament, teams }: TournamentDayDashb
       fetchMatches();
     }
   }, [tournament.id, tournament.brackets_generated]);
+
+  // Check pool completion periodically
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    
+    if (tournament.brackets_generated) {
+      checkForPoolCompletion();
+      interval = setInterval(checkForPoolCompletion, 30000); // Check every 30 seconds
+    }
+
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [tournament.id, tournament.brackets_generated]);
+
+  const checkForPoolCompletion = async () => {
+    const completionStatus = await checkPoolCompletion(tournament.id);
+    setPoolCompletion(completionStatus);
+    
+    // Auto-show advancement dialog when pools are complete and no playoffs exist yet
+    if (completionStatus.readyForBrackets && !hasPlayoffMatches()) {
+      setShowAdvancementDialog(true);
+    }
+  };
+
+  const hasPlayoffMatches = () => {
+    return matches.some(m => m.tournament_phase === 'playoffs' || m.tournament_phase === 'bracket');
+  };
 
   const fetchMatches = async () => {
     try {
@@ -121,6 +155,39 @@ export function TournamentDayDashboard({ tournament, teams }: TournamentDayDashb
 
   const handleMatchUpdate = () => {
     fetchMatches();
+    // Re-check pool completion after match update
+    setTimeout(checkForPoolCompletion, 1000);
+  };
+
+  const handleGenerateBrackets = async (advancementConfig: { teamsPerPool: number }) => {
+    setGeneratingBrackets(true);
+    try {
+      const result = await generatePlayoffBrackets(tournament.id, advancementConfig.teamsPerPool);
+      
+      if (result.success) {
+        toast({
+          title: "Brackets Generated!",
+          description: result.message,
+        });
+        setShowAdvancementDialog(false);
+        // Refresh matches to show new bracket matches
+        await fetchMatches();
+      } else {
+        toast({
+          title: "Error",
+          description: result.error || "Failed to generate brackets",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to generate playoff brackets",
+        variant: "destructive",
+      });
+    } finally {
+      setGeneratingBrackets(false);
+    }
   };
 
   const getMatchStatusBadge = (match: Match) => {
@@ -199,6 +266,29 @@ export function TournamentDayDashboard({ tournament, teams }: TournamentDayDashb
 
   return (
     <div className="space-y-6">
+      {/* Pool Completion Alert */}
+      {poolCompletion?.readyForBrackets && !hasPlayoffMatches() && (
+        <Card className="border-green-200 bg-green-50">
+          <CardContent className="pt-4">
+            <div className="flex items-center gap-3">
+              <Target className="h-6 w-6 text-green-600" />
+              <div className="flex-1">
+                <h3 className="font-semibold text-green-800">Pool Play Complete!</h3>
+                <p className="text-sm text-green-700">
+                  All {poolCompletion.totalPools} pools have finished. Ready to generate playoff brackets.
+                </p>
+              </div>
+              <Button 
+                onClick={() => setShowAdvancementDialog(true)}
+                className="bg-green-600 hover:bg-green-700"
+              >
+                Generate Brackets
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Tournament Day Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card>
@@ -238,7 +328,12 @@ export function TournamentDayDashboard({ tournament, teams }: TournamentDayDashb
       <Tabs defaultValue="matches" className="w-full">
         <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="matches">Live Matches</TabsTrigger>
-          <TabsTrigger value="pools">Pool Play</TabsTrigger>
+          <TabsTrigger value="pools" className="relative">
+            Pool Play
+            {poolCompletion?.readyForBrackets && !hasPlayoffMatches() && (
+              <Badge className="ml-2 bg-green-600 text-white text-xs">Complete</Badge>
+            )}
+          </TabsTrigger>
           <TabsTrigger value="brackets">Brackets</TabsTrigger>
           <TabsTrigger value="schedule">Full Schedule</TabsTrigger>
           <TabsTrigger value="teams">Team Schedules</TabsTrigger>
@@ -341,9 +436,31 @@ export function TournamentDayDashboard({ tournament, teams }: TournamentDayDashb
               <CardTitle className="flex items-center gap-2">
                 <Trophy className="h-5 w-5" />
                 Pool Play Overview
+                {poolCompletion && (
+                  <Badge variant={poolCompletion.readyForBrackets ? "default" : "secondary"}>
+                    {poolCompletion.completedPools}/{poolCompletion.totalPools} Complete
+                  </Badge>
+                )}
               </CardTitle>
             </CardHeader>
             <CardContent>
+              {poolCompletion?.readyForBrackets && !hasPlayoffMatches() && (
+                <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="font-semibold text-green-800">🎉 All Pools Complete!</h4>
+                      <p className="text-sm text-green-700">Ready to generate playoff brackets with team advancement.</p>
+                    </div>
+                    <Button 
+                      onClick={() => setShowAdvancementDialog(true)}
+                      className="bg-green-600 hover:bg-green-700"
+                    >
+                      Configure Brackets
+                    </Button>
+                  </div>
+                </div>
+              )}
+              
               {pools.length === 0 ? (
                 <div className="text-center py-8">
                   <p className="text-muted-foreground">No pools found</p>
@@ -351,37 +468,41 @@ export function TournamentDayDashboard({ tournament, teams }: TournamentDayDashb
               ) : (
                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                    {pools.map(pool => {
-                     const poolMatches = poolPlayMatches.filter(m => m.pool_name === pool);
-                    const completedMatches = poolMatches.filter(m => m.status === 'completed');
-                    const inProgressMatches = poolMatches.filter(m => m.status === 'in_progress');
-                    const scheduledMatches = poolMatches.filter(m => m.status === 'scheduled');
-                    
-                    return (
-                      <Card 
-                        key={pool} 
-                        className="cursor-pointer hover:bg-accent/50 transition-colors"
-                        onClick={() => setSelectedPool(pool)}
-                      >
-                        <CardContent className="pt-6">
-                          <div className="text-center space-y-2">
-                            <h3 className="font-semibold text-lg">{pool}</h3>
-                            <div className="text-sm text-muted-foreground">
-                              {poolMatches.length} matches • Court {poolMatches[0]?.court_number}
+                      const poolMatches = poolPlayMatches.filter(m => m.pool_name === pool);
+                      const completedMatches = poolMatches.filter(m => m.status === 'completed');
+                      const inProgressMatches = poolMatches.filter(m => m.status === 'in_progress');
+                      const scheduledMatches = poolMatches.filter(m => m.status === 'scheduled');
+                      const poolComplete = completedMatches.length === poolMatches.length;
+                      
+                      return (
+                        <Card 
+                          key={pool} 
+                          className={`cursor-pointer hover:bg-accent/50 transition-colors ${poolComplete ? 'border-green-200 bg-green-50' : ''}`}
+                          onClick={() => setSelectedPool(pool)}
+                        >
+                          <CardContent className="pt-6">
+                            <div className="text-center space-y-2">
+                              <div className="flex items-center justify-center gap-2">
+                                <h3 className="font-semibold text-lg">{pool}</h3>
+                                {poolComplete && <Badge className="bg-green-600 text-white text-xs">Complete</Badge>}
+                              </div>
+                              <div className="text-sm text-muted-foreground">
+                                {poolMatches.length} matches • Court {poolMatches[0]?.court_number}
+                              </div>
+                              <div className="flex justify-center gap-4 text-xs">
+                                <span className="text-green-600">{completedMatches.length} done</span>
+                                <span className="text-blue-600">{inProgressMatches.length} live</span>
+                                <span className="text-yellow-600">{scheduledMatches.length} pending</span>
+                              </div>
+                              <div className="pt-2">
+                                <Badge variant="outline" className="text-xs">
+                                  Click to view details
+                                </Badge>
+                              </div>
                             </div>
-                            <div className="flex justify-center gap-4 text-xs">
-                              <span className="text-green-600">{completedMatches.length} done</span>
-                              <span className="text-blue-600">{inProgressMatches.length} live</span>
-                              <span className="text-yellow-600">{scheduledMatches.length} pending</span>
-                            </div>
-                            <div className="pt-2">
-                              <Badge variant="outline" className="text-xs">
-                                Click to view details
-                              </Badge>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    );
+                          </CardContent>
+                        </Card>
+                      );
                   })}
                 </div>
               )}
@@ -549,6 +670,20 @@ export function TournamentDayDashboard({ tournament, teams }: TournamentDayDashb
           </div>
         </TabsContent>
       </Tabs>
+
+      {/* Advancement Configuration Dialog */}
+      {poolCompletion && (
+        <AdvancementConfigurationDialog
+          open={showAdvancementDialog}
+          onOpenChange={setShowAdvancementDialog}
+          poolStats={poolCompletion.poolStats.map((pool: any) => ({
+            poolName: pool.poolName,
+            standings: pool.standings
+          }))}
+          onGenerateBrackets={handleGenerateBrackets}
+          loading={generatingBrackets}
+        />
+      )}
     </div>
   );
 }
