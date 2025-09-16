@@ -38,6 +38,7 @@ interface PoolRecord {
   setsWon: number;
   setsLost: number;
   winPercentage: number;
+  setsDifferential: number;
 }
 
 interface PoolDetailsViewProps {
@@ -87,7 +88,8 @@ export function PoolDetailsView({ poolName, matches, onBack }: PoolDetailsViewPr
             losses: 0,
             setsWon: 0,
             setsLost: 0,
-            winPercentage: 0
+            winPercentage: 0,
+            setsDifferential: 0
           };
         }
       }
@@ -100,7 +102,8 @@ export function PoolDetailsView({ poolName, matches, onBack }: PoolDetailsViewPr
             losses: 0,
             setsWon: 0,
             setsLost: 0,
-            winPercentage: 0
+            winPercentage: 0,
+            setsDifferential: 0
           };
         }
       }
@@ -146,16 +149,20 @@ export function PoolDetailsView({ poolName, matches, onBack }: PoolDetailsViewPr
     const sortedStandings = Object.values(teamStats)
       .map(team => ({
         ...team,
-        winPercentage: team.wins + team.losses > 0 ? team.wins / (team.wins + team.losses) : 0
+        winPercentage: team.wins + team.losses > 0 ? team.wins / (team.wins + team.losses) : 0,
+        setsDifferential: team.setsWon - team.setsLost
       }))
       .sort((a, b) => {
-        // Sort by win percentage first, then by sets ratio
+        // Sort by win percentage first
         if (a.winPercentage !== b.winPercentage) {
           return b.winPercentage - a.winPercentage;
         }
-        const aSetRatio = a.setsWon + a.setsLost > 0 ? a.setsWon / (a.setsWon + a.setsLost) : 0;
-        const bSetRatio = b.setsWon + b.setsLost > 0 ? b.setsWon / (b.setsWon + b.setsLost) : 0;
-        return bSetRatio - aSetRatio;
+        // Then by sets differential (higher is better)
+        if (a.setsDifferential !== b.setsDifferential) {
+          return b.setsDifferential - a.setsDifferential;
+        }
+        // Finally by sets won (higher is better)
+        return b.setsWon - a.setsWon;
       });
 
     setStandings(sortedStandings);
@@ -217,6 +224,7 @@ export function PoolDetailsView({ poolName, matches, onBack }: PoolDetailsViewPr
                     <TableHead>Team</TableHead>
                     <TableHead className="text-center">W-L</TableHead>
                     <TableHead className="text-center">Sets</TableHead>
+                    <TableHead className="text-center">Diff</TableHead>
                     <TableHead className="text-center">Win %</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -245,6 +253,15 @@ export function PoolDetailsView({ poolName, matches, onBack }: PoolDetailsViewPr
                       <TableCell className="text-center">
                         <span className="font-mono text-sm">
                           {team.setsWon}-{team.setsLost}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <span className={`font-mono text-sm ${
+                          team.setsDifferential > 0 ? 'text-green-600' : 
+                          team.setsDifferential < 0 ? 'text-red-600' : 
+                          'text-muted-foreground'
+                        }`}>
+                          {team.setsDifferential > 0 ? '+' : ''}{team.setsDifferential}
                         </span>
                       </TableCell>
                       <TableCell className="text-center">
