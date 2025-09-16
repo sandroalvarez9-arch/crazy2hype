@@ -15,6 +15,7 @@ interface BracketMatch {
   status: string;
   round_number: number;
   referee_team_name?: string;
+  court_number?: number;
 }
 
 interface TraditionalBracketViewProps {
@@ -22,13 +23,15 @@ interface TraditionalBracketViewProps {
   title?: string;
   onFormatChange?: (format: 'simple' | 'detailed') => void;
   bracketFormat?: 'simple' | 'detailed';
+  onMatchSelect?: (match: BracketMatch) => void;
 }
 
 const TraditionalBracketView: React.FC<TraditionalBracketViewProps> = ({ 
   matches, 
   title = "Tournament Bracket",
   onFormatChange,
-  bracketFormat = 'simple'
+  bracketFormat = 'simple',
+  onMatchSelect
 }) => {
   // Organize matches by round
   const organizeMatches = () => {
@@ -117,20 +120,31 @@ const TraditionalBracketView: React.FC<TraditionalBracketViewProps> = ({
     length = 40 
   }) => (
     <div className="flex items-center justify-center">
-      <div 
-        className={`
-          border-t-2 border-gray-400
-          ${orientation === 'right' ? 'border-r-2 border-b-2' : 'border-l-2 border-b-2'}
-        `}
-        style={{ 
-          width: `${length}px`, 
-          height: '20px',
-          borderTopRightRadius: orientation === 'right' ? '0' : '0',
-          borderBottomRightRadius: orientation === 'right' ? '8px' : '0',
-          borderTopLeftRadius: orientation === 'left' ? '0' : '0',
-          borderBottomLeftRadius: orientation === 'left' ? '8px' : '0',
-        }}
-      />
+      <div className="relative">
+        {/* Horizontal line to match center */}
+        <div 
+          className="border-t-2 border-primary/60"
+          style={{ width: `${length}px`, height: '1px' }}
+        />
+        {/* Vertical connecting line */}
+        <div 
+          className={`
+            absolute top-0 w-0.5 h-8 bg-primary/60
+            ${orientation === 'right' ? 'right-0' : 'left-0'}
+          `}
+          style={{ transform: 'translateY(-15px)' }}
+        />
+        {/* Arrow indicating direction */}
+        <div 
+          className={`
+            absolute top-0 text-primary/80 text-xs font-bold
+            ${orientation === 'right' ? 'right-1' : 'left-1'}
+          `}
+          style={{ transform: 'translateY(-12px)' }}
+        >
+          {orientation === 'right' ? '→' : '←'}
+        </div>
+      </div>
     </div>
   );
 
@@ -230,11 +244,25 @@ const TraditionalBracketView: React.FC<TraditionalBracketViewProps> = ({
                               score={match.team2_score}
                               format={bracketFormat}
                             />
-                            {match.referee_team_name && (
-                              <div className="text-xs text-center text-muted-foreground mt-2 px-2 py-1 bg-orange-50 border border-orange-200 rounded">
-                                📋 Ref: {match.referee_team_name}
+                            <div className="flex flex-col gap-1 mt-2">
+                              {match.referee_team_name && (
+                                <div className="text-xs text-center text-muted-foreground px-2 py-1 bg-orange-50 border border-orange-200 rounded">
+                                  📋 Ref: {match.referee_team_name}
+                                </div>
+                              )}
+                              <div className="text-xs text-center text-muted-foreground px-2 py-1 bg-blue-50 border border-blue-200 rounded">
+                                🏟️ Court {match.court_number || 1}
                               </div>
-                            )}
+                              {(match.status === 'scheduled' || match.status === 'in_progress') && onMatchSelect && (
+                                <Button
+                                  size="sm"
+                                  variant={match.status === 'in_progress' ? 'default' : 'outline'}
+                                  onClick={() => onMatchSelect(match)}
+                                >
+                                  {match.status === 'in_progress' ? 'Continue' : 'Start Match'}
+                                </Button>
+                              )}
+                            </div>
                             {match.winner_name && (
                               <div className="mt-4 p-3 bg-yellow-400 text-yellow-900 font-bold text-center rounded-md">
                                 🏆 CHAMPION 🏆<br/>
@@ -264,11 +292,25 @@ const TraditionalBracketView: React.FC<TraditionalBracketViewProps> = ({
                                     format={bracketFormat}
                                   />
                                 </div>
-                                {match.referee_team_name && (
-                                  <div className="text-xs text-center text-muted-foreground mt-1 px-2 py-1 bg-orange-50 border border-orange-200 rounded">
-                                    📋 Ref: {match.referee_team_name}
+                                <div className="flex flex-col gap-1 mt-1">
+                                  {match.referee_team_name && (
+                                    <div className="text-xs text-center text-muted-foreground px-2 py-1 bg-orange-50 border border-orange-200 rounded">
+                                      📋 Ref: {match.referee_team_name}
+                                    </div>
+                                  )}
+                                  <div className="text-xs text-center text-muted-foreground px-2 py-1 bg-blue-50 border border-blue-200 rounded">
+                                    🏟️ Court {match.court_number || 1}
                                   </div>
-                                )}
+                                  {(match.status === 'scheduled' || match.status === 'in_progress') && onMatchSelect && (
+                                    <Button
+                                      size="sm"
+                                      variant={match.status === 'in_progress' ? 'default' : 'outline'}
+                                      onClick={() => onMatchSelect(match)}
+                                    >
+                                      {match.status === 'in_progress' ? 'Continue' : 'Start Match'}
+                                    </Button>
+                                  )}
+                                </div>
                               </div>
                               {roundIndex < rounds.length - 1 && (
                                 <BracketConnector 
@@ -302,11 +344,25 @@ const TraditionalBracketView: React.FC<TraditionalBracketViewProps> = ({
                                     format={bracketFormat}
                                   />
                                 </div>
-                                {match.referee_team_name && (
-                                  <div className="text-xs text-center text-muted-foreground mt-1 px-2 py-1 bg-orange-50 border border-orange-200 rounded">
-                                    📋 Ref: {match.referee_team_name}
+                                <div className="flex flex-col gap-1 mt-1">
+                                  {match.referee_team_name && (
+                                    <div className="text-xs text-center text-muted-foreground px-2 py-1 bg-orange-50 border border-orange-200 rounded">
+                                      📋 Ref: {match.referee_team_name}
+                                    </div>
+                                  )}
+                                  <div className="text-xs text-center text-muted-foreground px-2 py-1 bg-blue-50 border border-blue-200 rounded">
+                                    🏟️ Court {match.court_number || 1}
                                   </div>
-                                )}
+                                  {(match.status === 'scheduled' || match.status === 'in_progress') && onMatchSelect && (
+                                    <Button
+                                      size="sm"
+                                      variant={match.status === 'in_progress' ? 'default' : 'outline'}
+                                      onClick={() => onMatchSelect(match)}
+                                    >
+                                      {match.status === 'in_progress' ? 'Continue' : 'Start Match'}
+                                    </Button>
+                                  )}
+                                </div>
                               </div>
                             </>
                           )}

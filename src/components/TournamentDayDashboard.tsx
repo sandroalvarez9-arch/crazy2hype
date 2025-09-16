@@ -722,14 +722,45 @@ export function TournamentDayDashboard({ tournament, teams }: TournamentDayDashb
                     winner_name,
                     bracket_position: m.bracket_position || `Match ${m.match_number}`,
                     status: m.status,
-                    round_number: m.round_number
+                    round_number: m.round_number,
+                    referee_team_name: m.referee_team_name || 'TBD',
+                    court_number: m.court_number || 1
                   };
                 })
               }
               title={`${tournament.title} - Playoff Bracket`}
               bracketFormat={bracketFormat}
               onFormatChange={setBracketFormat}
+              onMatchSelect={(match) => {
+                const fullMatch = matches.find(m => m.id === match.id);
+                if (fullMatch) setSelectedMatch(fullMatch);
+              }}
             />
+            
+            {/* Match Scoring Interface for Bracket matches */}
+            {selectedMatch && selectedMatch.tournament_phase === 'playoffs' && (
+              <Card className="mt-6">
+                <CardHeader>
+                  <CardTitle>Playoff Match Scoring</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <MatchScoringInterface
+                    match={selectedMatch}
+                    tournament={tournament}
+                    team1={{ id: selectedMatch.team1_id!, name: selectedMatch.team1_name! }}
+                    team2={{ id: selectedMatch.team2_id!, name: selectedMatch.team2_name! }}
+                    onMatchUpdate={handleMatchUpdate}
+                  />
+                  <Button
+                    onClick={() => setSelectedMatch(null)}
+                    variant="outline"
+                    className="mt-4"
+                  >
+                    Close Scoring
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
         </Tabs>
 
