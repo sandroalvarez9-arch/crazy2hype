@@ -7,8 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import { generateTestTeams, simulateCheckins, simulatePayments, clearTestData } from "@/utils/testDataGenerator";
-import { TestTube, Users, UserCheck, DollarSign, RotateCcw, Play, Trophy, Clock, AlertTriangle } from "lucide-react";
+import { generateTestTeams, simulateCheckins, simulatePayments, simulatePoolPlayResults, clearTestData } from "@/utils/testDataGenerator";
+import { TestTube, Users, UserCheck, DollarSign, RotateCcw, Play, Trophy, Clock, AlertTriangle, Zap } from "lucide-react";
 
 interface Tournament {
   id: string;
@@ -122,6 +122,29 @@ export function TournamentTestingDashboard({
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to simulate payments",
+        variant: "destructive",
+      });
+    }
+    setLoading(null);
+  };
+
+  const handleSimulatePoolPlay = async () => {
+    setLoading('simulate-pool');
+    try {
+      const result = await simulatePoolPlayResults(tournament.id);
+      if (result.success) {
+        toast({
+          title: "Pool Play Results Simulated",
+          description: `Generated results for ${result.matchesSimulated} matches with realistic volleyball scores.`,
+        });
+        onDataChange();
+      } else {
+        throw new Error(result.error);
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to simulate pool play results",
         variant: "destructive",
       });
     }
@@ -333,6 +356,40 @@ export function TournamentTestingDashboard({
               </p>
             </div>
           )}
+        </div>
+
+        <Separator />
+
+        {/* Phase 4: Match Simulation */}
+        <div className="space-y-4">
+          <h4 className="font-semibold flex items-center gap-2">
+            <Zap className="h-4 w-4" />
+            Phase 4: Fast-Track to Results
+          </h4>
+          
+          <div className="p-4 bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-lg">
+            <div className="space-y-3">
+              <p className="text-sm text-blue-800 font-medium">
+                Skip the manual scoring! Generate realistic volleyball results for all pool play matches instantly.
+              </p>
+              
+              <Button 
+                onClick={handleSimulatePoolPlay}
+                disabled={loading === 'simulate-pool' || !tournament.brackets_generated}
+                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                size="lg"
+              >
+                <Zap className="h-4 w-4 mr-2" />
+                {loading === 'simulate-pool' ? 'Generating Results...' : 'Simulate All Pool Play Results'}
+              </Button>
+
+              {!tournament.brackets_generated && (
+                <p className="text-xs text-blue-600">
+                  Generate brackets first in the Pool Play tab, then return here to simulate results.
+                </p>
+              )}
+            </div>
+          </div>
         </div>
 
         <Separator />

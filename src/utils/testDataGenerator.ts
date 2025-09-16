@@ -157,6 +157,202 @@ export async function simulatePayments(tournamentId: string, paymentPercentage: 
   }
 }
 
+export async function simulatePoolPlayResults(tournamentId: string) {
+  try {
+    // Get tournament settings for scoring
+    const { data: tournament, error: tournamentError } = await supabase
+      .from('tournaments')
+      .select('sets_per_game, points_per_set, must_win_by, deciding_set_points, uses_phase_formats, pool_play_format')
+      .eq('id', tournamentId)
+      .single();
+
+    if (tournamentError) throw tournamentError;
+
+    // Get all pool play matches that haven't been completed yet
+    const { data: matches, error: matchesError } = await supabase
+      .from('matches')
+      .select('*')
+      .eq('tournament_id', tournamentId)
+      .eq('tournament_phase', 'pool_play')
+      .neq('status', 'completed');
+
+    if (matchesError) throw matchesError;
+    if (!matches || matches.length === 0) {
+      return { success: false, error: 'No pool play matches found to simulate' };
+    }
+
+    const updates = [];
+    for (const match of matches) {
+      // Generate realistic volleyball scores
+      const simulatedResult = generateRealisticVolleyballScore(tournament);
+      
+      updates.push({
+        id: match.id,
+        ...simulatedResult,
+        status: 'completed',
+        completed_at: new Date().toISOString()
+      });
+    }
+
+    // Update all matches with simulated results
+    for (const update of updates) {
+      await supabase
+        .from('matches')
+        .update(update)
+        .eq('id', update.id);
+    }
+
+    // Update team statistics after simulating matches
+    await updateTeamStatsFromMatches(tournamentId);
+
+    return { success: true, matchesSimulated: updates.length };
+  } catch (error) {
+    console.error('Error simulating pool play results:', error);
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+  }
+}
+
+function generateRealisticVolleyballScore(tournament: any) {
+  const setsPerGame = tournament.sets_per_game || 3;
+  const pointsPerSet = tournament.points_per_set || 25;
+  const mustWinBy = tournament.must_win_by || 2;
+  const decidingSetPoints = tournament.deciding_set_points || 15;
+
+  const setScores: Record<string, any> = {};
+  let setsWonTeam1 = 0;
+  let setsWonTeam2 = 0;
+  let totalPointsTeam1 = 0;
+  let totalPointsTeam2 = 0;
+
+  // Determine match outcome (60% chance for close match, 40% for blowout)
+  const isCloseMatch = Math.random() < 0.6;
+  const team1IsStronger = Math.random() < 0.5;
+
+  for (let set = 1; set <= setsPerGame; set++) {
+    // Stop if someone already won majority of sets
+    const setsNeededToWin = Math.ceil(setsPerGame / 2);
+    if (setsWonTeam1 >= setsNeededToWin || setsWonTeam2 >= setsNeededToWin) break;
+
+    const isDecidingSet = set === setsPerGame;
+    const targetPoints = isDecidingSet ? decidingSetPoints : pointsPerSet;
+    
+    let team1Points, team2Points;
+    
+    if (isCloseMatch) {
+      // Close match - scores within 3-5 points
+      const margin = Math.floor(Math.random() * 3) + mustWinBy;
+      const baseScore = Math.max(targetPoints - 5, targetPoints - 3);
+      
+      if ((team1IsStronger && Math.random() < 0.7) || (!team1IsStronger && Math.random() < 0.3)) {
+        team1Points = targetPoints;
+        team2Points = Math.max(baseScore, targetPoints - margin);
+      } else {
+        team2Points = targetPoints;
+        team1Points = Math.max(baseScore, targetPoints - margin);
+      }
+    } else {
+      // Blowout - larger margin
+      const margin = Math.floor(Math.random() * 8) + 5;
+      
+      if ((team1IsStronger && Math.random() < 0.8) || (!team1IsStronger && Math.random() < 0.2)) {
+        team1Points = targetPoints;
+        team2Points = Math.max(10, targetPoints - margin);
+      } else {
+        team2Points = targetPoints;
+        team1Points = Math.max(10, targetPoints - margin);
+      }
+    }
+
+    // Handle deuce situations (must win by required margin)
+    if (Math.abs(team1Points - team2Points) < mustWinBy && Math.max(team1Points, team2Points) >= targetPoints) {
+      const extraPoints = Math.floor(Math.random() * 4) + mustWinBy;
+      if (team1Points > team2Points) {
+        team1Points = targetPoints + extraPoints;
+        team2Points = team1Points - mustWinBy;
+      } else {
+        team2Points = targetPoints + extraPoints;
+        team1Points = team2Points - mustWinBy;
+      }
+    }
+
+    setScores[`set${set}`] = { team1: team1Points, team2: team2Points };
+    totalPointsTeam1 += team1Points;
+    totalPointsTeam2 += team2Points;
+
+    if (team1Points > team2Points) setsWonTeam1++;
+    else setsWonTeam2++;
+  }
+
+  const winnerId = setsWonTeam1 > setsWonTeam2 ? 'team1_id' : 'team2_id';
+
+  return {
+    set_scores: setScores,
+    sets_won_team1: setsWonTeam1,
+    sets_won_team2: setsWonTeam2,
+    team1_score: totalPointsTeam1,
+    team2_score: totalPointsTeam2,
+    winner_id: winnerId === 'team1_id' ? null : null, // Will be handled by trigger or app logic
+  };
+}
+
+async function updateTeamStatsFromMatches(tournamentId: string) {
+  // Get all completed matches for this tournament
+  const { data: matches } = await supabase
+    .from('matches')
+    .select('*')
+    .eq('tournament_id', tournamentId)
+    .eq('status', 'completed');
+
+  if (!matches) return;
+
+  // Calculate stats for each team
+  const teamStats: Record<string, any> = {};
+
+  matches.forEach(match => {
+    const { team1_id, team2_id, sets_won_team1, sets_won_team2, team1_score, team2_score } = match;
+    
+    if (team1_id && team2_id) {
+      // Initialize team stats if not exists
+      if (!teamStats[team1_id]) {
+        teamStats[team1_id] = { matches_played: 0, matches_won: 0, matches_lost: 0, points_for: 0, points_against: 0 };
+      }
+      if (!teamStats[team2_id]) {
+        teamStats[team2_id] = { matches_played: 0, matches_won: 0, matches_lost: 0, points_for: 0, points_against: 0 };
+      }
+
+      // Update stats
+      teamStats[team1_id].matches_played++;
+      teamStats[team2_id].matches_played++;
+      teamStats[team1_id].points_for += team1_score;
+      teamStats[team1_id].points_against += team2_score;
+      teamStats[team2_id].points_for += team2_score;
+      teamStats[team2_id].points_against += team1_score;
+
+      if (sets_won_team1 > sets_won_team2) {
+        teamStats[team1_id].matches_won++;
+        teamStats[team2_id].matches_lost++;
+      } else {
+        teamStats[team2_id].matches_won++;
+        teamStats[team1_id].matches_lost++;
+      }
+    }
+  });
+
+  // Upsert team stats
+  const statsUpdates = Object.entries(teamStats).map(([teamId, stats]) => ({
+    team_id: teamId,
+    tournament_id: tournamentId,
+    ...stats,
+    win_percentage: stats.matches_played > 0 ? stats.matches_won / stats.matches_played : 0
+  }));
+
+  for (const statUpdate of statsUpdates) {
+    await supabase
+      .from('team_stats')
+      .upsert(statUpdate, { onConflict: 'team_id,tournament_id' });
+  }
+}
+
 export async function clearTestData(tournamentId: string) {
   try {
     // Get test team IDs first
