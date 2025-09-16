@@ -10,6 +10,7 @@ import { MatchScoringInterface } from "@/components/MatchScoringInterface";
 import { TeamScheduleView } from "@/components/TeamScheduleView";
 import { PoolDetailsView } from "@/components/PoolDetailsView";
 import { AdvancementConfigurationDialog } from "@/components/AdvancementConfigurationDialog";
+import BracketVisualization from './BracketVisualization';
 import { format } from "date-fns";
 import { Trophy, Clock, Users, Play, Pause, CheckCircle, Target } from "lucide-react";
 import { checkPoolCompletion } from "@/utils/poolCompletionDetector";
@@ -39,6 +40,7 @@ interface Match {
   completed_at: string | null;
   referee_team_id: string | null;
   tournament_phase?: string;
+  bracket_position?: string;
 }
 
 interface Team {
@@ -108,17 +110,9 @@ export function TournamentDayDashboard({ tournament, teams }: TournamentDayDashb
     
     const hasPlayoffs = playoffMatches && playoffMatches.length > 0;
     
-    console.log('Pool completion check:', {
-      readyForBrackets: completionStatus.readyForBrackets,
-      hasPlayoffs,
-      showAdvancementDialog,
-      shouldShow: completionStatus.readyForBrackets && !hasPlayoffs && !showAdvancementDialog
-    });
-    
     // Auto-show advancement dialog when pools are complete and no playoffs exist yet
     // Check database directly to avoid race conditions with state
     if (completionStatus.readyForBrackets && !hasPlayoffs && !showAdvancementDialog) {
-      console.log('Showing advancement dialog');
       setShowAdvancementDialog(true);
     }
   };
@@ -159,7 +153,6 @@ export function TournamentDayDashboard({ tournament, teams }: TournamentDayDashb
       
       // Check if playoff brackets exist
       const hasPlayoffs = formattedMatches.some(m => m.tournament_phase === 'playoffs' || m.tournament_phase === 'bracket');
-      console.log('Checking for playoff matches:', { hasPlayoffs, totalMatches: formattedMatches.length, playoffMatches: formattedMatches.filter(m => m.tournament_phase === 'playoffs' || m.tournament_phase === 'bracket').length });
       setPlayoffBracketsExist(hasPlayoffs);
       
     } catch (error) {
@@ -356,6 +349,12 @@ export function TournamentDayDashboard({ tournament, teams }: TournamentDayDashb
               <Badge className="ml-2 bg-green-600 text-white text-xs">Complete</Badge>
             )}
           </TabsTrigger>
+          {playoffBracketsExist && (
+            <TabsTrigger value="brackets" className="relative">
+              Playoff Bracket
+              <Badge className="ml-2 bg-blue-600 text-white text-xs">Active</Badge>
+            </TabsTrigger>
+          )}
           <TabsTrigger value="brackets">Brackets</TabsTrigger>
           <TabsTrigger value="schedule">Full Schedule</TabsTrigger>
           <TabsTrigger value="teams">Team Schedules</TabsTrigger>
@@ -690,8 +689,39 @@ export function TournamentDayDashboard({ tournament, teams }: TournamentDayDashb
               />
             )}
           </div>
-        </TabsContent>
-      </Tabs>
+          </TabsContent>
+
+          {/* Bracket Visualization Tab */}
+          {playoffBracketsExist && (
+            <TabsContent value="brackets" className="space-y-6">
+              <BracketVisualization 
+                matches={matches
+                  .filter(m => m.tournament_phase === 'playoffs' || m.tournament_phase === 'bracket')
+                  .map(m => {
+                    // Determine winner name based on winner_id
+                    let winner_name: string | undefined;
+                    if (m.winner_id) {
+                      winner_name = m.winner_id === m.team1_id ? m.team1_name : m.team2_name;
+                    }
+                    
+                    return {
+                      id: m.id,
+                      team1_name: m.team1_name,
+                      team2_name: m.team2_name,
+                      team1_score: m.sets_won_team1 || 0,
+                      team2_score: m.sets_won_team2 || 0,
+                      winner_name,
+                      bracket_position: m.bracket_position || `Match ${m.match_number}`,
+                      status: m.status,
+                      round_number: m.round_number
+                    };
+                  })
+                }
+                title={`${tournament.title} - Playoff Bracket`}
+              />
+            </TabsContent>
+          )}
+        </Tabs>
 
       {/* Advancement Configuration Dialog */}
       {poolCompletion && (
