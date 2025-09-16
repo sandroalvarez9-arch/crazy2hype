@@ -349,7 +349,7 @@ export function TournamentDayDashboard({ tournament, teams }: TournamentDayDashb
       </div>
 
       <Tabs defaultValue="matches" className="w-full">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="matches">Live Matches</TabsTrigger>
           <TabsTrigger value="pools" className="relative">
             Pool Play
@@ -363,7 +363,6 @@ export function TournamentDayDashboard({ tournament, teams }: TournamentDayDashb
               <Badge className="ml-2 bg-blue-600 text-white text-xs">Active</Badge>
             </TabsTrigger>
           )}
-          <TabsTrigger value="brackets">Brackets</TabsTrigger>
           <TabsTrigger value="schedule">Full Schedule</TabsTrigger>
           <TabsTrigger value="teams">Team Schedules</TabsTrigger>
         </TabsList>
