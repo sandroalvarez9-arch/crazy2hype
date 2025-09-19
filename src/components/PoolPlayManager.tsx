@@ -379,158 +379,210 @@ export function PoolPlayManager({ tournament, teams, onBracketsGenerated }: Pool
                 </p>
               </div>
 
-              {/* Display Generated Pools with Division Tabs */}
+              {/* Display Generated Pools with Division-Skill Level Tabs */}
               {generatedPools.length > 0 && (() => {
-                // Group pools by division
-                const poolsByDivision = generatedPools.reduce((acc, pool) => {
-                  // Extract division from pool name (e.g., "men-a-A" -> "men", "women-bb-B" -> "women")
+                // Group pools by division-skill level combination
+                const poolsByCategory = generatedPools.reduce((acc, pool) => {
+                  // Extract division and skill from pool name (e.g., "men-a-A" -> "men-a", "women-bb-B" -> "women-bb")
                   const poolNameParts = pool.name.split('-');
-                  const division = poolNameParts.length > 1 ? poolNameParts[0] : 'open';
+                  let categoryKey = 'open';
                   
-                  if (!acc[division]) acc[division] = [];
-                  acc[division].push(pool);
+                  if (poolNameParts.length >= 2) {
+                    const division = poolNameParts[0];
+                    const skillLevel = poolNameParts[1];
+                    categoryKey = `${division}-${skillLevel}`;
+                  }
+                  
+                  if (!acc[categoryKey]) acc[categoryKey] = [];
+                  acc[categoryKey].push(pool);
                   return acc;
                 }, {} as Record<string, GeneratedPool[]>);
 
-                const divisions = Object.keys(poolsByDivision).sort();
+                const categories = Object.keys(poolsByCategory).sort();
                 
-                // Auto-select first division if none selected
-                if (!selectedDivision && divisions.length > 0) {
-                  setSelectedDivision(divisions[0]);
+                // Auto-select first category if none selected
+                if (!selectedDivision && categories.length > 0) {
+                  setSelectedDivision(categories[0]);
                 }
+
+                // Format category names for display
+                const formatCategoryName = (category: string) => {
+                  if (category === 'open') return 'Open';
+                  
+                  const [division, skillLevel] = category.split('-');
+                  const divisionName = division.charAt(0).toUpperCase() + division.slice(1);
+                  const skillName = skillLevel.toUpperCase();
+                  
+                  return `${divisionName} ${skillName}`;
+                };
 
                 return (
                   <div className="space-y-4">
                     <h4 className="font-medium flex items-center gap-2">
                       <Trophy className="h-4 w-4" />
-                      Pool Breakdown by Division
+                      Pool Breakdown by Division & Skill Level
                     </h4>
                     
-                    {divisions.length > 1 ? (
-                      <Tabs value={selectedDivision || divisions[0]} onValueChange={setSelectedDivision} className="w-full">
+                    {categories.length > 1 ? (
+                      <Tabs value={selectedDivision || categories[0]} onValueChange={setSelectedDivision} className="w-full">
                         <div className="w-full overflow-x-auto pb-1">
                           <TabsList className="flex justify-start w-max min-w-full h-10 p-1 gap-1 bg-muted rounded-md">
-                            {divisions.map((division) => (
-                              <TabsTrigger 
-                                key={division} 
-                                value={division}
-                                className="flex-shrink-0 whitespace-nowrap text-xs sm:text-sm px-2 sm:px-3 capitalize"
-                              >
-                                {division === 'open' ? 'Open' : `${division}'s`}
-                                <Badge variant="secondary" className="ml-2 text-xs">
-                                  {poolsByDivision[division].length}
-                                </Badge>
-                              </TabsTrigger>
-                            ))}
+                            {categories.map((category) => {
+                              const poolCount = poolsByCategory[category].length;
+                              const teamCount = poolsByCategory[category].reduce((sum, pool) => sum + pool.teams.length, 0);
+                              
+                              return (
+                                <TabsTrigger 
+                                  key={category} 
+                                  value={category}
+                                  className="flex-shrink-0 whitespace-nowrap text-xs sm:text-sm px-2 sm:px-3"
+                                >
+                                  {formatCategoryName(category)}
+                                  <div className="ml-2 flex gap-1">
+                                    <Badge variant="secondary" className="text-xs">
+                                      {poolCount} pool{poolCount !== 1 ? 's' : ''}
+                                    </Badge>
+                                    <Badge variant="outline" className="text-xs">
+                                      {teamCount} team{teamCount !== 1 ? 's' : ''}
+                                    </Badge>
+                                  </div>
+                                </TabsTrigger>
+                              );
+                            })}
                           </TabsList>
                         </div>
                         
-                        {divisions.map((division) => (
-                          <TabsContent key={division} value={division} className="space-y-4">
+                        {categories.map((category) => (
+                          <TabsContent key={category} value={category} className="space-y-4">
+                            <div className="mb-4 p-4 bg-muted/50 rounded-lg">
+                              <h5 className="font-semibold text-lg mb-2">{formatCategoryName(category)} Division</h5>
+                              <div className="flex gap-4 text-sm text-muted-foreground">
+                                <span>{poolsByCategory[category].length} pool{poolsByCategory[category].length !== 1 ? 's' : ''}</span>
+                                <span>{poolsByCategory[category].reduce((sum, pool) => sum + pool.teams.length, 0)} teams</span>
+                                <span>{poolsByCategory[category].reduce((sum, pool) => sum + (pool.matches_count || 0), 0)} matches</span>
+                              </div>
+                            </div>
+                            
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                              {poolsByDivision[division].map((pool) => (
-                                <Card key={pool.name} className="border-l-4 border-l-primary">
-                                  <CardHeader className="pb-3">
-                                    <CardTitle className="text-base flex items-center justify-between">
-                                      <span className="flex items-center gap-2">
-                                        Pool {pool.name.split('-').slice(-1)[0]} {/* Show just the pool letter */}
-                                        {pool.court_number && (
-                                          <Badge variant="outline" className="flex items-center gap-1">
-                                            <MapPin className="h-3 w-3" />
-                                            Court {pool.court_number}
+                              {poolsByCategory[category].map((pool) => {
+                                // Extract just the pool letter from the full name
+                                const poolLetter = pool.name.split('-').slice(-1)[0];
+                                
+                                return (
+                                  <Card key={pool.name} className="border-l-4 border-l-primary">
+                                    <CardHeader className="pb-3">
+                                      <CardTitle className="text-base flex items-center justify-between">
+                                        <span className="flex items-center gap-2">
+                                          Pool {poolLetter}
+                                          {pool.court_number && (
+                                            <Badge variant="outline" className="flex items-center gap-1">
+                                              <MapPin className="h-3 w-3" />
+                                              Court {pool.court_number}
+                                            </Badge>
+                                          )}
+                                        </span>
+                                        {pool.matches_count && (
+                                          <Badge variant="secondary">
+                                            {pool.matches_count} matches
                                           </Badge>
                                         )}
-                                      </span>
-                                      {pool.matches_count && (
-                                        <Badge variant="secondary">
-                                          {pool.matches_count} matches
-                                        </Badge>
-                                      )}
-                                    </CardTitle>
-                                  </CardHeader>
-                                  <CardContent>
-                                    <div className="space-y-2">
-                                      <div className="text-sm font-medium text-muted-foreground">
-                                        Teams ({pool.teams.length}):
-                                      </div>
-                                      <div className="space-y-1">
-                                        {pool.teams.map((team) => (
-                                          <div key={team.id} className="flex items-center justify-between p-2 bg-muted/50 rounded">
-                                            <span className="font-medium">{team.name}</span>
-                                            <div className="flex gap-1">
-                                              {team.division && (
-                                                <Badge variant="outline" className="text-xs capitalize">
-                                                  {team.division}
-                                                </Badge>
-                                              )}
-                                              {team.skill_level && (
-                                                <Badge variant="outline" className="text-xs uppercase">
-                                                  {team.skill_level}
-                                                </Badge>
-                                              )}
+                                      </CardTitle>
+                                    </CardHeader>
+                                    <CardContent>
+                                      <div className="space-y-2">
+                                        <div className="text-sm font-medium text-muted-foreground">
+                                          Teams ({pool.teams.length}):
+                                        </div>
+                                        <div className="space-y-1">
+                                          {pool.teams.map((team) => (
+                                            <div key={team.id} className="flex items-center justify-between p-2 bg-muted/50 rounded">
+                                              <span className="font-medium">{team.name}</span>
+                                              <div className="flex gap-1">
+                                                {team.division && (
+                                                  <Badge variant="outline" className="text-xs capitalize">
+                                                    {team.division}
+                                                  </Badge>
+                                                )}
+                                                {team.skill_level && (
+                                                  <Badge variant="outline" className="text-xs uppercase">
+                                                    {team.skill_level}
+                                                  </Badge>
+                                                )}
+                                              </div>
                                             </div>
-                                          </div>
-                                        ))}
+                                          ))}
+                                        </div>
                                       </div>
-                                    </div>
-                                  </CardContent>
-                                </Card>
-                              ))}
+                                    </CardContent>
+                                  </Card>
+                                );
+                              })}
                             </div>
                           </TabsContent>
                         ))}
                       </Tabs>
                     ) : (
-                      // Single division - no tabs needed
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {generatedPools.map((pool) => (
-                          <Card key={pool.name} className="border-l-4 border-l-primary">
-                            <CardHeader className="pb-3">
-                              <CardTitle className="text-base flex items-center justify-between">
-                                <span className="flex items-center gap-2">
-                                  Pool {pool.name}
-                                  {pool.court_number && (
-                                    <Badge variant="outline" className="flex items-center gap-1">
-                                      <MapPin className="h-3 w-3" />
-                                      Court {pool.court_number}
+                      // Single category - no tabs needed
+                      <div className="space-y-4">
+                        <div className="mb-4 p-4 bg-muted/50 rounded-lg">
+                          <h5 className="font-semibold text-lg mb-2">{formatCategoryName(categories[0])} Division</h5>
+                          <div className="flex gap-4 text-sm text-muted-foreground">
+                            <span>{generatedPools.length} pool{generatedPools.length !== 1 ? 's' : ''}</span>
+                            <span>{generatedPools.reduce((sum, pool) => sum + pool.teams.length, 0)} teams</span>
+                            <span>{generatedPools.reduce((sum, pool) => sum + (pool.matches_count || 0), 0)} matches</span>
+                          </div>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {generatedPools.map((pool) => (
+                            <Card key={pool.name} className="border-l-4 border-l-primary">
+                              <CardHeader className="pb-3">
+                                <CardTitle className="text-base flex items-center justify-between">
+                                  <span className="flex items-center gap-2">
+                                    Pool {pool.name}
+                                    {pool.court_number && (
+                                      <Badge variant="outline" className="flex items-center gap-1">
+                                        <MapPin className="h-3 w-3" />
+                                        Court {pool.court_number}
+                                      </Badge>
+                                    )}
+                                  </span>
+                                  {pool.matches_count && (
+                                    <Badge variant="secondary">
+                                      {pool.matches_count} matches
                                     </Badge>
                                   )}
-                                </span>
-                                {pool.matches_count && (
-                                  <Badge variant="secondary">
-                                    {pool.matches_count} matches
-                                  </Badge>
-                                )}
-                              </CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                              <div className="space-y-2">
-                                <div className="text-sm font-medium text-muted-foreground">
-                                  Teams ({pool.teams.length}):
-                                </div>
-                                <div className="space-y-1">
-                                  {pool.teams.map((team) => (
-                                    <div key={team.id} className="flex items-center justify-between p-2 bg-muted/50 rounded">
-                                      <span className="font-medium">{team.name}</span>
-                                      <div className="flex gap-1">
-                                        {team.division && (
-                                          <Badge variant="outline" className="text-xs capitalize">
-                                            {team.division}
-                                          </Badge>
-                                        )}
-                                        {team.skill_level && (
-                                          <Badge variant="outline" className="text-xs uppercase">
-                                            {team.skill_level}
-                                          </Badge>
-                                        )}
+                                </CardTitle>
+                              </CardHeader>
+                              <CardContent>
+                                <div className="space-y-2">
+                                  <div className="text-sm font-medium text-muted-foreground">
+                                    Teams ({pool.teams.length}):
+                                  </div>
+                                  <div className="space-y-1">
+                                    {pool.teams.map((team) => (
+                                      <div key={team.id} className="flex items-center justify-between p-2 bg-muted/50 rounded">
+                                        <span className="font-medium">{team.name}</span>
+                                        <div className="flex gap-1">
+                                          {team.division && (
+                                            <Badge variant="outline" className="text-xs capitalize">
+                                              {team.division}
+                                            </Badge>
+                                          )}
+                                          {team.skill_level && (
+                                            <Badge variant="outline" className="text-xs uppercase">
+                                              {team.skill_level}
+                                            </Badge>
+                                          )}
+                                        </div>
                                       </div>
-                                    </div>
-                                  ))}
+                                    ))}
+                                  </div>
                                 </div>
-                              </div>
-                            </CardContent>
-                          </Card>
-                        ))}
+                              </CardContent>
+                            </Card>
+                          ))}
+                        </div>
                       </div>
                     )}
                   </div>
