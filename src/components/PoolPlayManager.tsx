@@ -15,6 +15,7 @@ interface Team {
   name: string;
   check_in_status: string;
   skill_level?: string;
+  division?: string;
 }
 
 interface Tournament {

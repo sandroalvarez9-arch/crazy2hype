@@ -64,6 +64,8 @@ interface Team {
   payment_date: string | null;
   payment_method: string | null;
   payment_notes: string | null;
+  skill_level: string | null;
+  division: string | null;
 }
 
 interface BackupTeam {

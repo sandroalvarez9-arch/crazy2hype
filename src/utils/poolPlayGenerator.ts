@@ -333,6 +333,7 @@ export function scheduleMatches(
 
 interface TeamWithSkillLevel extends Team {
   skill_level?: string;
+  division?: string;
 }
 
 export function generatePoolPlayScheduleBySkillLevel(
@@ -341,43 +342,48 @@ export function generatePoolPlayScheduleBySkillLevel(
   estimatedGameDuration: number,
   warmUpDuration: number = 7
 ): { pools: Pool[], matches: Match[], requiredCourts: number, skillLevelBreakdown: Record<string, { pools: number, matches: number, teams: number }> } {
-  // Group teams by skill level
-  const teamsBySkillLevel = teams.reduce((acc, team) => {
-    const level = team.skill_level || 'open';
-    if (!acc[level]) acc[level] = [];
-    acc[level].push(team);
+  // Group teams by division AND skill level combination
+  const teamsByCategory = teams.reduce((acc, team) => {
+    const division = team.division || 'open';
+    const skillLevel = team.skill_level || 'open';
+    const categoryKey = `${division}-${skillLevel}`;
+    
+    if (!acc[categoryKey]) acc[categoryKey] = [];
+    acc[categoryKey].push(team);
     return acc;
   }, {} as Record<string, Team[]>);
   
-  console.log('DEBUG: Teams grouped by skill level:', teamsBySkillLevel);
+  console.log('DEBUG: Teams grouped by division and skill level:', teamsByCategory);
   
   let allPools: Pool[] = [];
   let allMatches: Match[] = [];
   let totalCourts = 0;
   const skillLevelBreakdown: Record<string, { pools: number, matches: number, teams: number }> = {};
   
-  // Process each skill level separately
-  Object.entries(teamsBySkillLevel).forEach(([skillLevel, skillTeams]) => {
-    // Generate optimal pools for this skill level
-    const pools = generatePools(skillTeams, skillLevel);
+  // Process each division-skill combination separately
+  Object.entries(teamsByCategory).forEach(([categoryKey, categoryTeams]) => {
+    const [division, skillLevel] = categoryKey.split('-');
+    
+    // Generate optimal pools for this category
+    const pools = generatePools(categoryTeams, categoryKey);
     
     // Generate matches for each pool
-    let skillMatches: Match[] = [];
+    let categoryMatches: Match[] = [];
     pools.forEach(pool => {
       const poolMatches = generateRoundRobinMatches(pool);
-      skillMatches = skillMatches.concat(poolMatches);
+      categoryMatches = categoryMatches.concat(poolMatches);
     });
     
-    // Track breakdown for this skill level
-    skillLevelBreakdown[skillLevel] = {
+    // Track breakdown for this category
+    skillLevelBreakdown[categoryKey] = {
       pools: pools.length,
-      matches: skillMatches.length,
-      teams: skillTeams.length
+      matches: categoryMatches.length,
+      teams: categoryTeams.length
     };
     
     totalCourts += pools.length; // Each pool needs 1 court during pool play
     allPools = allPools.concat(pools);
-    allMatches = allMatches.concat(skillMatches);
+    allMatches = allMatches.concat(categoryMatches);
   });
   
   // Step 3: Assign referees
