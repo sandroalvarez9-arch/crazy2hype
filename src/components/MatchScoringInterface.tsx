@@ -274,6 +274,42 @@ export function MatchScoringInterface({
     }
   };
 
+  const handleStartMatch = async (matchId: string) => {
+    console.log('Starting match with ID:', matchId);
+    console.log('Match data:', match);
+    
+    try {
+      // Update match status to in_progress
+      const { error } = await supabase
+        .from('matches')
+        .update({ 
+          status: 'in_progress',
+          current_set: match.current_set || 1 
+        })
+        .eq('id', matchId);
+
+      if (error) {
+        console.error('Error starting match:', error);
+        throw error;
+      }
+
+      console.log('Match started successfully');
+      onMatchUpdate();
+      
+      toast({
+        title: "Match Started",
+        description: `${team1?.name} vs ${team2?.name} - Match is now in progress`,
+      });
+    } catch (error) {
+      console.error('Failed to start match:', error);
+      toast({
+        variant: "destructive",
+        title: "Error starting match",
+        description: error instanceof Error ? error.message : "Unknown error occurred",
+      });
+    }
+  };
+
   const team1SetsWon = getSetsWon(1);
   const team2SetsWon = getSetsWon(2);
   const pointsNeeded = getPointsNeededForSet();
@@ -331,8 +367,23 @@ export function MatchScoringInterface({
           </div>
         </div>
 
-        {/* Current Set Scoring */}
-        <div className="grid grid-cols-2 gap-6">
+        {/* Start Match Button for scheduled matches */}
+        {match.status === 'scheduled' && (
+          <div className="text-center p-4 border rounded-lg bg-muted/50">
+            <p className="text-muted-foreground mb-4">Match is scheduled. Click to start scoring.</p>
+            <Button 
+              onClick={() => handleStartMatch(match.id)}
+              disabled={isUpdating}
+              className="w-full"
+            >
+              {isUpdating ? 'Starting Match...' : 'Start Match'}
+            </Button>
+          </div>
+        )}
+
+        {/* Current Set Scoring - only show if match is in progress */}
+        {match.status === 'in_progress' && (
+          <div className="grid grid-cols-2 gap-6">
           {/* Team 1 */}
           <div className="text-center space-y-4">
             <div>
@@ -349,7 +400,7 @@ export function MatchScoringInterface({
                   size="sm"
                   variant="outline"
                   onClick={() => handleScoreUpdate('team1', 1)}
-                  disabled={isUpdating || match.status === 'completed'}
+                  disabled={isUpdating}
                 >
                   +1
                 </Button>
@@ -357,7 +408,7 @@ export function MatchScoringInterface({
                   size="sm"
                   variant="outline"
                   onClick={() => handleScoreUpdate('team1', -1)}
-                  disabled={isUpdating || match.status === 'completed' || currentSetScores.team1 === 0}
+                  disabled={isUpdating || currentSetScores.team1 === 0}
                 >
                   -1
                 </Button>
@@ -381,7 +432,7 @@ export function MatchScoringInterface({
                   size="sm"
                   variant="outline"
                   onClick={() => handleScoreUpdate('team2', 1)}
-                  disabled={isUpdating || match.status === 'completed'}
+                  disabled={isUpdating}
                 >
                   +1
                 </Button>
@@ -389,17 +440,18 @@ export function MatchScoringInterface({
                   size="sm"
                   variant="outline"
                   onClick={() => handleScoreUpdate('team2', -1)}
-                  disabled={isUpdating || match.status === 'completed' || currentSetScores.team2 === 0}
+                  disabled={isUpdating || currentSetScores.team2 === 0}
                 >
                   -1
                 </Button>
               </div>
             </div>
           </div>
-        </div>
+          </div>
+        )}
 
-        {/* Manual Score Entry */}
-        {match.status !== 'completed' && (
+        {/* Manual Score Entry - only show for in progress matches */}
+        {match.status === 'in_progress' && (
           <>
             <Separator />
             <div className="grid grid-cols-2 gap-4">

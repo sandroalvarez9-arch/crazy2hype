@@ -436,11 +436,12 @@ const EnhancedBracketView: React.FC<EnhancedBracketViewProps> = ({
                                     size="sm"
                                     onClick={(e) => {
                                       e.stopPropagation();
+                                      console.log('EnhancedBracketView Start Match clicked:', match);
                                       onMatchSelect(match);
                                     }}
                                     className="w-full mt-2"
                                   >
-                                    Start Match
+                                    {match.status === 'in_progress' ? 'Continue Match' : 'Start Match'}
                                   </Button>
                                 )}
                               </div>

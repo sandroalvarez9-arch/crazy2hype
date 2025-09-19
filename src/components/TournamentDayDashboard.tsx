@@ -827,8 +827,15 @@ export function TournamentDayDashboard({ tournament, teams }: TournamentDayDashb
                               format={bracketFormat}
                               onFormatChange={setBracketFormat}
                               onMatchSelect={(match) => {
+                                console.log('EnhancedBracketView match selected:', match);
                                 const fullMatch = matches.find(m => m.id === match.id);
-                                if (fullMatch) setSelectedMatch(fullMatch);
+                                console.log('Found fullMatch:', fullMatch);
+                                if (fullMatch) {
+                                  console.log('Setting selectedMatch to fullMatch:', fullMatch);
+                                  setSelectedMatch(fullMatch);
+                                } else {
+                                  console.error('Could not find fullMatch for match:', match);
+                                }
                               }}
                             />
                           ) : (
@@ -891,16 +898,20 @@ export function TournamentDayDashboard({ tournament, teams }: TournamentDayDashb
                                                 </div>
                                               )}
                                               
-                                              {(match.status === 'in_progress' || match.status === 'scheduled') && (
-                                                <Button
-                                                  onClick={() => setSelectedMatch(match)}
-                                                  size="sm"
-                                                  variant={match.status === 'in_progress' ? 'default' : 'outline'}
-                                                  className="w-full"
-                                                >
-                                                  {match.status === 'in_progress' ? 'Continue Scoring' : 'Start Match'}
-                                                </Button>
-                                              )}
+                              {(match.status === 'in_progress' || match.status === 'scheduled') && (
+                                <Button
+                                  onClick={() => {
+                                    console.log('Bracket Start Match clicked for match:', match.id, match);
+                                    console.log('Setting selectedMatch to:', match);
+                                    setSelectedMatch(match);
+                                  }}
+                                  size="sm"
+                                  variant={match.status === 'in_progress' ? 'default' : 'outline'}
+                                  className="w-full"
+                                >
+                                  {match.status === 'in_progress' ? 'Continue Scoring' : 'Start Match'}
+                                </Button>
+                              )}
                                             </CardContent>
                                           </Card>
                                         ))}
@@ -1032,8 +1043,15 @@ export function TournamentDayDashboard({ tournament, teams }: TournamentDayDashb
               format={bracketFormat}
               onFormatChange={setBracketFormat}
               onMatchSelect={(match) => {
+                console.log('Second EnhancedBracketView match selected:', match);
                 const fullMatch = matches.find(m => m.id === match.id);
-                if (fullMatch) setSelectedMatch(fullMatch);
+                console.log('Found fullMatch:', fullMatch);
+                if (fullMatch) {
+                  console.log('Setting selectedMatch to fullMatch:', fullMatch);
+                  setSelectedMatch(fullMatch);
+                } else {
+                  console.error('Could not find fullMatch for match:', match);
+                }
               }}
             />
             
