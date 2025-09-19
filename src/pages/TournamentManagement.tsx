@@ -364,16 +364,16 @@ export default function TournamentManagement() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <div className="w-full overflow-hidden">
-          <TabsList className="inline-flex w-max min-w-full p-1 overflow-x-auto scrollbar-hide">
-            <TabsTrigger value="teams" className="whitespace-nowrap text-xs sm:text-sm">Teams</TabsTrigger>
-            {tournament?.entry_fee > 0 && <TabsTrigger value="payments" className="whitespace-nowrap text-xs sm:text-sm">Payments</TabsTrigger>}
-            <TabsTrigger value="backup" className="whitespace-nowrap text-xs sm:text-sm">Backup</TabsTrigger>
-            <TabsTrigger value="format" className="whitespace-nowrap text-xs sm:text-sm">Format</TabsTrigger>
-            <TabsTrigger value="poolplay" className="whitespace-nowrap text-xs sm:text-sm">Pool Play</TabsTrigger>
-            <TabsTrigger value="tournament-day" className="whitespace-nowrap text-xs sm:text-sm">Live</TabsTrigger>
-            <TabsTrigger value="testing" className="whitespace-nowrap text-xs sm:text-sm">Testing</TabsTrigger>
-            <TabsTrigger value="communications" className="whitespace-nowrap text-xs sm:text-sm">Comms</TabsTrigger>
+        <div className="w-full overflow-x-auto pb-1">
+          <TabsList className="flex justify-start w-max min-w-full h-10 p-1 gap-1 bg-muted rounded-md">
+            <TabsTrigger value="teams" className="flex-shrink-0 whitespace-nowrap text-xs sm:text-sm px-2 sm:px-3">Teams</TabsTrigger>
+            {tournament?.entry_fee > 0 && <TabsTrigger value="payments" className="flex-shrink-0 whitespace-nowrap text-xs sm:text-sm px-2 sm:px-3">Payments</TabsTrigger>}
+            <TabsTrigger value="backup" className="flex-shrink-0 whitespace-nowrap text-xs sm:text-sm px-2 sm:px-3">Backup</TabsTrigger>
+            <TabsTrigger value="format" className="flex-shrink-0 whitespace-nowrap text-xs sm:text-sm px-2 sm:px-3">Format</TabsTrigger>
+            <TabsTrigger value="poolplay" className="flex-shrink-0 whitespace-nowrap text-xs sm:text-sm px-2 sm:px-3">Pool Play</TabsTrigger>
+            <TabsTrigger value="tournament-day" className="flex-shrink-0 whitespace-nowrap text-xs sm:text-sm px-2 sm:px-3">Live</TabsTrigger>
+            <TabsTrigger value="testing" className="flex-shrink-0 whitespace-nowrap text-xs sm:text-sm px-2 sm:px-3">Testing</TabsTrigger>
+            <TabsTrigger value="communications" className="flex-shrink-0 whitespace-nowrap text-xs sm:text-sm px-2 sm:px-3">Comms</TabsTrigger>
           </TabsList>
         </div>
 
