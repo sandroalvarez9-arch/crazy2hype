@@ -63,6 +63,8 @@ export function MatchScoringInterface({
   team2, 
   onMatchUpdate 
 }: MatchScoringInterfaceProps) {
+  console.log('MatchScoringInterface rendered with:', { match, tournament, team1, team2 });
+  
   const [currentSetScores, setCurrentSetScores] = useState({ team1: 0, team2: 0 });
   const [allSetScores, setAllSetScores] = useState<Record<string, { team1: number; team2: number }>>(
     match.set_scores || {}

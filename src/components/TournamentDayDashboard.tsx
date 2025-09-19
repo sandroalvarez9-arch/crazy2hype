@@ -81,6 +81,9 @@ export function TournamentDayDashboard({ tournament, teams }: TournamentDayDashb
   const [selectedPoolForBrackets, setSelectedPoolForBrackets] = useState<string | null>(null);
   const { toast } = useToast();
 
+  // Debug selectedMatch state changes
+  console.log('TournamentDayDashboard render - selectedMatch:', selectedMatch);
+
   useEffect(() => {
     if (tournament.brackets_generated) {
       fetchMatches();
@@ -476,7 +479,10 @@ export function TournamentDayDashboard({ tournament, teams }: TournamentDayDashb
                         
                         {match.status === 'in_progress' && (
                           <Button
-                            onClick={() => setSelectedMatch(match)}
+                            onClick={() => {
+                              console.log('Continue Scoring clicked for match:', match.id, match);
+                              setSelectedMatch(match);
+                            }}
                             size="sm"
                             className="mb-2"
                           >
@@ -486,7 +492,11 @@ export function TournamentDayDashboard({ tournament, teams }: TournamentDayDashb
                         
                         {match.status === 'scheduled' && (
                           <Button
-                            onClick={() => setSelectedMatch(match)}
+                            onClick={() => {
+                              console.log('Start Match clicked for match:', match.id, match);
+                              console.log('Setting selectedMatch to:', match);
+                              setSelectedMatch(match);
+                            }}
                             size="sm"
                             variant="outline"
                           >
@@ -501,29 +511,38 @@ export function TournamentDayDashboard({ tournament, teams }: TournamentDayDashb
           </Card>
 
           {/* Match Scoring Interface */}
-          {selectedMatch && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Match Scoring</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <MatchScoringInterface
-                  match={selectedMatch}
-                  tournament={tournament}
-                  team1={{ id: selectedMatch.team1_id!, name: selectedMatch.team1_name! }}
-                  team2={{ id: selectedMatch.team2_id!, name: selectedMatch.team2_name! }}
-                  onMatchUpdate={handleMatchUpdate}
-                />
-                <Button
-                  onClick={() => setSelectedMatch(null)}
-                  variant="outline"
-                  className="mt-4"
-                >
-                  Close Scoring
-                </Button>
-              </CardContent>
-            </Card>
-          )}
+          {(() => {
+            if (selectedMatch) {
+              console.log('Rendering MatchScoringInterface with selectedMatch:', selectedMatch);
+              return (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Match Scoring</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <MatchScoringInterface
+                      match={selectedMatch}
+                      tournament={tournament}
+                      team1={{ id: selectedMatch.team1_id!, name: selectedMatch.team1_name! }}
+                      team2={{ id: selectedMatch.team2_id!, name: selectedMatch.team2_name! }}
+                      onMatchUpdate={handleMatchUpdate}
+                    />
+                    <Button
+                      onClick={() => {
+                        console.log('Close Scoring clicked');
+                        setSelectedMatch(null);
+                      }}
+                      variant="outline"
+                      className="mt-4"
+                    >
+                      Close Scoring
+                    </Button>
+                  </CardContent>
+                </Card>
+              );
+            }
+            return null;
+          })()}
         </TabsContent>
 
         <TabsContent value="pools" className="space-y-4">
