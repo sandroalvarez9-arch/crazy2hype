@@ -2,6 +2,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { MatchScoringInterface } from "./MatchScoringInterface";
+import { useToast } from "@/hooks/use-toast";
 import { X, Trophy, Clock, MapPin } from "lucide-react";
 
 interface Match {
@@ -65,6 +66,8 @@ export function MatchScoringDialog({
   team2,
   onMatchUpdate
 }: MatchScoringDialogProps) {
+  const { toast } = useToast();
+  
   if (!match) return null;
 
   const handleClose = () => {
@@ -74,11 +77,16 @@ export function MatchScoringDialog({
 
   const handleMatchUpdate = () => {
     onMatchUpdate();
-    // Keep dialog open until match is completed
-    if (match.status === 'completed') {
+    // Keep dialog open until match is completed, then auto-close
+    if (match && match.status === 'completed') {
+      toast({
+        title: "🎉 Match Completed!",
+        description: "Dialog will close automatically in 3 seconds...",
+        duration: 3000,
+      });
       setTimeout(() => {
         handleClose();
-      }, 2000); // Close after 2 seconds if match is completed
+      }, 3000);
     }
   };
 
@@ -164,23 +172,23 @@ export function MatchScoringDialog({
         <div className="flex justify-between items-center pt-4 border-t">
           <div className="text-sm text-muted-foreground">
             {match.status === 'completed' 
-              ? 'Match completed! Dialog will close automatically.' 
+              ? '🏆 Match completed! Great game!' 
               : match.status === 'in_progress'
-              ? 'Match in progress - use scoring controls above'
-              : 'Click "Start Match" above to begin scoring'}
+              ? '⚡ Match in progress - use scoring controls above'
+              : '🎮 Click "Start Match" above to begin scoring'}
           </div>
           
           <div className="flex gap-2">
             {match.status !== 'completed' && (
               <Button variant="outline" onClick={handleClose}>
-                Minimize
+                Minimize Scoring
               </Button>
             )}
             <Button 
               onClick={handleClose}
               variant={match.status === 'completed' ? 'default' : 'ghost'}
             >
-              {match.status === 'completed' ? 'Close' : 'Close Scoring'}
+              {match.status === 'completed' ? '✅ Close' : 'Close Scoring'}
             </Button>
           </div>
         </div>

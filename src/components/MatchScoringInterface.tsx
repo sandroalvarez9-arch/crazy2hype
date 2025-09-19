@@ -71,20 +71,61 @@ export function MatchScoringInterface({
   );
   const [isUpdating, setIsUpdating] = useState(false);
   const [lastSwitchPoint, setLastSwitchPoint] = useState(0);
+  const [matchState, setMatchState] = useState({
+    status: match.status,
+    current_set: match.current_set,
+    sets_won_team1: match.sets_won_team1,
+    sets_won_team2: match.sets_won_team2
+  });
   const { toast } = useToast();
+
+  // Real-time updates for match status
+  useEffect(() => {
+    const channel = supabase
+      .channel('match-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'matches',
+          filter: `id=eq.${match.id}`
+        },
+        (payload) => {
+          console.log('Real-time match update:', payload);
+          const newMatch = payload.new as any;
+          setMatchState({
+            status: newMatch.status,
+            current_set: newMatch.current_set,
+            sets_won_team1: newMatch.sets_won_team1,
+            sets_won_team2: newMatch.sets_won_team2
+          });
+          if (newMatch.set_scores) {
+            setAllSetScores(newMatch.set_scores);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [match.id]);
 
   useEffect(() => {
     // Initialize current set scores from existing data
-    const currentSetKey = `set${match.current_set}`;
+    const currentSetKey = `set${matchState.current_set}`;
     if (allSetScores[currentSetKey]) {
       setCurrentSetScores(allSetScores[currentSetKey]);
+    } else {
+      setCurrentSetScores({ team1: 0, team2: 0 });
     }
-  }, [match.current_set, allSetScores]);
+  }, [matchState.current_set, allSetScores]);
 
   // Reset side-switch tracker when set changes
   useEffect(() => {
     setLastSwitchPoint(0);
-  }, [match.current_set]);
+  }, [matchState.current_set]);
 
   const getSetsWon = (teamNumber: 1 | 2) => {
     let setsWon = 0;
@@ -133,24 +174,43 @@ export function MatchScoringInterface({
     const pointsNeeded = getPointsNeededForSet();
     const winBy = tournament.must_win_by;
     
-    return (team1Score >= pointsNeeded && team1Score - team2Score >= winBy) ||
-           (team2Score >= pointsNeeded && team2Score - team1Score >= winBy);
+    console.log('Checking if set is won:', { team1Score, team2Score, pointsNeeded, winBy });
+    
+    const team1Wins = team1Score >= pointsNeeded && team1Score - team2Score >= winBy;
+    const team2Wins = team2Score >= pointsNeeded && team2Score - team1Score >= winBy;
+    
+    console.log('Set win check result:', { team1Wins, team2Wins, isWon: team1Wins || team2Wins });
+    
+    return team1Wins || team2Wins;
   };
 
   const isMatchWon = (team1Sets: number, team2Sets: number) => {
     const format = getActiveFormat();
     const setsNeeded = Math.ceil((format?.sets || tournament.sets_per_game) / 2);
-    return team1Sets >= setsNeeded || team2Sets >= setsNeeded;
+    
+    console.log('Checking if match is won:', { team1Sets, team2Sets, setsNeeded });
+    
+    const matchWon = team1Sets >= setsNeeded || team2Sets >= setsNeeded;
+    console.log('Match win check result:', matchWon);
+    
+    return matchWon;
   };
 
   const handleScoreUpdate = async (team: 'team1' | 'team2', increment: number) => {
+    console.log('Score update:', { team, increment, currentScores: currentSetScores });
+    
     const newScores = { ...currentSetScores };
     newScores[team] = Math.max(0, newScores[team] + increment);
+    
+    console.log('New scores after update:', newScores);
 
     const interval = getSideSwitchInterval();
     const total = newScores.team1 + newScores.team2;
     const nextMultiple = Math.floor(total / interval) * interval;
     const isWon = isSetWon(newScores.team1, newScores.team2);
+
+    // Update local scores first for immediate UI feedback
+    setCurrentSetScores(newScores);
 
     // Notify refs to switch sides at configured intervals (7 or 5 on short/deciding sets)
     if (!isWon && nextMultiple > 0 && nextMultiple > lastSwitchPoint && total >= nextMultiple) {
@@ -163,8 +223,10 @@ export function MatchScoringInterface({
     
     // Check if set is won
     if (isWon) {
+      console.log('Set is won! Processing set completion...');
+      
       // Set is finished, update set scores
-      const currentSetKey = `set${match.current_set}`;
+      const currentSetKey = `set${matchState.current_set}`;
       const updatedSetScores = {
         ...allSetScores,
         [currentSetKey]: newScores
@@ -173,11 +235,15 @@ export function MatchScoringInterface({
       const team1SetsWon = getSetsWon(1) + (newScores.team1 > newScores.team2 ? 1 : 0);
       const team2SetsWon = getSetsWon(2) + (newScores.team2 > newScores.team1 ? 1 : 0);
       
+      console.log('Set completion - sets won:', { team1SetsWon, team2SetsWon });
+      
       // Update local state immediately
       setAllSetScores(updatedSetScores);
       
       // Check if match is won
       if (isMatchWon(team1SetsWon, team2SetsWon)) {
+        console.log('Match is won! Processing match completion...');
+        
         // Match is finished
         const success = await updateMatchInDatabase({
           set_scores: updatedSetScores,
@@ -191,34 +257,54 @@ export function MatchScoringInterface({
         });
         
         if (success) {
+          console.log('Match completed successfully!');
           toast({
-            title: "Match Completed!",
+            title: "🏆 Match Completed!",
             description: `${team1SetsWon > team2SetsWon ? team1?.name : team2?.name} wins ${Math.max(team1SetsWon, team2SetsWon)}-${Math.min(team1SetsWon, team2SetsWon)}`,
+            duration: 5000,
           });
+          
+          // Update match state
+          setMatchState(prev => ({
+            ...prev,
+            status: 'completed',
+            sets_won_team1: team1SetsWon,
+            sets_won_team2: team2SetsWon
+          }));
         }
       } else {
+        console.log('Set completed, moving to next set...');
+        
         // Move to next set
+        const nextSet = matchState.current_set + 1;
         const success = await updateMatchInDatabase({
           set_scores: updatedSetScores,
           sets_won_team1: team1SetsWon,
           sets_won_team2: team2SetsWon,
-          current_set: match.current_set + 1,
+          current_set: nextSet,
           status: 'in_progress'
         });
         
         if (success) {
+          console.log('Set completed, starting next set:', nextSet);
+          
           // Update local state for next set
           setCurrentSetScores({ team1: 0, team2: 0 });
           setLastSwitchPoint(0);
+          setMatchState(prev => ({
+            ...prev,
+            current_set: nextSet,
+            sets_won_team1: team1SetsWon,
+            sets_won_team2: team2SetsWon
+          }));
           
           toast({
-            title: "Set Completed",
-            description: `Set ${match.current_set}: ${newScores.team1 > newScores.team2 ? team1?.name : team2?.name} wins ${Math.max(newScores.team1, newScores.team2)}-${Math.min(newScores.team1, newScores.team2)}. Starting Set ${match.current_set + 1}`,
+            title: "✅ Set Completed!",
+            description: `Set ${matchState.current_set}: ${newScores.team1 > newScores.team2 ? team1?.name : team2?.name} wins ${Math.max(newScores.team1, newScores.team2)}-${Math.min(newScores.team1, newScores.team2)}. Starting Set ${nextSet}`,
+            duration: 4000,
           });
         }
       }
-    } else {
-      setCurrentSetScores(newScores);
     }
   };
 
@@ -368,7 +454,7 @@ export function MatchScoringInterface({
         </div>
 
         {/* Start Match Button for scheduled matches */}
-        {match.status === 'scheduled' && (
+        {matchState.status === 'scheduled' && (
           <div className="text-center p-4 border rounded-lg bg-muted/50">
             <p className="text-muted-foreground mb-4">Match is scheduled. Click to start scoring.</p>
             <Button 
@@ -382,19 +468,19 @@ export function MatchScoringInterface({
         )}
 
         {/* Current Set Scoring - only show if match is in progress */}
-        {match.status === 'in_progress' && (
+        {matchState.status === 'in_progress' && (
           <div className="grid grid-cols-2 gap-6">
           {/* Team 1 */}
           <div className="text-center space-y-4">
             <div>
               <div className="font-semibold text-lg">{team1?.name || "Team 1"}</div>
-              <div className="text-2xl font-bold">{team1SetsWon}</div>
+              <div className="text-2xl font-bold">{matchState.sets_won_team1}</div>
               <div className="text-xs text-muted-foreground">Sets Won</div>
             </div>
             
             <div className="space-y-2">
               <div className="text-4xl font-bold text-primary">{currentSetScores.team1}</div>
-              <div className="text-xs text-muted-foreground">Set {match.current_set}</div>
+              <div className="text-xs text-muted-foreground">Set {matchState.current_set}</div>
               <div className="flex gap-1 justify-center">
                 <Button
                   size="sm"
@@ -420,13 +506,13 @@ export function MatchScoringInterface({
           <div className="text-center space-y-4">
             <div>
               <div className="font-semibold text-lg">{team2?.name || "Team 2"}</div>
-              <div className="text-2xl font-bold">{team2SetsWon}</div>
+              <div className="text-2xl font-bold">{matchState.sets_won_team2}</div>
               <div className="text-xs text-muted-foreground">Sets Won</div>
             </div>
             
             <div className="space-y-2">
               <div className="text-4xl font-bold text-primary">{currentSetScores.team2}</div>
-              <div className="text-xs text-muted-foreground">Set {match.current_set}</div>
+              <div className="text-xs text-muted-foreground">Set {matchState.current_set}</div>
               <div className="flex gap-1 justify-center">
                 <Button
                   size="sm"
@@ -451,7 +537,7 @@ export function MatchScoringInterface({
         )}
 
         {/* Manual Score Entry - only show for in progress matches */}
-        {match.status === 'in_progress' && (
+        {matchState.status === 'in_progress' && (
           <>
             <Separator />
             <div className="grid grid-cols-2 gap-4">
@@ -515,13 +601,13 @@ export function MatchScoringInterface({
           </>
         )}
 
-        {match.status === 'completed' && (
+        {matchState.status === 'completed' && (
           <div className="bg-green-50 dark:bg-green-950/20 p-4 rounded-lg text-center">
-            <div className="font-semibold text-green-700 dark:text-green-400">
-              Match Completed
+            <div className="font-semibold text-green-700 dark:text-green-400 text-lg">
+              🏆 Match Completed!
             </div>
             <div className="text-sm text-green-600 dark:text-green-300 mt-1">
-              {team1SetsWon > team2SetsWon ? team1?.name : team2?.name} wins {Math.max(team1SetsWon, team2SetsWon)}-{Math.min(team1SetsWon, team2SetsWon)}
+              {matchState.sets_won_team1 > matchState.sets_won_team2 ? team1?.name : team2?.name} wins {Math.max(matchState.sets_won_team1, matchState.sets_won_team2)}-{Math.min(matchState.sets_won_team1, matchState.sets_won_team2)}
             </div>
           </div>
         )}
