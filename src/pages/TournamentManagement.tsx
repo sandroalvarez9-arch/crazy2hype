@@ -287,14 +287,14 @@ export default function TournamentManagement() {
     new Date().toDateString() === new Date(tournament.start_date).toDateString() : false;
 
   return (
-    <div className="container mx-auto p-6">
-      <div className="mb-6 flex items-start justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">{tournament?.title} - Management</h1>
-          <p className="text-muted-foreground">Manage teams, check-ins, communications, and logistics</p>
+    <div className="container mx-auto p-3 sm:p-6">
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0 flex-1">
+          <h1 className="text-2xl sm:text-3xl font-bold break-words">{tournament?.title} - Management</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">Manage teams, check-ins, communications, and logistics</p>
         </div>
         {tournament && (
-          <div className="flex gap-2">
+          <div className="flex flex-col gap-2 sm:flex-row sm:gap-2 sm:shrink-0">
             <EditCapacityDialog
               tournament={{
                 id: tournament.id,
@@ -321,59 +321,61 @@ export default function TournamentManagement() {
         )}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Teams</CardTitle>
+            <CardTitle className="text-xs sm:text-sm font-medium">Total Teams</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{teams.length}</div>
+            <div className="text-xl sm:text-2xl font-bold">{teams.length}</div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Checked In</CardTitle>
+            <CardTitle className="text-xs sm:text-sm font-medium">Checked In</CardTitle>
             <UserCheck className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">{checkedInTeams}</div>
+            <div className="text-xl sm:text-2xl font-bold text-green-600">{checkedInTeams}</div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">No Shows</CardTitle>
+            <CardTitle className="text-xs sm:text-sm font-medium">No Shows</CardTitle>
             <UserX className="h-4 w-4 text-red-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-600">{noShowTeams}</div>
+            <div className="text-xl sm:text-2xl font-bold text-red-600">{noShowTeams}</div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pending</CardTitle>
+            <CardTitle className="text-xs sm:text-sm font-medium">Pending</CardTitle>
             <Clock className="h-4 w-4 text-yellow-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-yellow-600">{pendingTeams}</div>
+            <div className="text-xl sm:text-2xl font-bold text-yellow-600">{pendingTeams}</div>
           </CardContent>
         </Card>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4 lg:grid-cols-8">
-          <TabsTrigger value="teams">Team Management</TabsTrigger>
-          {tournament?.entry_fee > 0 && <TabsTrigger value="payments">Payment Management</TabsTrigger>}
-          <TabsTrigger value="backup">Backup Teams</TabsTrigger>
-          <TabsTrigger value="format">Game Format</TabsTrigger>
-          <TabsTrigger value="poolplay">Pool Play</TabsTrigger>
-          <TabsTrigger value="tournament-day">Live</TabsTrigger>
-          <TabsTrigger value="testing">Testing</TabsTrigger>
-          <TabsTrigger value="communications">Communications</TabsTrigger>
-        </TabsList>
+        <div className="w-full overflow-hidden">
+          <TabsList className="inline-flex w-max min-w-full p-1 overflow-x-auto scrollbar-hide">
+            <TabsTrigger value="teams" className="whitespace-nowrap text-xs sm:text-sm">Teams</TabsTrigger>
+            {tournament?.entry_fee > 0 && <TabsTrigger value="payments" className="whitespace-nowrap text-xs sm:text-sm">Payments</TabsTrigger>}
+            <TabsTrigger value="backup" className="whitespace-nowrap text-xs sm:text-sm">Backup</TabsTrigger>
+            <TabsTrigger value="format" className="whitespace-nowrap text-xs sm:text-sm">Format</TabsTrigger>
+            <TabsTrigger value="poolplay" className="whitespace-nowrap text-xs sm:text-sm">Pool Play</TabsTrigger>
+            <TabsTrigger value="tournament-day" className="whitespace-nowrap text-xs sm:text-sm">Live</TabsTrigger>
+            <TabsTrigger value="testing" className="whitespace-nowrap text-xs sm:text-sm">Testing</TabsTrigger>
+            <TabsTrigger value="communications" className="whitespace-nowrap text-xs sm:text-sm">Comms</TabsTrigger>
+          </TabsList>
+        </div>
 
         <TabsContent value="teams" className="space-y-4">
           <Card>
@@ -383,10 +385,10 @@ export default function TournamentManagement() {
             <CardContent>
               <div className="space-y-4">
                 {teams.map((team) => (
-                  <div key={team.id} className="flex items-center justify-between p-4 border rounded-lg">
-                    <div>
-                      <h3 className="font-medium">{team.name}</h3>
-                      <p className="text-sm text-muted-foreground">
+                  <div key={team.id} className="flex flex-col gap-3 p-3 sm:p-4 border rounded-lg sm:flex-row sm:items-center sm:justify-between">
+                    <div className="min-w-0 flex-1">
+                      <h3 className="font-medium text-sm sm:text-base break-words">{team.name}</h3>
+                      <p className="text-xs sm:text-sm text-muted-foreground break-words">
                         {team.players_count} players • {team.contact_email}
                       </p>
                       {team.check_in_time && (
@@ -395,11 +397,14 @@ export default function TournamentManagement() {
                         </p>
                       )}
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Badge variant={
-                        team.check_in_status === 'checked_in' ? 'default' :
-                        team.check_in_status === 'no_show' ? 'destructive' : 'secondary'
-                      }>
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-2 sm:shrink-0">
+                      <Badge 
+                        variant={
+                          team.check_in_status === 'checked_in' ? 'default' :
+                          team.check_in_status === 'no_show' ? 'destructive' : 'secondary'
+                        }
+                        className="text-xs w-fit"
+                      >
                         {team.check_in_status.replace('_', ' ').toUpperCase()}
                       </Badge>
                       {team.check_in_status === 'pending' && isTournamentDay && (
@@ -407,12 +412,13 @@ export default function TournamentManagement() {
                           <Button
                             size="sm"
                             onClick={() => updateTeamCheckIn(team.id, 'checked_in')}
+                            className="text-xs px-2 py-1 h-8"
                           >
                             Check In
                           </Button>
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
-                              <Button size="sm" variant="destructive">
+                              <Button size="sm" variant="destructive" className="text-xs px-2 py-1 h-8">
                                 No Show
                               </Button>
                             </AlertDialogTrigger>
@@ -454,23 +460,24 @@ export default function TournamentManagement() {
               ) : (
                 <div className="space-y-4">
                   {backupTeams.map((team) => (
-                    <div key={team.id} className="flex items-center justify-between p-4 border rounded-lg">
-                      <div>
-                        <h3 className="font-medium">{team.name}</h3>
-                        <p className="text-sm text-muted-foreground">
+                    <div key={team.id} className="flex flex-col gap-3 p-3 sm:p-4 border rounded-lg sm:flex-row sm:items-center sm:justify-between">
+                      <div className="min-w-0 flex-1">
+                        <h3 className="font-medium text-sm sm:text-base break-words">{team.name}</h3>
+                        <p className="text-xs sm:text-sm text-muted-foreground break-words">
                           Priority: #{team.priority_order} • {team.players_count} players • {team.contact_email}
                         </p>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 sm:shrink-0">
                         {team.promoted_to_main ? (
-                          <Badge variant="default">Promoted</Badge>
+                          <Badge variant="default" className="text-xs w-fit">Promoted</Badge>
                         ) : (
                           <Button
                             size="sm"
                             onClick={() => promoteBackupTeam(team.id)}
                             disabled={teams.length >= tournament?.max_teams!}
+                            className="text-xs px-2 py-1 h-8 whitespace-nowrap"
                           >
-                            Promote to Main
+                            Promote
                           </Button>
                         )}
                       </div>
@@ -484,14 +491,14 @@ export default function TournamentManagement() {
 
         {tournament?.entry_fee > 0 && (
           <TabsContent value="payments" className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 mb-6">
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+                  <CardTitle className="text-xs sm:text-sm font-medium">Total Revenue</CardTitle>
                   <DollarSign className="h-4 w-4 text-green-600" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-green-600">
+                  <div className="text-xl sm:text-2xl font-bold text-green-600">
                     ${(paidTeams * (tournament?.entry_fee || 0)).toFixed(2)}
                   </div>
                   <p className="text-xs text-muted-foreground">
@@ -502,11 +509,11 @@ export default function TournamentManagement() {
 
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Outstanding</CardTitle>
+                  <CardTitle className="text-xs sm:text-sm font-medium">Outstanding</CardTitle>
                   <Clock className="h-4 w-4 text-yellow-600" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-yellow-600">
+                  <div className="text-xl sm:text-2xl font-bold text-yellow-600">
                     ${(unpaidTeams * (tournament?.entry_fee || 0)).toFixed(2)}
                   </div>
                   <p className="text-xs text-muted-foreground">
@@ -517,11 +524,11 @@ export default function TournamentManagement() {
 
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Payment Rate</CardTitle>
+                  <CardTitle className="text-xs sm:text-sm font-medium">Payment Rate</CardTitle>
                   <CheckCircle className="h-4 w-4 text-blue-600" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-blue-600">
+                  <div className="text-xl sm:text-2xl font-bold text-blue-600">
                     {teams.length > 0 ? Math.round((paidTeams / teams.length) * 100) : 0}%
                   </div>
                   <p className="text-xs text-muted-foreground">
@@ -538,10 +545,10 @@ export default function TournamentManagement() {
               <CardContent>
                 <div className="space-y-4">
                   {teams.map((team) => (
-                    <div key={team.id} className="flex items-center justify-between p-4 border rounded-lg">
-                      <div className="flex-1">
-                        <h3 className="font-medium">{team.name}</h3>
-                        <p className="text-sm text-muted-foreground">
+                    <div key={team.id} className="flex flex-col gap-3 p-3 sm:p-4 border rounded-lg sm:flex-row sm:items-center sm:justify-between">
+                      <div className="min-w-0 flex-1">
+                        <h3 className="font-medium text-sm sm:text-base break-words">{team.name}</h3>
+                        <p className="text-xs sm:text-sm text-muted-foreground break-words">
                           {team.contact_email} • Entry Fee: ${tournament?.entry_fee}
                         </p>
                         {team.payment_date && (
@@ -556,8 +563,11 @@ export default function TournamentManagement() {
                           </p>
                         )}
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Badge variant={team.payment_status === 'paid' ? 'default' : 'secondary'}>
+                      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-2 sm:shrink-0">
+                        <Badge 
+                          variant={team.payment_status === 'paid' ? 'default' : 'secondary'}
+                          className="text-xs w-fit"
+                        >
                           {team.payment_status.toUpperCase()}
                         </Badge>
                         {team.payment_status === 'pending' && (

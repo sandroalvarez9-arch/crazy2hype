@@ -148,6 +148,16 @@ All colors MUST be HSL.
   .shadow-card {
     box-shadow: var(--shadow-card);
   }
+  
+  /* Hide scrollbar for horizontal scroll */
+  .scrollbar-hide {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;     /* Firefox */
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;             /* Chrome, Safari, Opera */
+  }
 }
 
 @keyframes fade-in {
