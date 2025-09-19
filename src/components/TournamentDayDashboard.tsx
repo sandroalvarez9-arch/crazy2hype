@@ -92,6 +92,33 @@ export function TournamentDayDashboard({ tournament, teams }: TournamentDayDashb
     }
   }, [tournament.id, tournament.brackets_generated]);
 
+  // Subscribe to real-time match updates
+  useEffect(() => {
+    console.log('Setting up real-time updates for tournament matches');
+
+    const channel = supabase
+      .channel('tournament-match-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'matches',
+          filter: `tournament_id=eq.${tournament.id}`
+        },
+        (payload) => {
+          console.log('Real-time tournament match update:', payload);
+          fetchMatches(); // Refresh all matches to get updated team names
+        }
+      )
+      .subscribe();
+
+    return () => {
+      console.log('Cleaning up real-time tournament updates');
+      supabase.removeChannel(channel);
+    };
+  }, [tournament.id]);
+
   // Check pool completion periodically
   useEffect(() => {
     let interval: NodeJS.Timeout;

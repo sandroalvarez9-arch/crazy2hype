@@ -8,6 +8,7 @@ import { Separator } from "@/components/ui/separator";
 import { Trophy, Clock, Users, MapPin } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { advanceWinnerToNextRound } from "@/utils/bracketAdvancement";
 
 interface Match {
   id: string;
@@ -271,6 +272,12 @@ export function MatchScoringInterface({
             sets_won_team1: team1SetsWon,
             sets_won_team2: team2SetsWon
           }));
+
+          // Advance winner to next round if this is a playoff match
+          if (match.tournament_phase === 'playoffs') {
+            console.log('Advancing winner to next round...');
+            await advanceWinnerToNextRound(match.id);
+          }
         }
       } else {
         console.log('Set completed, moving to next set...');

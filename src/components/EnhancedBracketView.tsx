@@ -3,13 +3,18 @@ import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import { ZoomIn, ZoomOut, Maximize2, RotateCcw } from 'lucide-react';
+import { supabase } from "@/integrations/supabase/client";
 
 interface BracketMatch {
   id: string;
+  tournament_id?: string;
+  team1_id?: string | null;
+  team2_id?: string | null;
   team1_name?: string;
   team2_name?: string;
   team1_score: number;
   team2_score: number;
+  winner_id?: string | null;
   winner_name?: string;
   bracket_position: string;
   status: string;
@@ -29,17 +34,62 @@ interface EnhancedBracketViewProps {
 const ZOOM_LEVELS = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2];
 
 const EnhancedBracketView: React.FC<EnhancedBracketViewProps> = ({ 
-  matches, 
+  matches: initialMatches, 
   title = "Tournament Bracket",
   format = 'detailed',
   onFormatChange,
   onMatchSelect
 }) => {
+  const [matches, setMatches] = useState(initialMatches);
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0, panX: 0, panY: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Update matches when initialMatches changes
+  useEffect(() => {
+    setMatches(initialMatches);
+  }, [initialMatches]);
+
+  // Subscribe to real-time match updates
+  useEffect(() => {
+    if (!matches?.length) return;
+
+    const tournamentId = matches[0]?.tournament_id;
+    if (!tournamentId) return;
+
+    console.log('Setting up real-time updates for bracket matches');
+
+    const channel = supabase
+      .channel('bracket-match-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'matches',
+          filter: `tournament_id=eq.${tournamentId}`
+        },
+        (payload) => {
+          console.log('Real-time bracket match update:', payload);
+          
+          setMatches(prevMatches => 
+            prevMatches.map(match => 
+              match.id === payload.new.id 
+                ? { ...match, ...payload.new }
+                : match
+            )
+          );
+        }
+      )
+      .subscribe();
+
+    return () => {
+      console.log('Cleaning up real-time bracket updates');
+      supabase.removeChannel(channel);
+    };
+  }, [matches]);
 
   // Organize matches by round
   const organizeMatches = () => {
