@@ -209,9 +209,43 @@ export function TournamentDayDashboard({ tournament, teams }: TournamentDayDashb
     }
   };
 
-  const handleMatchSelect = (match: Match) => {
+  const handleMatchSelect = async (match: Match) => {
     console.log('Match selected for scoring:', match);
-    setSelectedMatch(match);
+    
+    // If match is scheduled, automatically start it when opening the dialog
+    if (match.status === 'scheduled') {
+      console.log('Auto-starting scheduled match...');
+      try {
+        const { error } = await supabase
+          .from('matches')
+          .update({ 
+            status: 'in_progress',
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', match.id);
+
+        if (error) {
+          console.error('Error starting match:', error);
+          toast({
+            title: "Error",
+            description: "Failed to start match",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        // Update the match object with new status before setting it
+        const updatedMatch = { ...match, status: 'in_progress' };
+        setSelectedMatch(updatedMatch);
+        console.log('Match auto-started successfully');
+      } catch (error) {
+        console.error('Error starting match:', error);
+        return;
+      }
+    } else {
+      setSelectedMatch(match);
+    }
+    
     setMatchScoringDialogOpen(true);
   };
 
