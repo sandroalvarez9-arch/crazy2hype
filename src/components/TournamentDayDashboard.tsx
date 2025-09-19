@@ -7,6 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { MatchScoringInterface } from "@/components/MatchScoringInterface";
+import { MatchScoringDialog } from "@/components/MatchScoringDialog";
 import { TeamScheduleView } from "@/components/TeamScheduleView";
 import { PoolDetailsView } from "@/components/PoolDetailsView";
 import { AdvancementConfigurationDialog } from "@/components/AdvancementConfigurationDialog";
@@ -69,6 +70,7 @@ interface TournamentDayDashboardProps {
 export function TournamentDayDashboard({ tournament, teams }: TournamentDayDashboardProps) {
   const [matches, setMatches] = useState<Match[]>([]);
   const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
+  const [matchScoringDialogOpen, setMatchScoringDialogOpen] = useState(false);
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
   const [selectedPool, setSelectedPool] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -178,6 +180,12 @@ export function TournamentDayDashboard({ tournament, teams }: TournamentDayDashb
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleMatchSelect = (match: Match) => {
+    console.log('Match selected for scoring:', match);
+    setSelectedMatch(match);
+    setMatchScoringDialogOpen(true);
   };
 
   const handleMatchUpdate = () => {
@@ -481,7 +489,7 @@ export function TournamentDayDashboard({ tournament, teams }: TournamentDayDashb
                           <Button
                             onClick={() => {
                               console.log('Continue Scoring clicked for match:', match.id, match);
-                              setSelectedMatch(match);
+                              handleMatchSelect(match);
                             }}
                             size="sm"
                             className="mb-2"
@@ -495,7 +503,7 @@ export function TournamentDayDashboard({ tournament, teams }: TournamentDayDashb
                             onClick={() => {
                               console.log('Start Match clicked for match:', match.id, match);
                               console.log('Setting selectedMatch to:', match);
-                              setSelectedMatch(match);
+                              handleMatchSelect(match);
                             }}
                             size="sm"
                             variant="outline"
@@ -510,39 +518,6 @@ export function TournamentDayDashboard({ tournament, teams }: TournamentDayDashb
             </CardContent>
           </Card>
 
-          {/* Match Scoring Interface */}
-          {(() => {
-            if (selectedMatch) {
-              console.log('Rendering MatchScoringInterface with selectedMatch:', selectedMatch);
-              return (
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Match Scoring</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <MatchScoringInterface
-                      match={selectedMatch}
-                      tournament={tournament}
-                      team1={{ id: selectedMatch.team1_id!, name: selectedMatch.team1_name! }}
-                      team2={{ id: selectedMatch.team2_id!, name: selectedMatch.team2_name! }}
-                      onMatchUpdate={handleMatchUpdate}
-                    />
-                    <Button
-                      onClick={() => {
-                        console.log('Close Scoring clicked');
-                        setSelectedMatch(null);
-                      }}
-                      variant="outline"
-                      className="mt-4"
-                    >
-                      Close Scoring
-                    </Button>
-                  </CardContent>
-                </Card>
-              );
-            }
-            return null;
-          })()}
         </TabsContent>
 
         <TabsContent value="pools" className="space-y-4">
@@ -832,7 +807,7 @@ export function TournamentDayDashboard({ tournament, teams }: TournamentDayDashb
                                 console.log('Found fullMatch:', fullMatch);
                                 if (fullMatch) {
                                   console.log('Setting selectedMatch to fullMatch:', fullMatch);
-                                  setSelectedMatch(fullMatch);
+                                  handleMatchSelect(fullMatch);
                                 } else {
                                   console.error('Could not find fullMatch for match:', match);
                                 }
@@ -903,7 +878,7 @@ export function TournamentDayDashboard({ tournament, teams }: TournamentDayDashb
                                   onClick={() => {
                                     console.log('Bracket Start Match clicked for match:', match.id, match);
                                     console.log('Setting selectedMatch to:', match);
-                                    setSelectedMatch(match);
+                                    handleMatchSelect(match);
                                   }}
                                   size="sm"
                                   variant={match.status === 'in_progress' ? 'default' : 'outline'}
@@ -1048,37 +1023,14 @@ export function TournamentDayDashboard({ tournament, teams }: TournamentDayDashb
                 console.log('Found fullMatch:', fullMatch);
                 if (fullMatch) {
                   console.log('Setting selectedMatch to fullMatch:', fullMatch);
-                  setSelectedMatch(fullMatch);
+                  handleMatchSelect(fullMatch);
                 } else {
                   console.error('Could not find fullMatch for match:', match);
                 }
               }}
             />
             
-            {/* Match Scoring Interface for Bracket matches */}
-            {selectedMatch && selectedMatch.tournament_phase === 'playoffs' && (
-              <Card className="mt-6">
-                <CardHeader>
-                  <CardTitle>Playoff Match Scoring</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <MatchScoringInterface
-                    match={selectedMatch}
-                    tournament={tournament}
-                    team1={{ id: selectedMatch.team1_id!, name: selectedMatch.team1_name! }}
-                    team2={{ id: selectedMatch.team2_id!, name: selectedMatch.team2_name! }}
-                    onMatchUpdate={handleMatchUpdate}
-                  />
-                  <Button
-                    onClick={() => setSelectedMatch(null)}
-                    variant="outline"
-                    className="mt-4"
-                  >
-                    Close Scoring
-                  </Button>
-                </CardContent>
-              </Card>
-            )}
+            {/* Match Scoring Interface for Bracket matches - Removed: Now using Modal Dialog */}
           </TabsContent>
         </Tabs>
 
@@ -1095,6 +1047,17 @@ export function TournamentDayDashboard({ tournament, teams }: TournamentDayDashb
           loading={generatingBrackets}
         />
       )}
+
+      {/* Match Scoring Dialog */}
+      <MatchScoringDialog
+        open={matchScoringDialogOpen}
+        onOpenChange={setMatchScoringDialogOpen}
+        match={selectedMatch}
+        tournament={tournament}
+        team1={selectedMatch ? { id: selectedMatch.team1_id!, name: selectedMatch.team1_name! } : null}
+        team2={selectedMatch ? { id: selectedMatch.team2_id!, name: selectedMatch.team2_name! } : null}
+        onMatchUpdate={handleMatchUpdate}
+      />
     </div>
   );
 }
