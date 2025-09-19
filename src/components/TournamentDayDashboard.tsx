@@ -78,6 +78,7 @@ export function TournamentDayDashboard({ tournament, teams }: TournamentDayDashb
   const [playoffBracketsExist, setPlayoffBracketsExist] = useState(false);
   const [bracketFormat, setBracketFormat] = useState<'simple' | 'detailed'>('simple');
   const [selectedBracketCategory, setSelectedBracketCategory] = useState<string | null>(null);
+  const [selectedPoolForBrackets, setSelectedPoolForBrackets] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -262,12 +263,37 @@ export function TournamentDayDashboard({ tournament, teams }: TournamentDayDashb
     }
   }, [bracketCategories.length, selectedBracketCategory]);
 
-  // Filter playoff matches by selected category
+  // Filter playoff matches by selected category and pool
   const getFilteredPlayoffMatches = () => {
-    if (!selectedBracketCategory) return playoffMatches;
-    return playoffMatches.filter(match => 
-      match.bracket_position && match.bracket_position.startsWith(selectedBracketCategory)
-    );
+    let filtered = playoffMatches;
+    
+    if (selectedBracketCategory) {
+      filtered = filtered.filter(match => 
+        match.bracket_position && match.bracket_position.startsWith(selectedBracketCategory)
+      );
+    }
+    
+    if (selectedPoolForBrackets) {
+      // Filter playoff matches to only show those involving teams from the selected pool
+      // We need to fetch which teams advanced from the selected pool
+      const poolTeamIds = new Set<string>();
+      
+      // Get all teams that played in the selected pool
+      poolPlayMatches
+        .filter(m => m.pool_name === selectedPoolForBrackets)
+        .forEach(match => {
+          if (match.team1_id) poolTeamIds.add(match.team1_id);
+          if (match.team2_id) poolTeamIds.add(match.team2_id);
+        });
+      
+      // Filter playoff matches to only include those with teams from the selected pool
+      filtered = filtered.filter(match => 
+        (match.team1_id && poolTeamIds.has(match.team1_id)) ||
+        (match.team2_id && poolTeamIds.has(match.team2_id))
+      );
+    }
+    
+    return filtered;
   };
 
   const filteredPlayoffMatches = getFilteredPlayoffMatches();
@@ -545,11 +571,14 @@ export function TournamentDayDashboard({ tournament, teams }: TournamentDayDashb
                       const poolComplete = completedMatches.length === poolMatches.length;
                       
                       return (
-                        <Card 
-                          key={pool} 
-                          className={`cursor-pointer hover:bg-accent/50 transition-colors ${poolComplete ? 'border-green-200 bg-green-50' : ''}`}
-                          onClick={() => setSelectedPool(pool)}
-                        >
+                         <Card 
+                           key={pool} 
+                           className={`cursor-pointer hover:bg-accent/50 transition-colors ${poolComplete ? 'border-green-200 bg-green-50' : ''}`}
+                           onClick={() => {
+                             setSelectedPool(pool);
+                             setSelectedPoolForBrackets(pool);
+                           }}
+                         >
                           <CardContent className="pt-6">
                             <div className="text-center space-y-2">
                               <div className="flex items-center justify-center gap-2">
@@ -583,10 +612,26 @@ export function TournamentDayDashboard({ tournament, teams }: TournamentDayDashb
         <TabsContent value="brackets" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Trophy className="h-5 w-5" />
-                Playoff Brackets
-              </CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2">
+                  <Trophy className="h-5 w-5" />
+                  Playoff Brackets
+                  {selectedPoolForBrackets && (
+                    <Badge variant="outline" className="ml-2">
+                      {selectedPoolForBrackets} Pool Teams
+                    </Badge>
+                  )}
+                </CardTitle>
+                {selectedPoolForBrackets && (
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => setSelectedPoolForBrackets(null)}
+                  >
+                    Show All Pools
+                  </Button>
+                )}
+              </div>
             </CardHeader>
             <CardContent>
               {playoffMatches.length === 0 ? (
@@ -600,14 +645,33 @@ export function TournamentDayDashboard({ tournament, teams }: TournamentDayDashb
                     Complete pool play matches to generate playoff brackets.
                   </p>
                 </div>
+              ) : filteredPlayoffMatches.length === 0 && selectedPoolForBrackets ? (
+                <div className="text-center py-8">
+                  <Trophy className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                  <p className="text-lg font-semibold mb-2">No Brackets for {selectedPoolForBrackets}</p>
+                  <p className="text-muted-foreground mb-4">
+                    No teams from {selectedPoolForBrackets} advanced to the playoff brackets yet.
+                  </p>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setSelectedPoolForBrackets(null)}
+                  >
+                    View All Brackets
+                  </Button>
+                </div>
               ) : (
                 <div className="space-y-6">
                   {/* Enhanced Category Overview */}
                   <div className="space-y-4">
-                    <h3 className="text-sm font-medium text-muted-foreground">Tournament Brackets</h3>
+                    <h3 className="text-sm font-medium text-muted-foreground">
+                      Tournament Brackets
+                      {selectedPoolForBrackets && (
+                        <span className="ml-2 text-primary">- {selectedPoolForBrackets} Pool Teams</span>
+                      )}
+                    </h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                       {bracketCategories.map((category) => {
-                        const categoryMatches = playoffMatches.filter(match => 
+                        const categoryMatches = filteredPlayoffMatches.filter(match => 
                           match.bracket_position?.startsWith(category.name + ' - ')
                         );
                         const inProgress = categoryMatches.filter(m => m.status === 'in_progress').length;
@@ -676,7 +740,7 @@ export function TournamentDayDashboard({ tournament, teams }: TournamentDayDashb
 
                   {/* Selected Category Bracket */}
                   {selectedBracketCategory && (() => {
-                    const categoryMatches = playoffMatches.filter(match => 
+                    const categoryMatches = filteredPlayoffMatches.filter(match => 
                       match.bracket_position?.startsWith(selectedBracketCategory + ' - ')
                     );
 
@@ -918,11 +982,11 @@ export function TournamentDayDashboard({ tournament, teams }: TournamentDayDashb
           {/* Bracket Visualization Tab */}
           <TabsContent value="brackets" className="space-y-6">
             <div className="text-sm text-muted-foreground mb-4">
-              Debug: Found {matches.filter(m => m.tournament_phase === 'playoffs' || m.tournament_phase === 'bracket').length} playoff matches
+              Debug: Found {filteredPlayoffMatches.length} playoff matches
+              {selectedPoolForBrackets && ` (filtered for ${selectedPoolForBrackets})`}
             </div>
             <EnhancedBracketView 
-              matches={matches
-                .filter(m => m.tournament_phase === 'playoffs' || m.tournament_phase === 'bracket')
+              matches={filteredPlayoffMatches
                 .map(m => {
                   // Determine winner name based on winner_id
                   let winner_name: string | undefined;
@@ -945,7 +1009,7 @@ export function TournamentDayDashboard({ tournament, teams }: TournamentDayDashb
                   };
                 })
               }
-              title={`${tournament.title} - Playoff Bracket`}
+              title={`${tournament.title} - Playoff Bracket${selectedPoolForBrackets ? ` (${selectedPoolForBrackets} Teams)` : ''}`}
               format={bracketFormat}
               onFormatChange={setBracketFormat}
               onMatchSelect={(match) => {
