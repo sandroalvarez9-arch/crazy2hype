@@ -2,7 +2,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 export async function advanceWinnerToNextRound(completedMatchId: string): Promise<void> {
   try {
-    console.log('Advancing winner from match:', completedMatchId);
+    console.log('🏆 ADVANCING WINNER - Starting advancement for match:', completedMatchId);
     
     // Get the completed match details
     const { data: completedMatch, error } = await supabase
@@ -13,36 +13,61 @@ export async function advanceWinnerToNextRound(completedMatchId: string): Promis
       .single();
 
     if (error || !completedMatch) {
-      console.error('Could not find completed match:', error);
+      console.error('❌ Could not find completed match:', error);
       return;
     }
+
+    console.log('✅ Found completed match:', {
+      id: completedMatch.id,
+      bracket_position: completedMatch.bracket_position,
+      winner_id: completedMatch.winner_id,
+      status: completedMatch.status,
+      round: completedMatch.round_number,
+      match: completedMatch.match_number
+    });
 
     if (!completedMatch.winner_id || completedMatch.status !== 'completed') {
-      console.log('Match not completed or no winner set');
+      console.log('⚠️ Match not completed or no winner set:', {
+        winner_id: completedMatch.winner_id,
+        status: completedMatch.status
+      });
       return;
     }
-
-    console.log('Completed match data:', completedMatch);
 
     // Find the next round match this winner should advance to
     const nextRoundMatch = await findNextRoundMatch(completedMatch);
     
     if (!nextRoundMatch) {
-      console.log('No next round match found - this might be the final');
+      console.log('🏁 No next round match found - this might be the final');
       return;
     }
 
-    console.log('Found next round match:', nextRoundMatch);
+    console.log('🎯 Found next round match:', {
+      id: nextRoundMatch.id,
+      bracket_position: nextRoundMatch.bracket_position,
+      round: nextRoundMatch.round_number,
+      match: nextRoundMatch.match_number,
+      team1_id: nextRoundMatch.team1_id,
+      team2_id: nextRoundMatch.team2_id
+    });
 
     // Determine which team slot the winner should fill
     await updateNextRoundMatch(nextRoundMatch, completedMatch);
 
   } catch (error) {
-    console.error('Error advancing winner:', error);
+    console.error('💥 Error advancing winner:', error);
   }
 }
 
 async function findNextRoundMatch(completedMatch: any): Promise<any> {
+  console.log('🔍 Looking for next round match...', {
+    tournament_id: completedMatch.tournament_id,
+    division: completedMatch.division,
+    skill_level: completedMatch.skill_level,
+    current_round: completedMatch.round_number,
+    next_round: completedMatch.round_number + 1
+  });
+
   // For playoffs, find the next round match in the same bracket
   const { data: nextRoundMatches, error } = await supabase
     .from('matches')
@@ -54,15 +79,28 @@ async function findNextRoundMatch(completedMatch: any): Promise<any> {
     .eq('round_number', completedMatch.round_number + 1)
     .order('match_number');
 
-  if (error || !nextRoundMatches?.length) {
-    console.log('No next round matches found');
+  if (error) {
+    console.error('❌ Error finding next round matches:', error);
     return null;
   }
+
+  if (!nextRoundMatches?.length) {
+    console.log('⚠️ No next round matches found');
+    return null;
+  }
+
+  console.log('📋 Found next round matches:', nextRoundMatches.map(m => ({
+    id: m.id,
+    bracket_position: m.bracket_position,
+    match_number: m.match_number
+  })));
 
   // For single elimination, determine which next match based on current match position
   // Simple logic: match 1,2 go to next match 1, match 3,4 go to next match 2, etc.
   const nextMatchNumber = Math.ceil(completedMatch.match_number / 2);
   const nextMatch = nextRoundMatches.find(m => m.match_number === nextMatchNumber);
+  
+  console.log('🎯 Calculated next match number:', nextMatchNumber, 'Found match:', nextMatch?.id);
   
   return nextMatch;
 }
@@ -72,15 +110,22 @@ async function updateNextRoundMatch(nextMatch: any, completedMatch: any): Promis
   // For seeded brackets: lower match numbers go to team1, higher to team2
   const isTeam1Slot = completedMatch.match_number % 2 === 1;
   
+  console.log('🔄 Updating next round match:', {
+    nextMatchId: nextMatch.id,
+    winnerId: completedMatch.winner_id,
+    isTeam1Slot,
+    completedMatchNumber: completedMatch.match_number
+  });
+  
   const updateData: any = {};
   
   if (isTeam1Slot) {
     updateData.team1_id = completedMatch.winner_id;
+    console.log('👆 Setting as team1');
   } else {
     updateData.team2_id = completedMatch.winner_id;
+    console.log('👇 Setting as team2');
   }
-
-  console.log('Updating next round match with:', updateData);
 
   const { error } = await supabase
     .from('matches')
@@ -88,8 +133,8 @@ async function updateNextRoundMatch(nextMatch: any, completedMatch: any): Promis
     .eq('id', nextMatch.id);
 
   if (error) {
-    console.error('Error updating next round match:', error);
+    console.error('❌ Error updating next round match:', error);
   } else {
-    console.log(`Successfully advanced winner to ${nextMatch.bracket_position}`);
+    console.log('✅ Successfully advanced winner to', nextMatch.bracket_position);
   }
 }
