@@ -8,7 +8,7 @@ const CleanLogoBackground = () => {
         alt="" 
         className="w-full h-full object-contain"
         style={{
-          filter: 'invert(1)',
+          filter: 'invert(1) hue-rotate(180deg)',
           opacity: 0.12
         }}
       />
