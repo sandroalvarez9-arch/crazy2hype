@@ -58,7 +58,7 @@ All colors MUST be HSL.
     --skill-elite: 28 100% 60%;      /* Orange - Elite/Open */
     --skill-expert: 268 83% 58%;     /* Purple - Expert/AA */
     --skill-advanced: 0 84% 60%;     /* Red - Advanced/A */
-    --skill-intermediate: 48 100% 67%; /* Yellow - Intermediate/BB */
+    --skill-intermediate: 180 84% 45%; /* Teal - Intermediate/BB */
     --skill-beginner: 213 94% 68%;   /* Blue - Beginner-Intermediate/B */
     --skill-recreational: 215 16% 47%; /* Gray - Recreational/C */
     
