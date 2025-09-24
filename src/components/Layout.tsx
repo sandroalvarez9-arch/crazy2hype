@@ -61,18 +61,19 @@ const Layout = ({ children }: LayoutProps) => {
   return (
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-40 border-b border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60 shadow-elegant relative">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          {/* Background logo */}
-          <div className="absolute top-2 right-4 opacity-5 pointer-events-none z-0">
-            <img src={blockNationLogo} alt="" className="h-20 w-20 transform rotate-12" />
-          </div>
+        <div className="container mx-auto px-4 py-6 flex items-center justify-between">
           <div className="flex items-center space-x-4">
             {isMobile && <MobileMenu />}
-            <Link to="/" className="flex items-center space-x-3 hover-scale">
-              <img src={blockNationLogo} alt="Block Nation" className="h-10 w-10" />
-              <span className="text-xl font-bold gradient-hero bg-clip-text text-transparent">
-                Block Nation
-              </span>
+            <Link to="/" className="flex items-center space-x-4 hover-scale">
+              <img src={blockNationLogo} alt="Block Nation" className="h-12 w-12 md:h-16 md:w-16" />
+              <div className="flex flex-col">
+                <span className="text-2xl md:text-3xl font-bold gradient-hero bg-clip-text text-transparent">
+                  Block Nation
+                </span>
+                <span className="text-xs md:text-sm text-muted-foreground font-medium">
+                  Elite Volleyball Platform
+                </span>
+              </div>
             </Link>
           </div>
           
