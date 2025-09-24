@@ -2,14 +2,15 @@ import blockNationLogo from '@/assets/block-nation-logo.png';
 
 const CleanLogoBackground = () => {
   return (
-    <div className="page-logo-bg">
+    <div className="page-logo-bg" style={{ background: 'transparent' }}>
       <img 
         src={blockNationLogo} 
         alt="" 
         className="w-full h-full object-contain"
         style={{
           filter: 'invert(1) hue-rotate(180deg)',
-          opacity: 0.12
+          opacity: 0.12,
+          background: 'transparent'
         }}
       />
     </div>
