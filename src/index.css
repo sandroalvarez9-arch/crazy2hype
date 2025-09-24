@@ -190,11 +190,11 @@ All colors MUST be HSL.
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    width: 80vw;
-    height: 80vh;
-    max-width: 800px;
-    max-height: 800px;
-    opacity: 0.02;
+    width: 60vw;
+    height: 60vh;
+    max-width: 600px;
+    max-height: 600px;
+    opacity: 0.08;
     z-index: 0;
     pointer-events: none;
     background-size: contain;
@@ -202,8 +202,8 @@ All colors MUST be HSL.
     background-position: center;
   }
   
-  .page-logo-bg.dark-mode {
-    opacity: 0.06;
+  .dark .page-logo-bg {
+    opacity: 0.12;
   }
   
   .logo-bg-header > * {

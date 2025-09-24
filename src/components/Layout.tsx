@@ -8,6 +8,7 @@ import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import MobileNavigation from './MobileNavigation';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import CleanLogoBackground from './CleanLogoBackground';
 import blockNationLogo from '@/assets/block-nation-logo.png';
 
 interface LayoutProps {
@@ -60,10 +61,8 @@ const Layout = ({ children }: LayoutProps) => {
 
   return (
     <div className="min-h-screen bg-background relative">
-      {/* Full-size shaded logo background */}
-      <div className="page-logo-bg">
-        <img src={blockNationLogo} alt="" className="w-full h-full object-contain" />
-      </div>
+      {/* Clean logo background */}
+      <CleanLogoBackground />
       
       <header className="sticky top-0 z-40 border-b border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60 shadow-elegant relative">
         <div className="container mx-auto px-4 py-6 flex items-center justify-between">
