@@ -65,7 +65,14 @@ export default {
 				'volleyball-orange': 'hsl(var(--volleyball-orange))',
 				'volleyball-blue': 'hsl(var(--volleyball-blue))',
 				'volleyball-green': 'hsl(var(--volleyball-green))',
-				'volleyball-yellow': 'hsl(var(--volleyball-yellow))'
+				'volleyball-yellow': 'hsl(var(--volleyball-yellow))',
+				'volleyball-purple': 'hsl(var(--volleyball-purple))',
+				'skill-elite': 'hsl(var(--skill-elite))',
+				'skill-expert': 'hsl(var(--skill-expert))',
+				'skill-advanced': 'hsl(var(--skill-advanced))',
+				'skill-intermediate': 'hsl(var(--skill-intermediate))',
+				'skill-beginner': 'hsl(var(--skill-beginner))',
+				'skill-recreational': 'hsl(var(--skill-recreational))'
 			},
 			borderRadius: {
 				lg: 'var(--radius)',

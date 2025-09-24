@@ -16,11 +16,17 @@ const badgeVariants = cva(
           "border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80",
         outline: "text-foreground",
         warning:
-          "border-transparent bg-orange-500 text-white hover:bg-orange-600",
+          "border-transparent bg-skill-intermediate text-white hover:bg-skill-intermediate/80",
         info:
-          "border-transparent bg-blue-500 text-white hover:bg-blue-600",
+          "border-transparent bg-skill-beginner text-white hover:bg-skill-beginner/80",
         purple:
-          "border-transparent bg-purple-500 text-white hover:bg-purple-600",
+          "border-transparent bg-skill-expert text-white hover:bg-skill-expert/80",
+        elite:
+          "border-transparent bg-skill-elite text-white hover:bg-skill-elite/80",
+        advanced:
+          "border-transparent bg-skill-advanced text-white hover:bg-skill-advanced/80",
+        recreational:
+          "border-transparent bg-skill-recreational text-white hover:bg-skill-recreational/80",
       },
     },
     defaultVariants: {
