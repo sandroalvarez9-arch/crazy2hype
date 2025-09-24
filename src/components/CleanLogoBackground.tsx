@@ -9,8 +9,7 @@ const CleanLogoBackground = () => {
         className="w-full h-full object-contain"
         style={{
           filter: 'invert(1)',
-          opacity: 0.12,
-          mixBlendMode: 'screen'
+          opacity: 0.15
         }}
       />
     </div>
