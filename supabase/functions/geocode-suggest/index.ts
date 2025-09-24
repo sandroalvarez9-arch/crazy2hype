@@ -28,8 +28,11 @@ serve(async (req) => {
     }
 
     const url = new URL(`https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json`);
-    url.searchParams.set("limit", "5");
-    url.searchParams.set("types", "place,postcode,locality,region,address,poi");
+    url.searchParams.set("limit", "8");
+    // Prioritize POIs (parks, venues, facilities) and addresses
+    url.searchParams.set("types", "poi,address,place,locality");
+    // Add categories to prioritize recreational facilities
+    url.searchParams.set("category", "park,sports_complex,stadium,recreation,gym,community_center");
     url.searchParams.set("access_token", token);
 
     const resp = await fetch(url.toString());

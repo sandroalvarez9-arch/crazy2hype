@@ -58,7 +58,7 @@ interface LocationAutocompleteInputProps {
   placeholder?: string;
 }
 
-export function LocationAutocompleteInput({ value, onChange, placeholder = "City, address, or ZIP" }: LocationAutocompleteInputProps) {
+export function LocationAutocompleteInput({ value, onChange, placeholder = "Search parks, venues, or addresses" }: LocationAutocompleteInputProps) {
   const [query, setQuery] = React.useState<string>(value || "");
   const [open, setOpen] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
@@ -129,10 +129,18 @@ export function LocationAutocompleteInput({ value, onChange, placeholder = "City
           )}
         </div>
       </PopoverTrigger>
-      <PopoverContent className="w-[320px] p-0" align="start" onOpenAutoFocus={(e) => e.preventDefault()}>
+      <PopoverContent className="w-[380px] p-0" align="start" onOpenAutoFocus={(e) => e.preventDefault()}>
         <Command>
           <CommandList>
-            <CommandEmpty>No results</CommandEmpty>
+            <CommandEmpty>
+              <div className="py-6 text-center text-sm">
+                <MapPin className="mx-auto h-8 w-8 text-muted-foreground mb-2" />
+                <p>No locations found</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Try searching for park names, venue names, or addresses
+                </p>
+              </div>
+            </CommandEmpty>
             {suggestions.map((s) => (
               <CommandItem
                 key={s.id}
@@ -142,10 +150,17 @@ export function LocationAutocompleteInput({ value, onChange, placeholder = "City
                   setQuery(s.place_name);
                   setOpen(false);
                 }}
-                className="cursor-pointer"
+                className="cursor-pointer py-3"
               >
-                <MapPin className="mr-2 h-4 w-4 text-muted-foreground" />
-                <span className="truncate">{s.place_name}</span>
+                <MapPin className="mr-3 h-4 w-4 text-muted-foreground shrink-0" />
+                <div className="flex flex-col min-w-0">
+                  <span className="truncate font-medium">{s.place_name.split(',')[0]}</span>
+                  {s.place_name.includes(',') && (
+                    <span className="truncate text-xs text-muted-foreground">
+                      {s.place_name.split(',').slice(1).join(',').trim()}
+                    </span>
+                  )}
+                </div>
               </CommandItem>
             ))}
           </CommandList>
