@@ -193,16 +193,16 @@ All colors MUST be HSL.
   .logo-bg-header::before {
     content: '';
     position: absolute;
-    top: 20px;
-    right: -50px;
-    width: 150px;
-    height: 150px;
-    background-image: url('/src/assets/block-nation-logo.png');
+    top: 10px;
+    right: -30px;
+    width: 120px;
+    height: 120px;
     background-size: contain;
     background-repeat: no-repeat;
     background-position: center;
-    opacity: 0.05;
+    opacity: 0.08;
     z-index: 0;
+    transform: rotate(15deg);
   }
   
   .logo-bg-header > * {

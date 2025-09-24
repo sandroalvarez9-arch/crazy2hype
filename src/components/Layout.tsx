@@ -60,8 +60,12 @@ const Layout = ({ children }: LayoutProps) => {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="sticky top-0 z-40 border-b border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60 shadow-elegant logo-bg-header">
+      <header className="sticky top-0 z-40 border-b border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60 shadow-elegant relative">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+          {/* Background logo */}
+          <div className="absolute top-2 right-4 opacity-5 pointer-events-none z-0">
+            <img src={blockNationLogo} alt="" className="h-20 w-20 transform rotate-12" />
+          </div>
           <div className="flex items-center space-x-4">
             {isMobile && <MobileMenu />}
             <Link to="/" className="flex items-center space-x-3 hover-scale">
