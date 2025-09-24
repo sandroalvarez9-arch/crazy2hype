@@ -46,8 +46,12 @@ serve(async (req) => {
       .from("profiles")
       .select("stripe_account_id, stripe_connected, stripe_charges_enabled")
       .eq("user_id", tournament.organizer_id)
-      .single();
+      .maybeSingle();
+    
     if (pErr) throw new Error(`Organizer profile error: ${pErr.message}`);
+    if (!organizerProfile) {
+      throw new Error("Organizer profile not found. Please ensure the tournament organizer has a complete profile.");
+    }
     if (!organizerProfile?.stripe_account_id || organizerProfile.stripe_connected !== true) {
       throw new Error("Organizer hasn't connected Stripe to receive payments");
     }
