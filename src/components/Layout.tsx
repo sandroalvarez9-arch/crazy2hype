@@ -59,7 +59,12 @@ const Layout = ({ children }: LayoutProps) => {
   );
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background relative">
+      {/* Full-size shaded logo background */}
+      <div className="page-logo-bg">
+        <img src={blockNationLogo} alt="" className="w-full h-full object-contain" />
+      </div>
+      
       <header className="sticky top-0 z-40 border-b border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60 shadow-elegant relative">
         <div className="container mx-auto px-4 py-6 flex items-center justify-between">
           <div className="flex items-center space-x-4">
@@ -140,7 +145,7 @@ const Layout = ({ children }: LayoutProps) => {
         </div>
       </header>
       
-      <main className={`${isMobile ? 'pb-20' : ''}`}>
+      <main className={`relative z-10 ${isMobile ? 'pb-20' : ''}`}>
         {children}
       </main>
       
