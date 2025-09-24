@@ -44,6 +44,7 @@ const Index = () => {
           teams(count)
         `)
         .eq('status', 'open')
+        .gte('end_date', new Date().toISOString())
         .order('start_date', { ascending: true })
         .limit(6);
 
