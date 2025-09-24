@@ -8,9 +8,8 @@ const CleanLogoBackground = () => {
         alt="" 
         className="w-full h-full object-contain"
         style={{
-          filter: 'brightness(10) contrast(1.5) saturate(0)',
-          mixBlendMode: 'overlay',
-          opacity: 0.15
+          filter: 'invert(1) brightness(2) contrast(0.5)',
+          opacity: 0.1
         }}
       />
     </div>
