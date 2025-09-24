@@ -13,8 +13,8 @@ import { format } from 'date-fns';
 import TeamRegistrationDialog from '@/components/TeamRegistrationDialog';
 import TeamCheckInDialog from '@/components/TeamCheckInDialog';
 import { TeamScheduleView } from '@/components/TeamScheduleView';
-import { formatSkillLevel, getSkillLevelBadgeVariant } from '@/utils/skillLevels';
 import { useToast } from '@/hooks/use-toast';
+import { formatSkillLevel, getSkillLevelBadgeVariant } from '@/utils/skillLevels';
 
 interface Tournament {
   id: string;
