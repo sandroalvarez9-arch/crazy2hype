@@ -21,6 +21,7 @@ import EditTournamentDetailsDialog from "@/components/EditTournamentDetailsDialo
 import EditCapacityDialog from "@/components/EditCapacityDialog";
 import { TournamentTestingDashboard } from "@/components/TournamentTestingDashboard";
 import { TournamentDayDashboard } from "@/components/TournamentDayDashboard";
+import { formatSkillLevel, getSkillLevelBadgeVariant } from "@/utils/skillLevels";
 
 interface Tournament {
   id: string;
@@ -113,12 +114,14 @@ export default function TournamentManagement() {
         return;
       }
 
-      // Fetch teams
+      // Fetch teams ordered by skill level first, then by name
       const { data: teamsData, error: teamsError } = await supabase
         .from("teams")
         .select("*")
         .eq("tournament_id", id)
-        .eq("is_backup", false);
+        .eq("is_backup", false)
+        .order("skill_level", { ascending: true })
+        .order("name", { ascending: true });
 
       if (teamsError) throw teamsError;
       setTeams(teamsData || []);
@@ -389,7 +392,19 @@ export default function TournamentManagement() {
                 {teams.map((team) => (
                   <div key={team.id} className="flex flex-col gap-3 p-3 sm:p-4 border rounded-lg sm:flex-row sm:items-center sm:justify-between">
                     <div className="min-w-0 flex-1">
-                      <h3 className="font-medium text-sm sm:text-base break-words">{team.name}</h3>
+                      <div className="flex items-center gap-2 mb-1">
+                        <h3 className="font-medium text-sm sm:text-base break-words">{team.name}</h3>
+                        {team.skill_level && (
+                          <Badge variant={getSkillLevelBadgeVariant(team.skill_level as any)} className="text-xs">
+                            {formatSkillLevel(team.skill_level as any)}
+                          </Badge>
+                        )}
+                        {team.division && (
+                          <Badge variant="outline" className="text-xs">
+                            {team.division.toUpperCase()}
+                          </Badge>
+                        )}
+                      </div>
                       <p className="text-xs sm:text-sm text-muted-foreground break-words">
                         {team.players_count} players • {team.contact_email}
                       </p>

@@ -123,7 +123,8 @@ const TournamentDetails = () => {
           captain:profiles_public!teams_captain_id_fkey(username, first_name, last_name)
         `)
         .eq('tournament_id', id)
-        .order('name');
+        .order('skill_level', { ascending: true })
+        .order('name', { ascending: true });
 
       if (error) throw error;
       setTeams(data || []);
