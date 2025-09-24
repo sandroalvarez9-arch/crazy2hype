@@ -14,6 +14,7 @@ import TeamRegistrationDialog from '@/components/TeamRegistrationDialog';
 import TeamCheckInDialog from '@/components/TeamCheckInDialog';
 import { TeamScheduleView } from '@/components/TeamScheduleView';
 import { formatSkillLevel, getSkillLevelBadgeVariant } from '@/utils/skillLevels';
+import { useToast } from '@/hooks/use-toast';
 
 interface Tournament {
   id: string;
@@ -74,6 +75,7 @@ const TournamentDetails = () => {
   const { user, profile } = useAuth();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
+  const { toast } = useToast();
   const [tournament, setTournament] = useState<Tournament | null>(null);
   const [teams, setTeams] = useState<Team[]>([]);
   const [loading, setLoading] = useState(true);
@@ -166,14 +168,21 @@ const TournamentDetails = () => {
     try {
       setPaying(true);
       const { data, error } = await supabase.functions.invoke('create-payment', {
-        body: { tournamentId: tournament.id, priceId: 'price_1Rv921CG0oWhnsaKrFJCIxin' },
+        body: { tournamentId: tournament.id },
       });
       if (error) throw error as any;
       if ((data as any)?.url) {
         window.open((data as any).url as string, '_blank');
+      } else {
+        throw new Error('No payment URL received');
       }
     } catch (e) {
       console.error('Stripe checkout error:', e);
+      toast({
+        title: "Payment Error",
+        description: "Failed to initiate payment. Please try again or contact support.",
+        variant: "destructive",
+      });
     } finally {
       setPaying(false);
     }
