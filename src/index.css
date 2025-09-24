@@ -184,6 +184,32 @@ All colors MUST be HSL.
     border: 1px solid rgba(255, 255, 255, 0.2);
   }
   
+  /* Logo background utilities */
+  .logo-bg-header {
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .logo-bg-header::before {
+    content: '';
+    position: absolute;
+    top: 20px;
+    right: -50px;
+    width: 150px;
+    height: 150px;
+    background-image: url('/src/assets/block-nation-logo.png');
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    opacity: 0.05;
+    z-index: 0;
+  }
+  
+  .logo-bg-header > * {
+    position: relative;
+    z-index: 1;
+  }
+  
   /* Hide scrollbar for horizontal scroll */
   .scrollbar-hide {
     -ms-overflow-style: none;  /* IE and Edge */
