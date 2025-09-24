@@ -54,6 +54,9 @@ export async function advanceWinnerToNextRound(completedMatchId: string): Promis
     // Determine which team slot the winner should fill
     await updateNextRoundMatch(nextRoundMatch, completedMatch);
 
+    // Check if this was a semi-final and assign referee to final
+    await assignRefereeToFinal(completedMatch, nextRoundMatch);
+
   } catch (error) {
     console.error('💥 Error advancing winner:', error);
   }
@@ -136,5 +139,50 @@ async function updateNextRoundMatch(nextMatch: any, completedMatch: any): Promis
     console.error('❌ Error updating next round match:', error);
   } else {
     console.log('✅ Successfully advanced winner to', nextMatch.bracket_position);
+  }
+}
+
+async function assignRefereeToFinal(completedMatch: any, nextRoundMatch: any): Promise<void> {
+  // Check if the next round match is the final (no further rounds exist)
+  const { data: finalRoundCheck, error: finalCheckError } = await supabase
+    .from('matches')
+    .select('id')
+    .eq('tournament_id', completedMatch.tournament_id)
+    .eq('tournament_phase', 'playoffs')
+    .eq('division', completedMatch.division)
+    .eq('skill_level', completedMatch.skill_level)
+    .eq('round_number', nextRoundMatch.round_number + 1)
+    .limit(1);
+
+  if (finalCheckError) {
+    console.error('❌ Error checking for final round:', finalCheckError);
+    return;
+  }
+
+  // If no matches exist in the next round, then nextRoundMatch is the final
+  const isFinal = !finalRoundCheck || finalRoundCheck.length === 0;
+
+  if (isFinal && !nextRoundMatch.referee_team_id) {
+    // Get the losing team from this semi-final match
+    const losingTeamId = completedMatch.team1_id === completedMatch.winner_id 
+      ? completedMatch.team2_id 
+      : completedMatch.team1_id;
+
+    console.log('🏁 Assigning referee to final match:', {
+      finalMatchId: nextRoundMatch.id,
+      refereeTeamId: losingTeamId,
+      semiCompletedMatch: completedMatch.id
+    });
+
+    const { error: refereeError } = await supabase
+      .from('matches')
+      .update({ referee_team_id: losingTeamId })
+      .eq('id', nextRoundMatch.id);
+
+    if (refereeError) {
+      console.error('❌ Error assigning referee to final:', refereeError);
+    } else {
+      console.log('✅ Successfully assigned referee to final match');
+    }
   }
 }
