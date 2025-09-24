@@ -197,7 +197,8 @@ All colors MUST be HSL.
     opacity: 1;
     z-index: 0;
     pointer-events: none;
-    background: hsl(var(--background));
+    background: transparent;
+    overflow: hidden;
   }
   
   .logo-bg-header > * {
