@@ -52,14 +52,21 @@ All colors MUST be HSL.
     --volleyball-blue: 213 94% 68%;
     --volleyball-green: 142 76% 36%;
     --volleyball-yellow: 48 100% 67%;
+    --volleyball-purple: 268 83% 58%;
     
-    /* Gradients */
+    /* Enhanced gradients */
     --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--volleyball-blue)));
-    --gradient-hero: linear-gradient(135deg, hsl(var(--volleyball-orange)), hsl(var(--primary)));
+    --gradient-hero: linear-gradient(135deg, hsl(var(--volleyball-orange)) 0%, hsl(var(--volleyball-purple)) 50%, hsl(var(--primary)) 100%);
+    --gradient-card: linear-gradient(145deg, hsl(var(--card)) 0%, hsl(var(--muted)) 100%);
     
-    /* Shadows */
-    --shadow-elegant: 0 10px 30px -10px hsl(var(--primary) / 0.3);
-    --shadow-card: 0 4px 12px -2px hsl(var(--primary) / 0.1);
+    /* Enhanced shadows */
+    --shadow-elegant: 0 20px 40px -12px hsl(var(--primary) / 0.25);
+    --shadow-card: 0 8px 25px -8px hsl(var(--primary) / 0.15);
+    --shadow-glow: 0 0 30px hsl(var(--primary) / 0.3);
+    
+    /* Animation variables */
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-bounce: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
   }
 
   .dark {
@@ -102,11 +109,13 @@ All colors MUST be HSL.
     
     /* Update gradients for dark mode */
     --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--volleyball-blue)));
-    --gradient-hero: linear-gradient(135deg, hsl(var(--volleyball-orange)), hsl(var(--primary)));
+    --gradient-hero: linear-gradient(135deg, hsl(var(--volleyball-orange)) 0%, hsl(var(--volleyball-purple)) 50%, hsl(var(--primary)) 100%);
+    --gradient-card: linear-gradient(145deg, hsl(var(--card)) 0%, hsl(var(--muted)) 100%);
     
     /* Update shadows for dark mode */
-    --shadow-elegant: 0 10px 30px -10px hsl(var(--primary) / 0.4);
-    --shadow-card: 0 4px 12px -2px hsl(var(--primary) / 0.2);
+    --shadow-elegant: 0 20px 40px -12px hsl(var(--primary) / 0.35);
+    --shadow-card: 0 8px 25px -8px hsl(var(--primary) / 0.25);
+    --shadow-glow: 0 0 30px hsl(var(--primary) / 0.4);
   }
 }
 
@@ -130,7 +139,11 @@ All colors MUST be HSL.
   }
   
   .hover-scale {
-    @apply transition-transform duration-200 hover:scale-105;
+    transition: var(--transition-bounce);
+  }
+  
+  .hover-scale:hover {
+    transform: scale(1.05);
   }
   
   .gradient-primary {
@@ -141,12 +154,26 @@ All colors MUST be HSL.
     background: var(--gradient-hero);
   }
   
+  .gradient-card {
+    background: var(--gradient-card);
+  }
+  
   .shadow-elegant {
     box-shadow: var(--shadow-elegant);
   }
   
   .shadow-card {
     box-shadow: var(--shadow-card);
+  }
+  
+  .shadow-glow {
+    box-shadow: var(--shadow-glow);
+  }
+  
+  .glass {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
   }
   
   /* Hide scrollbar for horizontal scroll */

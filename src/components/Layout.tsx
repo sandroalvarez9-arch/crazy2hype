@@ -8,6 +8,7 @@ import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import MobileNavigation from './MobileNavigation';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import blockNationLogo from '@/assets/block-nation-logo.png';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -59,12 +60,15 @@ const Layout = ({ children }: LayoutProps) => {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="sticky top-0 z-40 border-b border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60">
-        <div className="container mx-auto px-4 py-3 flex items-center justify-between">
+      <header className="sticky top-0 z-40 border-b border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60 shadow-elegant">
+        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center space-x-4">
             {isMobile && <MobileMenu />}
-            <Link to="/" className="text-xl font-bold gradient-hero bg-clip-text text-transparent">
-              VolleyTournament
+            <Link to="/" className="flex items-center space-x-3 hover-scale">
+              <img src={blockNationLogo} alt="Block Nation" className="h-10 w-10" />
+              <span className="text-xl font-bold gradient-hero bg-clip-text text-transparent">
+                Block Nation
+              </span>
             </Link>
           </div>
           

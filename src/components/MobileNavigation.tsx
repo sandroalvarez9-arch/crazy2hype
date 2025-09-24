@@ -3,6 +3,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { Link, useLocation } from 'react-router-dom';
 import { Home, Trophy, Plus, User, Calendar } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import blockNationLogo from '@/assets/block-nation-logo.png';
 
 const MobileNavigation = () => {
   const { user } = useAuth();
@@ -20,7 +21,10 @@ const MobileNavigation = () => {
   ];
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border">
+    <div className="fixed bottom-0 left-0 right-0 z-50 bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/90 border-t border-border shadow-elegant">
+      <div className="flex justify-center py-1">
+        <img src={blockNationLogo} alt="Block Nation" className="h-6 w-6 opacity-50" />
+      </div>
       <nav className="flex justify-around items-center h-16 px-2">
         {navItems.map((item) => {
           const isActive = location.pathname === item.path;
