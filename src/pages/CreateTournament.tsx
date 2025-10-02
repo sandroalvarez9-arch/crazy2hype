@@ -235,22 +235,29 @@ const CreateTournament = () => {
       const inIframe = window.self !== window.top;
       
       if (inIframe) {
-        // In iframe: redirect parent window to avoid Stripe iframe blocking
-        console.log('In iframe, redirecting parent window');
-        window.top!.location.href = data.url;
+        // In iframe: We can't redirect due to cross-origin restrictions
+        // Show user-friendly message with instructions
+        toast({
+          title: '🚀 Open App in New Tab',
+          description: 'To connect Stripe, please open your app in a new tab by clicking "Open in new tab" in the top right corner, then try connecting again.',
+          duration: 8000,
+        });
+        // Still try to open in new window as backup
+        window.open(data.url, '_blank', 'noopener');
+        return;
+      }
+      
+      // Not in iframe: try popup first, fallback to redirect
+      const w = window.open(data.url, '_blank', 'noopener');
+      if (!w) {
+        console.log('Popup blocked, redirecting same tab');
+        window.location.href = data.url;
       } else {
-        // Not in iframe: try popup first, fallback to redirect
-        const w = window.open(data.url, '_blank', 'noopener');
-        if (!w) {
-          console.log('Popup blocked, redirecting same tab');
-          window.location.href = data.url;
-        } else {
-          console.log('Opened Stripe in new tab:', data.url);
-          toast({
-            title: 'Opening Stripe…',
-            description: 'Complete the connection in the new tab, then return here.',
-          });
-        }
+        console.log('Opened Stripe in new tab:', data.url);
+        toast({
+          title: 'Opening Stripe…',
+          description: 'Complete the connection in the new tab, then return here.',
+        });
       }
     } catch (e: any) {
       console.error('connectStripe error:', e);
