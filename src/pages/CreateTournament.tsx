@@ -230,17 +230,27 @@ const CreateTournament = () => {
       if (error || !data?.url) {
         throw new Error(error?.message || 'Failed to create Stripe connect link');
       }
-      // Open Stripe connect in a new tab. If blocked, fallback to same tab.
-      const w = window.open(data.url, '_blank', 'noopener');
-      if (!w) {
-        console.log('Popup blocked, redirecting same tab');
-        window.location.href = data.url;
+      
+      // Check if we're in an iframe (like Lovable editor preview)
+      const inIframe = window.self !== window.top;
+      
+      if (inIframe) {
+        // In iframe: redirect parent window to avoid Stripe iframe blocking
+        console.log('In iframe, redirecting parent window');
+        window.top!.location.href = data.url;
       } else {
-        console.log('Opened Stripe in new tab:', data.url);
-        toast({
-          title: 'Opening Stripe…',
-          description: 'Complete the connection in the new tab, then return here.',
-        });
+        // Not in iframe: try popup first, fallback to redirect
+        const w = window.open(data.url, '_blank', 'noopener');
+        if (!w) {
+          console.log('Popup blocked, redirecting same tab');
+          window.location.href = data.url;
+        } else {
+          console.log('Opened Stripe in new tab:', data.url);
+          toast({
+            title: 'Opening Stripe…',
+            description: 'Complete the connection in the new tab, then return here.',
+          });
+        }
       }
     } catch (e: any) {
       console.error('connectStripe error:', e);
