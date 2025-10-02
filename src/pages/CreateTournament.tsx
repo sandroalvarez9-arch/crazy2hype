@@ -69,6 +69,8 @@ const CreateTournament = () => {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [stripeConnected, setStripeConnected] = useState<boolean | null>(null);
+  const [isCheckingStripe, setIsCheckingStripe] = useState(false);
+  const stripeCheckTimeoutRef = React.useRef<number | null>(null);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -108,14 +110,13 @@ const CreateTournament = () => {
     }
   }, []);
 
-  // Optimistically apply local stripe_connected flag on mount
+  // Optimistically apply local stripe_connected flag on mount (but don't check immediately)
   React.useEffect(() => {
     try {
       const flag = localStorage.getItem(STRIPE_CONNECTED_KEY);
       if (flag === 'true') {
-        console.log('Found stripe_connected flag in localStorage; refreshing status');
+        console.log('Found stripe_connected flag in localStorage');
         setStripeConnected(true);
-        setTimeout(() => checkStripeStatus(), 500);
       }
     } catch {}
   }, []);
@@ -132,21 +133,33 @@ const CreateTournament = () => {
     return () => subscription.unsubscribe();
   }, [form]);
 
-  // Listen for Stripe connection signal from callback tab
+  // Listen for Stripe connection signal from callback tab (debounced)
   React.useEffect(() => {
     const onStorage = (e: StorageEvent) => {
-      console.log('localStorage event:', e.key, e.newValue);
-      if (e.key === STRIPE_CONNECTED_KEY && e.newValue === 'true') {
+      // Only react to the specific stripe connected key changing to true
+      if (e.key === STRIPE_CONNECTED_KEY && e.newValue === 'true' && e.oldValue !== 'true') {
         console.log('✅ Stripe connected signal received!');
         setStripeConnected(true);
-        toast({ title: 'Stripe connected', description: 'You can now submit your tournament.' });
-        // Re-check from database to be sure
-        setTimeout(() => checkStripeStatus(), 1000);
+        
+        // Debounce the status check - clear any pending check
+        if (stripeCheckTimeoutRef.current) {
+          clearTimeout(stripeCheckTimeoutRef.current);
+        }
+        
+        // Schedule a single check after user activity settles
+        stripeCheckTimeoutRef.current = window.setTimeout(() => {
+          checkStripeStatus(true); // Pass true to suppress redundant toasts
+        }, 2000);
       }
     };
     window.addEventListener('storage', onStorage);
-    return () => window.removeEventListener('storage', onStorage);
-  }, [toast]);
+    return () => {
+      window.removeEventListener('storage', onStorage);
+      if (stripeCheckTimeoutRef.current) {
+        clearTimeout(stripeCheckTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Watch skill levels to update max_teams_per_skill_level
   const watchedSkillLevels = form.watch('skill_levels');
@@ -269,8 +282,16 @@ const CreateTournament = () => {
     }
   };
 
-  const checkStripeStatus = async () => {
+  const checkStripeStatus = async (silent = false) => {
     if (!user) return;
+    
+    // Prevent multiple simultaneous checks
+    if (isCheckingStripe) {
+      console.log('Stripe check already in progress, skipping...');
+      return;
+    }
+    
+    setIsCheckingStripe(true);
     console.log('🔍 Checking Stripe status for user:', user.id);
     
     try {
@@ -285,30 +306,28 @@ const CreateTournament = () => {
       
       console.log('Stripe verification response:', data);
       const isConnected = Boolean(data?.connected && data?.charges_enabled);
+      const previousState = stripeConnected;
+      
       console.log('Setting stripeConnected to:', isConnected);
       setStripeConnected(isConnected);
       
       // Store in localStorage for persistence
       localStorage.setItem(STRIPE_CONNECTED_KEY, JSON.stringify(isConnected));
       
-      // Show clear status feedback
-      if (data?.connected && data?.charges_enabled) {
-        toast({
-          title: '✅ Stripe Connected & Ready',
-          description: 'Your Stripe account is fully set up and ready to accept payments!',
-        });
-      } else if (data?.connected && !data?.charges_enabled) {
-        toast({
-          title: '⚠️ Stripe Setup Incomplete',
-          description: 'Your Stripe account is connected but needs to complete onboarding. Click "Connect with Stripe" to finish setup.',
-          variant: 'default',
-        });
-      } else {
-        toast({
-          title: '❌ Stripe Not Connected',
-          description: 'Click "Connect with Stripe" to set up payment processing.',
-          variant: 'default',
-        });
+      // Only show toast if status changed and not in silent mode
+      if (!silent && previousState !== isConnected) {
+        if (data?.connected && data?.charges_enabled) {
+          toast({
+            title: '✅ Stripe Connected',
+            description: 'Ready to accept payments!',
+          });
+        } else if (data?.connected && !data?.charges_enabled) {
+          toast({
+            title: '⚠️ Setup Incomplete',
+            description: 'Complete Stripe onboarding to accept payments.',
+            variant: 'default',
+          });
+        }
       }
       
     } catch (err) {
@@ -323,11 +342,16 @@ const CreateTournament = () => {
       const isConnected = Boolean(data?.stripe_connected && data?.stripe_account_id);
       console.log('Fallback - Setting stripeConnected to:', isConnected);
       setStripeConnected(isConnected);
+    } finally {
+      setIsCheckingStripe(false);
     }
   };
 
+  // Check Stripe status once on mount when user is available
   React.useEffect(() => {
-    checkStripeStatus();
+    if (user && stripeConnected === null) {
+      checkStripeStatus(true); // Silent check on initial load
+    }
   }, [user]);
 
   const onSubmit = async (values: FormValues) => {
@@ -436,7 +460,7 @@ const CreateTournament = () => {
             <Button onClick={connectStripe} className="bg-amber-600 hover:bg-amber-700 text-white">
               Connect with Stripe
             </Button>
-            <Button variant="outline" onClick={checkStripeStatus}>
+            <Button variant="outline" onClick={() => checkStripeStatus(false)}>
               Check Connection Status
             </Button>
           </div>
