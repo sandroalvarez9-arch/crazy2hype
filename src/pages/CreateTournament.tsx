@@ -14,7 +14,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon, ArrowLeft, Trophy, Clock, AlertTriangle } from 'lucide-react';
+import { CalendarIcon, ArrowLeft, Trophy, Clock, AlertTriangle, CheckCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
@@ -267,21 +267,30 @@ const CreateTournament = () => {
       }
       
       console.log('Stripe verification response:', data);
-      const isConnected = Boolean(data?.connected);
+      const isConnected = Boolean(data?.connected && data?.charges_enabled);
       console.log('Setting stripeConnected to:', isConnected);
       setStripeConnected(isConnected);
       
-      // Show helpful toast messages
-      if (isConnected && data?.charges_enabled) {
+      // Store in localStorage for persistence
+      localStorage.setItem(STRIPE_CONNECTED_KEY, JSON.stringify(isConnected));
+      
+      // Show clear status feedback
+      if (data?.connected && data?.charges_enabled) {
         toast({
-          title: 'Stripe Connected ✓',
-          description: 'Your Stripe account is verified and ready to accept payments.',
+          title: '✅ Stripe Connected & Ready',
+          description: 'Your Stripe account is fully set up and ready to accept payments!',
         });
-      } else if (isConnected && !data?.charges_enabled) {
+      } else if (data?.connected && !data?.charges_enabled) {
         toast({
-          title: 'Stripe Connected - Setup Incomplete',
-          description: 'Please complete your Stripe account setup to accept payments.',
-          variant: 'destructive',
+          title: '⚠️ Stripe Setup Incomplete',
+          description: 'Your Stripe account is connected but needs to complete onboarding. Click "Connect with Stripe" to finish setup.',
+          variant: 'default',
+        });
+      } else {
+        toast({
+          title: '❌ Stripe Not Connected',
+          description: 'Click "Connect with Stripe" to set up payment processing.',
+          variant: 'default',
         });
       }
       
@@ -383,6 +392,16 @@ const CreateTournament = () => {
           Set up your volleyball tournament with all the details
         </p>
       </div>
+
+      {stripeConnected === true && (
+        <Alert className="mb-6 bg-green-50 border-green-200">
+          <CheckCircle className="h-4 w-4 text-green-600" />
+          <AlertTitle className="text-green-900">✅ Stripe Connected & Ready</AlertTitle>
+          <AlertDescription className="text-green-800">
+            Your Stripe account is fully connected and ready to accept payments. Your tournament will be published immediately after creation.
+          </AlertDescription>
+        </Alert>
+      )}
 
       {stripeConnected === false && (
         <Alert className="mb-6 bg-amber-50 border-amber-200">
