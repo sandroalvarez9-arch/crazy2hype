@@ -581,6 +581,7 @@ export type Database = {
           points_per_set: number | null
           pool_play_format: Json | null
           pools_per_skill_level: Json | null
+          published: boolean
           registration_deadline: string
           sets_per_game: number | null
           skill_levels: string[] | null
@@ -627,6 +628,7 @@ export type Database = {
           points_per_set?: number | null
           pool_play_format?: Json | null
           pools_per_skill_level?: Json | null
+          published?: boolean
           registration_deadline: string
           sets_per_game?: number | null
           skill_levels?: string[] | null
@@ -673,6 +675,7 @@ export type Database = {
           points_per_set?: number | null
           pool_play_format?: Json | null
           pools_per_skill_level?: Json | null
+          published?: boolean
           registration_deadline?: string
           sets_per_game?: number | null
           skill_levels?: string[] | null

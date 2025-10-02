@@ -27,6 +27,7 @@ interface Tournament {
   id: string;
   title: string;
   status: string;
+  published: boolean;
   max_teams: number;
   check_in_deadline: string | null;
   bracket_version: number;
@@ -50,6 +51,7 @@ interface Tournament {
   game_format_locked: boolean;
   entry_fee: number;
   location?: string | null;
+  organizer_id?: string;
 }
 
 interface Team {
@@ -88,12 +90,29 @@ export default function TournamentManagement() {
   const [loading, setLoading] = useState(true);
   const [isOrganizer, setIsOrganizer] = useState(false);
   const [activeTab, setActiveTab] = useState("teams");
+  const [stripeConnected, setStripeConnected] = useState(false);
+  const [publishingTournament, setPublishingTournament] = useState(false);
 
   useEffect(() => {
     if (id && user) {
       fetchTournamentData();
+      checkStripeStatus();
     }
   }, [id, user]);
+
+  const checkStripeStatus = async () => {
+    try {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('stripe_connected, stripe_charges_enabled')
+        .eq('user_id', user?.id)
+        .single();
+      
+      setStripeConnected(profile?.stripe_connected && profile?.stripe_charges_enabled);
+    } catch (error) {
+      console.error('Error checking Stripe status:', error);
+    }
+  };
 
   const fetchTournamentData = async () => {
     try {
@@ -271,6 +290,50 @@ export default function TournamentManagement() {
     }
   };
 
+  const publishTournament = async () => {
+    if (!stripeConnected) {
+      toast({
+        title: "Stripe Not Connected",
+        description: "Please connect your Stripe account before publishing the tournament.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setPublishingTournament(true);
+    try {
+      const { error } = await supabase
+        .from('tournaments')
+        .update({ 
+          status: 'open',
+          published: true 
+        })
+        .eq('id', id);
+
+      if (error) throw error;
+
+      await supabase.rpc('log_tournament_action', {
+        tournament_id: id,
+        action: 'tournament_published',
+        details: {}
+      });
+
+      await fetchTournamentData();
+      toast({
+        title: "Success",
+        description: "Tournament has been published and is now visible to participants!",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to publish tournament",
+        variant: "destructive",
+      });
+    } finally {
+      setPublishingTournament(false);
+    }
+  };
+
   if (!user) {
     return <Navigate to="/auth" replace />;
   }
@@ -295,11 +358,33 @@ export default function TournamentManagement() {
     <div className="container mx-auto p-3 sm:p-6">
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0 flex-1">
-          <h1 className="text-2xl sm:text-3xl font-bold break-words">{tournament?.title} - Management</h1>
+          <div className="flex items-center gap-2 mb-2">
+            <h1 className="text-2xl sm:text-3xl font-bold break-words">{tournament?.title} - Management</h1>
+            {tournament?.status === 'draft' && (
+              <Badge variant="secondary" className="text-xs">DRAFT</Badge>
+            )}
+            {tournament?.published && (
+              <Badge variant="default" className="text-xs bg-green-600">LIVE</Badge>
+            )}
+          </div>
           <p className="text-sm sm:text-base text-muted-foreground">Manage teams, check-ins, communications, and logistics</p>
+          {tournament?.status === 'draft' && !tournament?.published && (
+            <p className="text-sm text-amber-600 mt-1">
+              This tournament is not yet visible to the public. {stripeConnected ? 'Click "Publish Tournament" to make it live.' : 'Connect Stripe to publish it.'}
+            </p>
+          )}
         </div>
         {tournament && (
           <div className="flex flex-col gap-2 sm:flex-row sm:gap-2 sm:shrink-0">
+            {tournament.status === 'draft' && !tournament.published && (
+              <Button
+                onClick={publishTournament}
+                disabled={!stripeConnected || publishingTournament}
+                className="bg-green-600 hover:bg-green-700"
+              >
+                {publishingTournament ? 'Publishing...' : 'Publish Tournament'}
+              </Button>
+            )}
             <EditCapacityDialog
               tournament={{
                 id: tournament.id,

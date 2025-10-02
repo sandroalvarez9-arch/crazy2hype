@@ -14,7 +14,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon, ArrowLeft, Trophy, Clock } from 'lucide-react';
+import { CalendarIcon, ArrowLeft, Trophy, Clock, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
@@ -307,19 +307,9 @@ const CreateTournament = () => {
   const onSubmit = async (values: FormValues) => {
     if (!user) return;
 
-    // Hard block if Stripe not connected
-    if (!stripeConnected) {
-      toast({
-        title: 'Connect Stripe to create a tournament',
-        description: 'Hosts must connect a Stripe account to receive payments (5% platform fee applies).',
-        variant: 'destructive',
-      });
-      await connectStripe();
-      return;
-    }
-
     setIsSubmitting(true);
     try {
+      // Allow creation without Stripe, but save as draft if not connected
       const { data, error } = await supabase
         .from('tournaments')
         .insert({
@@ -343,6 +333,8 @@ const CreateTournament = () => {
           players_per_team: values.players_per_team,
           entry_fee: values.entry_fee,
           organizer_id: user.id,
+          status: stripeConnected ? 'open' : 'draft',
+          published: stripeConnected,
         })
         .select()
         .single();
@@ -351,7 +343,9 @@ const CreateTournament = () => {
 
       toast({
         title: "Tournament created successfully!",
-        description: "Your tournament has been created and is now open for registrations.",
+        description: stripeConnected 
+          ? "Your tournament has been published and is now open for registrations." 
+          : "Tournament saved as draft. Connect Stripe to publish it.",
       });
 
       // Clear draft after successful creation
@@ -391,17 +385,19 @@ const CreateTournament = () => {
       </div>
 
       {stripeConnected === false && (
-        <Alert className="mb-6">
-          <AlertTitle>Connect Stripe to accept payments</AlertTitle>
-          <AlertDescription>
-            Hosts must connect a Stripe Standard account to receive entry fees. A 5% platform fee applies.
+        <Alert className="mb-6 bg-amber-50 border-amber-200">
+          <AlertTriangle className="h-4 w-4 text-amber-600" />
+          <AlertTitle className="text-amber-900">Stripe Not Connected</AlertTitle>
+          <AlertDescription className="text-amber-800">
+            You can create your tournament now and save it as a draft. To publish it and accept payments, 
+            you'll need to connect your Stripe account first.
             <br />
             <span className="text-sm text-muted-foreground mt-2 block">
               💡 Testing tip: Use "Skip this form" in Stripe's test mode, or create a separate Stripe account for testing.
             </span>
           </AlertDescription>
           <div className="mt-3 flex gap-3 flex-wrap">
-            <Button onClick={connectStripe} className="gradient-primary hover:opacity-90 transition-opacity">
+            <Button onClick={connectStripe} className="bg-amber-600 hover:bg-amber-700 text-white">
               Connect with Stripe
             </Button>
             <Button variant="outline" onClick={checkStripeStatus}>
@@ -927,7 +923,11 @@ const CreateTournament = () => {
                   disabled={isSubmitting}
                   className="flex-1 gradient-primary hover:opacity-90 transition-opacity"
                 >
-                  {isSubmitting ? 'Creating...' : 'Create Tournament'}
+                  {isSubmitting 
+                    ? 'Creating...' 
+                    : stripeConnected 
+                      ? 'Create & Publish Tournament' 
+                      : 'Save as Draft'}
                 </Button>
               </div>
             </form>

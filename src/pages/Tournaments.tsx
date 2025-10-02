@@ -190,9 +190,10 @@ useEffect(() => {
       if (showMyTournaments && user) {
         query = query.eq('organizer_id', user.id);
       } else if (!showMyTournaments) {
-        // Only show open tournaments that haven't ended yet
+        // Only show published, open tournaments that haven't ended yet
         const today = new Date().toISOString().split('T')[0];
         query = query
+          .eq('published', true)
           .eq('status', 'open')
           .gte('end_date', today);
       }
