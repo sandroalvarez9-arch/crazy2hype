@@ -299,18 +299,16 @@ const EnhancedBracketView: React.FC<EnhancedBracketViewProps> = ({
                 strokeWidth="2"
                 opacity="0.6"
               />
-              {/* Horizontal line to next match (only draw for one of the pair) */}
-              {matchIndex % 2 === 0 && (
-                <line
-                  x1={midX}
-                  y1={nextY}
-                  x2={endX}
-                  y2={nextY}
-                  stroke="hsl(var(--primary))"
-                  strokeWidth="2"
-                  opacity="0.8"
-                />
-              )}
+              {/* Horizontal line to next match - both matches draw this */}
+              <line
+                x1={midX}
+                y1={nextY}
+                x2={endX}
+                y2={nextY}
+                stroke="hsl(var(--primary))"
+                strokeWidth="2"
+                opacity="0.8"
+              />
             </g>
           );
         });

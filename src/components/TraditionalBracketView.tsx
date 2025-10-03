@@ -152,17 +152,15 @@ const TraditionalBracketView: React.FC<TraditionalBracketViewProps> = ({
             stroke="hsl(var(--primary))"
             strokeWidth="2"
           />
-          {/* Horizontal line to next match - only draw for top match to avoid duplication */}
-          {isTopMatch && (
-            <line 
-              x1="40" 
-              y1={mergeY}
-              x2="80" 
-              y2={mergeY}
-              stroke="hsl(var(--primary))"
-              strokeWidth="2"
-            />
-          )}
+          {/* Horizontal line to next match - draw for both, they overlap at same position */}
+          <line 
+            x1="40" 
+            y1={mergeY}
+            x2="80" 
+            y2={mergeY}
+            stroke="hsl(var(--primary))"
+            strokeWidth="2"
+          />
         </svg>
       </div>
     );
