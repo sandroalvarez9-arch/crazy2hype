@@ -10,6 +10,7 @@ import { generatePoolPlayScheduleBySkillLevel } from "@/utils/poolPlayGenerator"
 import { OptimalPoolPreview } from "@/components/OptimalPoolPreview";
 import { format } from "date-fns";
 import { Trophy, Users, Clock, AlertTriangle, MapPin } from "lucide-react";
+import { getSkillLevelBadgeVariant, type SkillLevel } from "@/utils/skillLevels";
 
 interface Team {
   id: string;
@@ -431,6 +432,9 @@ export function PoolPlayManager({ tournament, teams, onBracketsGenerated }: Pool
                               const poolCount = poolsByCategory[category].length;
                               const teamCount = poolsByCategory[category].reduce((sum, pool) => sum + pool.teams.length, 0);
                               
+                              const [division, skillLevel] = category.split('-');
+                              const skillBadgeVariant = skillLevel ? getSkillLevelBadgeVariant(skillLevel as SkillLevel) : undefined;
+                              
                               return (
                                 <TabsTrigger 
                                   key={category} 
@@ -439,6 +443,11 @@ export function PoolPlayManager({ tournament, teams, onBracketsGenerated }: Pool
                                 >
                                   {formatCategoryName(category)}
                                   <div className="ml-2 flex gap-1">
+                                    {skillBadgeVariant && (
+                                      <Badge variant={skillBadgeVariant} className="text-xs">
+                                        {skillLevel?.toUpperCase()}
+                                      </Badge>
+                                    )}
                                     <Badge variant="secondary" className="text-xs">
                                       {poolCount} pool{poolCount !== 1 ? 's' : ''}
                                     </Badge>
@@ -455,7 +464,21 @@ export function PoolPlayManager({ tournament, teams, onBracketsGenerated }: Pool
                         {categories.map((category) => (
                           <TabsContent key={category} value={category} className="space-y-4">
                             <div className="mb-4 p-4 bg-muted/50 rounded-lg">
-                              <h5 className="font-semibold text-lg mb-2">{formatCategoryName(category)} Division</h5>
+                              <div className="flex items-center gap-2 mb-2">
+                                <h5 className="font-semibold text-lg">{formatCategoryName(category)} Division</h5>
+                                {(() => {
+                                  const [, skillLevel] = category.split('-');
+                                  if (skillLevel) {
+                                    const skillBadgeVariant = getSkillLevelBadgeVariant(skillLevel as SkillLevel);
+                                    return (
+                                      <Badge variant={skillBadgeVariant}>
+                                        {skillLevel.toUpperCase()}
+                                      </Badge>
+                                    );
+                                  }
+                                  return null;
+                                })()}
+                              </div>
                               <div className="flex gap-4 text-sm text-muted-foreground">
                                 <span>{poolsByCategory[category].length} pool{poolsByCategory[category].length !== 1 ? 's' : ''}</span>
                                 <span>{poolsByCategory[category].reduce((sum, pool) => sum + pool.teams.length, 0)} teams</span>
