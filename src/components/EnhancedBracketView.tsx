@@ -236,47 +236,46 @@ const EnhancedBracketView: React.FC<EnhancedBracketViewProps> = ({
     roundWidth: number;
   }> = ({ rounds, organizedMatches, matchHeight, roundWidth }) => {
     const lines: JSX.Element[] = [];
-    const baseGap = 100;
+    const baseGap = 60;
     
     rounds.forEach((roundNumber, roundIndex) => {
       if (roundIndex < rounds.length - 1) {
         const currentRoundMatches = organizedMatches[roundNumber];
         
         currentRoundMatches.forEach((match, matchIndex) => {
-          // Calculate current match Y position
-          const spacingMultiplier = Math.pow(2, roundNumber - 1);
-          const gapBetweenMatches = baseGap * spacingMultiplier;
-          const initialTopMargin = roundNumber > 1 
-            ? (baseGap * Math.pow(2, roundNumber - 2) / 2) + (matchHeight / 2)
-            : 0;
-          
-          const headerHeight = 80;
-          const currentMatchMargin = matchIndex === 0 ? initialTopMargin : gapBetweenMatches;
-          let currentY = headerHeight;
-          for (let i = 0; i < matchIndex; i++) {
-            currentY += (i === 0 ? initialTopMargin : gapBetweenMatches) + matchHeight;
+          // Calculate gap for current round
+          let currentGap = baseGap;
+          for (let i = 1; i < roundNumber; i++) {
+            currentGap = (currentGap + matchHeight) * 2;
           }
-          currentY += currentMatchMargin + matchHeight / 2;
+          const currentTopMargin = roundNumber > 1 ? currentGap / 2 : 0;
+          
+          // Calculate current match Y position
+          const headerHeight = 100;
+          let currentY = headerHeight + currentTopMargin;
+          for (let i = 0; i < matchIndex; i++) {
+            currentY += currentGap + matchHeight;
+          }
+          currentY += matchHeight / 2;
+          
+          // Calculate next round gap
+          let nextGap = baseGap;
+          for (let i = 1; i < roundNumber + 1; i++) {
+            nextGap = (nextGap + matchHeight) * 2;
+          }
+          const nextTopMargin = nextGap / 2;
           
           // Calculate next match Y position
           const nextMatchIndex = Math.floor(matchIndex / 2);
-          const nextRoundNumber = roundNumber + 1;
-          const nextSpacingMultiplier = Math.pow(2, nextRoundNumber - 1);
-          const nextGapBetweenMatches = baseGap * nextSpacingMultiplier;
-          const nextInitialTopMargin = nextRoundNumber > 1 
-            ? (baseGap * Math.pow(2, nextRoundNumber - 2) / 2) + (matchHeight / 2)
-            : 0;
-          
-          let nextY = headerHeight;
+          let nextY = headerHeight + nextTopMargin;
           for (let i = 0; i < nextMatchIndex; i++) {
-            nextY += (i === 0 ? nextInitialTopMargin : nextGapBetweenMatches) + matchHeight;
+            nextY += nextGap + matchHeight;
           }
-          const nextMatchMargin = nextMatchIndex === 0 ? nextInitialTopMargin : nextGapBetweenMatches;
-          nextY += nextMatchMargin + matchHeight / 2;
+          nextY += matchHeight / 2;
           
           const startX = roundIndex * roundWidth + 320;
+          const midX = startX + 60;
           const endX = (roundIndex + 1) * roundWidth + 40;
-          const midX = startX + (endX - startX) / 2;
           
           lines.push(
             <g key={`connection-${match.id}`}>
@@ -288,9 +287,9 @@ const EnhancedBracketView: React.FC<EnhancedBracketViewProps> = ({
                 y2={currentY}
                 stroke="hsl(var(--primary))"
                 strokeWidth="2"
-                opacity="0.7"
+                opacity="0.8"
               />
-              {/* Vertical line connecting to next match */}
+              {/* Vertical line to merge point */}
               <line
                 x1={midX}
                 y1={currentY}
@@ -298,23 +297,20 @@ const EnhancedBracketView: React.FC<EnhancedBracketViewProps> = ({
                 y2={nextY}
                 stroke="hsl(var(--primary))"
                 strokeWidth="2"
-                opacity="0.5"
+                opacity="0.6"
               />
-              {/* Horizontal line to next match */}
-              <line
-                x1={midX}
-                y1={nextY}
-                x2={endX}
-                y2={nextY}
-                stroke="hsl(var(--primary))"
-                strokeWidth="2"
-                opacity="0.7"
-              />
-              {/* Arrow */}
-              <polygon
-                points={`${endX - 5},${nextY - 3} ${endX},${nextY} ${endX - 5},${nextY + 3}`}
-                fill="hsl(var(--primary))"
-              />
+              {/* Horizontal line to next match (only draw for one of the pair) */}
+              {matchIndex % 2 === 0 && (
+                <line
+                  x1={midX}
+                  y1={nextY}
+                  x2={endX}
+                  y2={nextY}
+                  stroke="hsl(var(--primary))"
+                  strokeWidth="2"
+                  opacity="0.8"
+                />
+              )}
             </g>
           );
         });
@@ -454,17 +450,17 @@ const EnhancedBracketView: React.FC<EnhancedBracketViewProps> = ({
             <div className="relative" style={{ zIndex: 2 }}>
               <div className="flex gap-8 p-8">
                 {rounds.map((roundNumber, roundIndex) => {
-                  // Calculate vertical spacing for proper centering
-                  const baseGap = 100;
+                  // Calculate vertical spacing - matches reference bracket structure
+                  const baseGap = 60;
                   
-                  // Calculate gap between matches for this round
-                  const spacingMultiplier = Math.pow(2, roundNumber - 1);
-                  const gapBetweenMatches = baseGap * spacingMultiplier;
+                  // Calculate the gap between matches in THIS round
+                  let gapBetweenMatches = baseGap;
+                  for (let i = 1; i < roundNumber; i++) {
+                    gapBetweenMatches = (gapBetweenMatches + matchHeight) * 2;
+                  }
                   
-                  // Calculate initial top margin to center this round's matches with previous round
-                  const initialTopMargin = roundNumber > 1 
-                    ? (baseGap * Math.pow(2, roundNumber - 2) / 2) + (matchHeight / 2)
-                    : 0;
+                  // For rounds after the first, add top margin to center with previous round
+                  const initialTopMargin = roundNumber > 1 ? gapBetweenMatches / 2 : 0;
                   
                   return (
                     <div key={roundNumber} className="flex flex-col" style={{ minWidth: `${roundWidth - 40}px` }}>

@@ -115,44 +115,52 @@ const TraditionalBracketView: React.FC<TraditionalBracketViewProps> = ({
     );
   };
 
-  const BracketConnector: React.FC<{ isTopMatch: boolean }> = ({ isTopMatch }) => (
-    <div className="absolute left-full top-1/2 -translate-y-1/2 z-10">
-      <svg width="60" height="100" className="overflow-visible">
-        {/* Horizontal line from match */}
-        <line 
-          x1="0" 
-          y1="50" 
-          x2="30" 
-          y2="50"
-          stroke="hsl(var(--primary))"
-          strokeWidth="2"
-        />
-        {/* Vertical line up or down */}
-        <line 
-          x1="30" 
-          y1="50" 
-          x2="30" 
-          y2={isTopMatch ? "80" : "20"}
-          stroke="hsl(var(--primary))"
-          strokeWidth="2"
-        />
-        {/* Horizontal line to next match */}
-        <line 
-          x1="30" 
-          y1={isTopMatch ? "80" : "20"}
-          x2="60" 
-          y2={isTopMatch ? "80" : "20"}
-          stroke="hsl(var(--primary))"
-          strokeWidth="2"
-        />
-        {/* Arrow */}
-        <polygon
-          points={`55,${isTopMatch ? "77" : "17"} 60,${isTopMatch ? "80" : "20"} 55,${isTopMatch ? "83" : "23"}`}
-          fill="hsl(var(--primary))"
-        />
-      </svg>
-    </div>
-  );
+  const BracketConnector: React.FC<{ 
+    isTopMatch: boolean;
+    gapToNextRound: number;
+  }> = ({ isTopMatch, gapToNextRound }) => {
+    // Calculate the distance the line needs to travel vertically
+    const verticalDistance = gapToNextRound / 2;
+    
+    return (
+      <div className="absolute left-full top-1/2 -translate-y-1/2 z-10">
+        <svg 
+          width="80" 
+          height={Math.max(200, verticalDistance * 2 + 50)} 
+          className="overflow-visible"
+          style={{ transform: 'translateY(-50%)' }}
+        >
+          {/* Horizontal line from match */}
+          <line 
+            x1="0" 
+            y1="50%" 
+            x2="40" 
+            y2="50%"
+            stroke="hsl(var(--primary))"
+            strokeWidth="2"
+          />
+          {/* Vertical line going to merge point */}
+          <line 
+            x1="40" 
+            y1="50%" 
+            x2="40" 
+            y2={isTopMatch ? `calc(50% + ${verticalDistance}px)` : `calc(50% - ${verticalDistance}px)`}
+            stroke="hsl(var(--primary))"
+            strokeWidth="2"
+          />
+          {/* Horizontal line to next match */}
+          <line 
+            x1="40" 
+            y1={isTopMatch ? `calc(50% + ${verticalDistance}px)` : `calc(50% - ${verticalDistance}px)`}
+            x2="80" 
+            y2={isTopMatch ? `calc(50% + ${verticalDistance}px)` : `calc(50% - ${verticalDistance}px)`}
+            stroke="hsl(var(--primary))"
+            strokeWidth="2"
+          />
+        </svg>
+      </div>
+    );
+  };
 
   const organizedMatches = organizeMatches();
   const rounds = Object.keys(organizedMatches).map(Number).sort((a, b) => a - b);
@@ -218,18 +226,19 @@ const TraditionalBracketView: React.FC<TraditionalBracketViewProps> = ({
               const isRightSide = roundIndex >= Math.ceil(rounds.length / 2);
               const isFinal = roundNumber === totalRounds;
               
-              // Calculate vertical spacing for proper centering
+              // Calculate vertical spacing - each round doubles the gap from previous
               const baseMatchHeight = bracketFormat === 'simple' ? 120 : 100;
-              const baseGap = 100;
+              const baseGap = 60;
               
-              // Calculate gap between matches for this round
-              const spacingMultiplier = Math.pow(2, roundNumber - 1);
-              const gapBetweenMatches = baseGap * spacingMultiplier;
+              // Calculate the gap between matches in THIS round
+              // Round 1: baseGap, Round 2: baseGap*2 + matchHeight, Round 3: (baseGap*2 + matchHeight)*2 + matchHeight, etc.
+              let gapBetweenMatches = baseGap;
+              for (let i = 1; i < roundNumber; i++) {
+                gapBetweenMatches = (gapBetweenMatches + baseMatchHeight) * 2;
+              }
               
-              // Calculate initial top margin to center this round's matches with previous round
-              const initialTopMargin = roundNumber > 1 
-                ? (baseGap * Math.pow(2, roundNumber - 2) / 2) + (baseMatchHeight / 2)
-                : 0;
+              // For rounds after the first, add top margin to center with previous round
+              const initialTopMargin = roundNumber > 1 ? gapBetweenMatches / 2 : 0;
               
               return (
                 <div key={roundNumber} className="flex flex-col items-center">
@@ -339,7 +348,10 @@ const TraditionalBracketView: React.FC<TraditionalBracketViewProps> = ({
                                 </div>
                               </div>
                               {!isFinal && roundIndex < rounds.length - 1 && (
-                                <BracketConnector isTopMatch={isTopMatchOfPair} />
+                                <BracketConnector 
+                                  isTopMatch={isTopMatchOfPair}
+                                  gapToNextRound={gapBetweenMatches}
+                                />
                               )}
                             </>
                           )}
@@ -382,7 +394,10 @@ const TraditionalBracketView: React.FC<TraditionalBracketViewProps> = ({
                                 </div>
                               </div>
                               {roundIndex < rounds.length - 1 && (
-                                <BracketConnector isTopMatch={isTopMatchOfPair} />
+                                <BracketConnector 
+                                  isTopMatch={isTopMatchOfPair}
+                                  gapToNextRound={gapBetweenMatches}
+                                />
                               )}
                             </>
                           )}
