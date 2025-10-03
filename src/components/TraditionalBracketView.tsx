@@ -206,23 +206,29 @@ const TraditionalBracketView: React.FC<TraditionalBracketViewProps> = ({
       {/* Bracket Display */}
       <div className="overflow-x-auto bg-white p-8 rounded-lg border">
         <div className="flex justify-center">
-          <div className={`flex items-center gap-${bracketFormat === 'simple' ? '12' : '8'} min-w-fit`}>
+          <div className={`flex items-start gap-${bracketFormat === 'simple' ? '12' : '8'} min-w-fit`}>
             {rounds.map((roundNumber, roundIndex) => {
               const isLeftSide = roundIndex < Math.ceil(rounds.length / 2);
               const isRightSide = roundIndex >= Math.ceil(rounds.length / 2);
               const isFinal = roundNumber === totalRounds;
               
+              // Calculate vertical spacing multiplier for this round
+              const baseMatchHeight = bracketFormat === 'simple' ? 120 : 100;
+              const baseGap = 32;
+              const spacingMultiplier = Math.pow(2, roundNumber - 1);
+              const matchSpacing = (baseMatchHeight + baseGap) * spacingMultiplier;
+              
               return (
-                <div key={roundNumber} className="flex flex-col items-center gap-6">
+                <div key={roundNumber} className="flex flex-col items-center">
                   {/* Round Title */}
-                  <div className="text-center mb-4">
+                  <div className="text-center mb-8">
                     <h3 className={`font-bold ${bracketFormat === 'simple' ? 'text-base' : 'text-sm'}`}>
                       {getRoundName(roundNumber, totalRounds)}
                     </h3>
                   </div>
                   
                   {/* Matches in this round */}
-                  <div className={`flex flex-col gap-${isFinal ? '0' : '8'}`}>
+                  <div className="flex flex-col">
                     {organizedMatches[roundNumber].map((match, matchIndex) => {
                       const team1Winner = match.status === 'completed' && match.winner_name === match.team1_name;
                       const team2Winner = match.status === 'completed' && match.winner_name === match.team2_name;
@@ -274,7 +280,14 @@ const TraditionalBracketView: React.FC<TraditionalBracketViewProps> = ({
                       }
                       
                       return (
-                        <div key={match.id} className="flex items-center gap-2">
+                        <div 
+                          key={match.id} 
+                          className="flex items-center gap-2"
+                          style={{
+                            marginTop: matchIndex === 0 ? 0 : matchSpacing,
+                            marginBottom: isFinal ? 0 : baseGap / 2
+                          }}
+                        >
                           {isLeftSide && (
                             <>
                               <div className="flex flex-col gap-1">

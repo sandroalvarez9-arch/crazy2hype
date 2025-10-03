@@ -408,20 +408,31 @@ const EnhancedBracketView: React.FC<EnhancedBracketViewProps> = ({
             {/* Matches */}
             <div className="relative" style={{ zIndex: 2 }}>
               <div className="flex gap-8 p-8">
-                {rounds.map((roundNumber, roundIndex) => (
-                  <div key={roundNumber} className="flex flex-col gap-8" style={{ minWidth: `${roundWidth - 40}px` }}>
-                    {/* Round Header */}
-                    <div className="text-center space-y-2">
-                      <h3 className="font-bold text-lg">
-                        {getRoundName(roundNumber, totalRounds)}
-                      </h3>
-                      <Badge variant="secondary">Round {roundNumber}</Badge>
-                    </div>
-                    
-                    {/* Matches in Round */}
-                    <div className="space-y-8">
-                      {organizedMatches[roundNumber].map((match) => (
-                        <Card key={match.id} className="w-full bg-background/95 backdrop-blur-sm shadow-lg">
+                {rounds.map((roundNumber, roundIndex) => {
+                  // Calculate vertical spacing for proper bracket alignment
+                  const spacingMultiplier = Math.pow(2, roundNumber - 1);
+                  const matchSpacing = matchHeight * spacingMultiplier + 32 * spacingMultiplier;
+                  
+                  return (
+                    <div key={roundNumber} className="flex flex-col" style={{ minWidth: `${roundWidth - 40}px` }}>
+                      {/* Round Header */}
+                      <div className="text-center space-y-2 mb-8">
+                        <h3 className="font-bold text-lg">
+                          {getRoundName(roundNumber, totalRounds)}
+                        </h3>
+                        <Badge variant="secondary">Round {roundNumber}</Badge>
+                      </div>
+                      
+                      {/* Matches in Round */}
+                      <div className="flex flex-col">
+                        {organizedMatches[roundNumber].map((match, matchIndex) => (
+                          <Card 
+                            key={match.id} 
+                            className="w-full bg-background/95 backdrop-blur-sm shadow-lg"
+                            style={{
+                              marginTop: matchIndex === 0 ? 0 : matchSpacing,
+                            }}
+                          >
                           <CardHeader className="pb-3">
                             <div className="flex justify-between items-start">
                               <CardTitle className="text-sm font-medium">
@@ -497,11 +508,12 @@ const EnhancedBracketView: React.FC<EnhancedBracketViewProps> = ({
                               </div>
                             )}
                           </CardContent>
-                        </Card>
-                      ))}
+                          </Card>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           </div>
