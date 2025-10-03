@@ -218,6 +218,11 @@ const TraditionalBracketView: React.FC<TraditionalBracketViewProps> = ({
               const spacingMultiplier = Math.pow(2, roundNumber - 1);
               const matchSpacing = (baseMatchHeight + baseGap) * spacingMultiplier;
               
+              // Calculate initial offset to center matches relative to previous round
+              const initialOffset = roundNumber > 1 
+                ? ((baseMatchHeight + baseGap) * Math.pow(2, roundNumber - 2)) - (baseMatchHeight / 2)
+                : 0;
+              
               return (
                 <div key={roundNumber} className="flex flex-col items-center">
                   {/* Round Title */}
@@ -284,7 +289,7 @@ const TraditionalBracketView: React.FC<TraditionalBracketViewProps> = ({
                           key={match.id} 
                           className="flex items-center gap-2"
                           style={{
-                            marginTop: matchIndex === 0 ? 0 : matchSpacing,
+                            marginTop: matchIndex === 0 ? initialOffset : matchSpacing,
                             marginBottom: isFinal ? 0 : baseGap / 2
                           }}
                         >

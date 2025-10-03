@@ -413,6 +413,11 @@ const EnhancedBracketView: React.FC<EnhancedBracketViewProps> = ({
                   const spacingMultiplier = Math.pow(2, roundNumber - 1);
                   const matchSpacing = matchHeight * spacingMultiplier + 32 * spacingMultiplier;
                   
+                  // Calculate initial offset to center matches relative to previous round
+                  const initialOffset = roundNumber > 1 
+                    ? (matchHeight * Math.pow(2, roundNumber - 2) + 32 * Math.pow(2, roundNumber - 2)) - (matchHeight / 2)
+                    : 0;
+                  
                   return (
                     <div key={roundNumber} className="flex flex-col" style={{ minWidth: `${roundWidth - 40}px` }}>
                       {/* Round Header */}
@@ -430,7 +435,7 @@ const EnhancedBracketView: React.FC<EnhancedBracketViewProps> = ({
                             key={match.id} 
                             className="w-full bg-background/95 backdrop-blur-sm shadow-lg"
                             style={{
-                              marginTop: matchIndex === 0 ? 0 : matchSpacing,
+                              marginTop: matchIndex === 0 ? initialOffset : matchSpacing,
                             }}
                           >
                           <CardHeader className="pb-3">
