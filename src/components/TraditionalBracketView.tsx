@@ -121,42 +121,48 @@ const TraditionalBracketView: React.FC<TraditionalBracketViewProps> = ({
   }> = ({ isTopMatch, gapToNextRound }) => {
     // Calculate the distance the line needs to travel vertically
     const verticalDistance = gapToNextRound / 2;
+    const svgHeight = Math.max(verticalDistance * 2.2, 100);
+    const centerY = svgHeight / 2;
+    const mergeY = isTopMatch ? centerY + verticalDistance : centerY - verticalDistance;
     
     return (
-      <div className="absolute left-full top-1/2 -translate-y-1/2 z-10">
+      <div className="absolute left-full top-1/2 z-10" style={{ transform: 'translateY(-50%)' }}>
         <svg 
           width="80" 
-          height={Math.max(200, verticalDistance * 2 + 50)} 
+          height={svgHeight} 
           className="overflow-visible"
-          style={{ transform: 'translateY(-50%)' }}
+          viewBox={`0 0 80 ${svgHeight}`}
+          preserveAspectRatio="none"
         >
           {/* Horizontal line from match */}
           <line 
             x1="0" 
-            y1="50%" 
+            y1={centerY}
             x2="40" 
-            y2="50%"
+            y2={centerY}
             stroke="hsl(var(--primary))"
             strokeWidth="2"
           />
           {/* Vertical line going to merge point */}
           <line 
             x1="40" 
-            y1="50%" 
+            y1={centerY}
             x2="40" 
-            y2={isTopMatch ? `calc(50% + ${verticalDistance}px)` : `calc(50% - ${verticalDistance}px)`}
+            y2={mergeY}
             stroke="hsl(var(--primary))"
             strokeWidth="2"
           />
-          {/* Horizontal line to next match */}
-          <line 
-            x1="40" 
-            y1={isTopMatch ? `calc(50% + ${verticalDistance}px)` : `calc(50% - ${verticalDistance}px)`}
-            x2="80" 
-            y2={isTopMatch ? `calc(50% + ${verticalDistance}px)` : `calc(50% - ${verticalDistance}px)`}
-            stroke="hsl(var(--primary))"
-            strokeWidth="2"
-          />
+          {/* Horizontal line to next match - only draw for top match to avoid duplication */}
+          {isTopMatch && (
+            <line 
+              x1="40" 
+              y1={mergeY}
+              x2="80" 
+              y2={mergeY}
+              stroke="hsl(var(--primary))"
+              strokeWidth="2"
+            />
+          )}
         </svg>
       </div>
     );
