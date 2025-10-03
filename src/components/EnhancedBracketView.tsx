@@ -241,20 +241,22 @@ const EnhancedBracketView: React.FC<EnhancedBracketViewProps> = ({
     rounds.forEach((roundNumber, roundIndex) => {
       if (roundIndex < rounds.length - 1) {
         const currentRoundMatches = organizedMatches[roundNumber];
-        const nextRoundMatches = organizedMatches[rounds[roundIndex + 1]];
         
         currentRoundMatches.forEach((match, matchIndex) => {
-          const spacingMultiplier = Math.pow(2, roundNumber - 1);
-          const matchSpacing = matchHeight * spacingMultiplier + baseGap * spacingMultiplier;
-          const initialOffset = roundNumber > 1 ? ((matchSpacing / 2) - (matchHeight / 2)) : 0;
+          // Calculate current match Y position with proper centering
+          let currentGap = baseGap;
+          for (let i = 1; i < roundNumber; i++) {
+            currentGap = currentGap * 2 + matchHeight;
+          }
+          const currentY = (matchIndex * (currentGap + matchHeight)) + matchHeight / 2 + 80; // 80 for header
           
-          const currentY = (matchIndex === 0 ? initialOffset : (matchIndex * matchSpacing + initialOffset)) + matchHeight / 2;
-          
+          // Calculate next match Y position
           const nextMatchIndex = Math.floor(matchIndex / 2);
-          const nextSpacingMultiplier = Math.pow(2, roundNumber);
-          const nextMatchSpacing = matchHeight * nextSpacingMultiplier + baseGap * nextSpacingMultiplier;
-          const nextInitialOffset = ((nextMatchSpacing / 2) - (matchHeight / 2));
-          const nextY = (nextMatchIndex === 0 ? nextInitialOffset : (nextMatchIndex * nextMatchSpacing + nextInitialOffset)) + matchHeight / 2;
+          let nextGap = baseGap;
+          for (let i = 1; i < roundNumber + 1; i++) {
+            nextGap = nextGap * 2 + matchHeight;
+          }
+          const nextY = (nextMatchIndex * (nextGap + matchHeight)) + matchHeight / 2 + 80;
           
           const startX = roundIndex * roundWidth + 320;
           const endX = (roundIndex + 1) * roundWidth + 40;
@@ -291,24 +293,12 @@ const EnhancedBracketView: React.FC<EnhancedBracketViewProps> = ({
                 stroke="hsl(var(--primary))"
                 strokeWidth="2"
                 opacity="0.7"
-                markerEnd="url(#arrowhead)"
               />
-              {/* Arrow marker */}
-              <defs>
-                <marker
-                  id="arrowhead"
-                  markerWidth="10"
-                  markerHeight="10"
-                  refX="8"
-                  refY="3"
-                  orient="auto"
-                >
-                  <polygon
-                    points="0 0, 10 3, 0 6"
-                    fill="hsl(var(--primary))"
-                  />
-                </marker>
-              </defs>
+              {/* Arrow */}
+              <polygon
+                points={`${endX - 5},${nextY - 3} ${endX},${nextY} ${endX - 5},${nextY + 3}`}
+                fill="hsl(var(--primary))"
+              />
             </g>
           );
         });
@@ -448,15 +438,14 @@ const EnhancedBracketView: React.FC<EnhancedBracketViewProps> = ({
             <div className="relative" style={{ zIndex: 2 }}>
               <div className="flex gap-8 p-8">
                 {rounds.map((roundNumber, roundIndex) => {
-                  // Calculate vertical spacing for proper bracket alignment
-                  const spacingMultiplier = Math.pow(2, roundNumber - 1);
-                  const baseGap = 80; // Increased gap
-                  const matchSpacing = matchHeight * spacingMultiplier + baseGap * spacingMultiplier;
+                  // Calculate vertical spacing for proper centering
+                  const baseGap = 80;
                   
-                  // Calculate initial offset to center matches relative to previous round
-                  const initialOffset = roundNumber > 1 
-                    ? ((matchSpacing / 2) - (matchHeight / 2))
-                    : 0;
+                  // Each round's spacing doubles plus one match height
+                  let currentGap = baseGap;
+                  for (let i = 1; i < roundNumber; i++) {
+                    currentGap = currentGap * 2 + matchHeight;
+                  }
                   
                   return (
                     <div key={roundNumber} className="flex flex-col" style={{ minWidth: `${roundWidth - 40}px` }}>
@@ -469,14 +458,11 @@ const EnhancedBracketView: React.FC<EnhancedBracketViewProps> = ({
                       </div>
                       
                       {/* Matches in Round */}
-                      <div className="flex flex-col">
+                      <div className="flex flex-col" style={{ gap: `${currentGap}px` }}>
                         {organizedMatches[roundNumber].map((match, matchIndex) => (
                           <Card 
                             key={match.id} 
                             className="w-full bg-background/95 backdrop-blur-sm shadow-lg"
-                            style={{
-                              marginTop: matchIndex === 0 ? initialOffset : matchSpacing,
-                            }}
                           >
                           <CardHeader className="pb-3">
                             <div className="flex justify-between items-start">

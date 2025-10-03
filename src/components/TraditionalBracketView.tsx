@@ -115,48 +115,41 @@ const TraditionalBracketView: React.FC<TraditionalBracketViewProps> = ({
     );
   };
 
-  const BracketConnector: React.FC<{ orientation: 'right' | 'left'; length?: number }> = ({ 
-    orientation, 
-    length = 50 
-  }) => (
-    <div className="flex items-center justify-center mx-2">
-      <svg width={length} height="80" className="overflow-visible">
-        {/* Main horizontal line */}
+  const BracketConnector: React.FC<{ isTopMatch: boolean }> = ({ isTopMatch }) => (
+    <div className="absolute left-full top-1/2 -translate-y-1/2 z-10">
+      <svg width="60" height="100" className="overflow-visible">
+        {/* Horizontal line from match */}
         <line 
-          x1={orientation === 'right' ? 0 : length} 
-          y1="40" 
-          x2={orientation === 'right' ? length : 0} 
-          y2="40"
+          x1="0" 
+          y1="50" 
+          x2="30" 
+          y2="50"
           stroke="hsl(var(--primary))"
           strokeWidth="2"
-          markerEnd="url(#arrowhead)"
         />
-        {/* Vertical connecting lines */}
+        {/* Vertical line up or down */}
         <line 
-          x1={orientation === 'right' ? 0 : length} 
-          y1="10" 
-          x2={orientation === 'right' ? 0 : length} 
-          y2="70"
+          x1="30" 
+          y1="50" 
+          x2="30" 
+          y2={isTopMatch ? "80" : "20"}
           stroke="hsl(var(--primary))"
           strokeWidth="2"
-          opacity="0.6"
         />
-        {/* Arrow marker definition */}
-        <defs>
-          <marker
-            id="arrowhead"
-            markerWidth="10"
-            markerHeight="10"
-            refX="5"
-            refY="3"
-            orient="auto"
-          >
-            <polygon
-              points="0 0, 5 3, 0 6"
-              fill="hsl(var(--primary))"
-            />
-          </marker>
-        </defs>
+        {/* Horizontal line to next match */}
+        <line 
+          x1="30" 
+          y1={isTopMatch ? "80" : "20"}
+          x2="60" 
+          y2={isTopMatch ? "80" : "20"}
+          stroke="hsl(var(--primary))"
+          strokeWidth="2"
+        />
+        {/* Arrow */}
+        <polygon
+          points={`55,${isTopMatch ? "77" : "17"} 60,${isTopMatch ? "80" : "20"} 55,${isTopMatch ? "83" : "23"}`}
+          fill="hsl(var(--primary))"
+        />
       </svg>
     </div>
   );
@@ -219,22 +212,21 @@ const TraditionalBracketView: React.FC<TraditionalBracketViewProps> = ({
       {/* Bracket Display */}
       <div className="overflow-x-auto bg-white p-8 rounded-lg border">
         <div className="flex justify-center">
-          <div className={`flex items-start gap-${bracketFormat === 'simple' ? '12' : '8'} min-w-fit`}>
+          <div className={`flex items-start gap-${bracketFormat === 'simple' ? '20' : '16'} min-w-fit`}>
             {rounds.map((roundNumber, roundIndex) => {
               const isLeftSide = roundIndex < Math.ceil(rounds.length / 2);
               const isRightSide = roundIndex >= Math.ceil(rounds.length / 2);
               const isFinal = roundNumber === totalRounds;
               
-              // Calculate vertical spacing multiplier for this round
+              // Calculate vertical spacing for proper centering
               const baseMatchHeight = bracketFormat === 'simple' ? 120 : 100;
-              const baseGap = 64; // Increased gap between matches
-              const spacingMultiplier = Math.pow(2, roundNumber - 1);
-              const matchSpacing = (baseMatchHeight + baseGap) * spacingMultiplier;
+              const baseGap = 80;
               
-              // Calculate initial offset to center matches relative to previous round
-              const initialOffset = roundNumber > 1 
-                ? ((matchSpacing / 2) - (baseMatchHeight / 2))
-                : 0;
+              // Each round's spacing doubles plus one match height
+              let currentGap = baseGap;
+              for (let i = 1; i < roundNumber; i++) {
+                currentGap = currentGap * 2 + baseMatchHeight;
+              }
               
               return (
                 <div key={roundNumber} className="flex flex-col items-center">
@@ -246,7 +238,7 @@ const TraditionalBracketView: React.FC<TraditionalBracketViewProps> = ({
                   </div>
                   
                   {/* Matches in this round */}
-                  <div className="flex flex-col">
+                  <div className="flex flex-col" style={{ gap: `${currentGap}px` }}>
                     {organizedMatches[roundNumber].map((match, matchIndex) => {
                       const team1Winner = match.status === 'completed' && match.winner_name === match.team1_name;
                       const team2Winner = match.status === 'completed' && match.winner_name === match.team2_name;
@@ -297,14 +289,12 @@ const TraditionalBracketView: React.FC<TraditionalBracketViewProps> = ({
                         );
                       }
                       
+                      const isTopMatchOfPair = matchIndex % 2 === 0;
+                      
                       return (
                         <div 
                           key={match.id} 
-                          className="flex items-center gap-2"
-                          style={{
-                            marginTop: matchIndex === 0 ? initialOffset : matchSpacing,
-                            marginBottom: isFinal ? 0 : baseGap / 2
-                          }}
+                          className="relative flex items-center gap-2"
                         >
                           {isLeftSide && (
                             <>
@@ -343,23 +333,14 @@ const TraditionalBracketView: React.FC<TraditionalBracketViewProps> = ({
                                   )}
                                 </div>
                               </div>
-                              {roundIndex < rounds.length - 1 && (
-                                <BracketConnector 
-                                  orientation="right" 
-                                  length={bracketFormat === 'simple' ? 50 : 40}
-                                />
+                              {!isFinal && roundIndex < rounds.length - 1 && (
+                                <BracketConnector isTopMatch={isTopMatchOfPair} />
                               )}
                             </>
                           )}
                           
                           {isRightSide && !isFinal && (
                             <>
-                              {roundIndex > 0 && (
-                                <BracketConnector 
-                                  orientation="left" 
-                                  length={bracketFormat === 'simple' ? 50 : 40}
-                                />
-                              )}
                               <div className="flex flex-col gap-1">
                                 <div className="flex flex-col gap-1">
                                   <TeamBox 
@@ -395,6 +376,9 @@ const TraditionalBracketView: React.FC<TraditionalBracketViewProps> = ({
                                   )}
                                 </div>
                               </div>
+                              {roundIndex < rounds.length - 1 && (
+                                <BracketConnector isTopMatch={isTopMatchOfPair} />
+                              )}
                             </>
                           )}
                         </div>
