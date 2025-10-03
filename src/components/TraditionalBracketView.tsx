@@ -220,13 +220,16 @@ const TraditionalBracketView: React.FC<TraditionalBracketViewProps> = ({
               
               // Calculate vertical spacing for proper centering
               const baseMatchHeight = bracketFormat === 'simple' ? 120 : 100;
-              const baseGap = 80;
+              const baseGap = 100;
               
-              // Each round's spacing doubles plus one match height
-              let currentGap = baseGap;
-              for (let i = 1; i < roundNumber; i++) {
-                currentGap = currentGap * 2 + baseMatchHeight;
-              }
+              // Calculate gap between matches for this round
+              const spacingMultiplier = Math.pow(2, roundNumber - 1);
+              const gapBetweenMatches = baseGap * spacingMultiplier;
+              
+              // Calculate initial top margin to center this round's matches with previous round
+              const initialTopMargin = roundNumber > 1 
+                ? (baseGap * Math.pow(2, roundNumber - 2) / 2) + (baseMatchHeight / 2)
+                : 0;
               
               return (
                 <div key={roundNumber} className="flex flex-col items-center">
@@ -238,7 +241,7 @@ const TraditionalBracketView: React.FC<TraditionalBracketViewProps> = ({
                   </div>
                   
                   {/* Matches in this round */}
-                  <div className="flex flex-col" style={{ gap: `${currentGap}px` }}>
+                  <div className="flex flex-col">
                     {organizedMatches[roundNumber].map((match, matchIndex) => {
                       const team1Winner = match.status === 'completed' && match.winner_name === match.team1_name;
                       const team2Winner = match.status === 'completed' && match.winner_name === match.team2_name;
@@ -290,11 +293,13 @@ const TraditionalBracketView: React.FC<TraditionalBracketViewProps> = ({
                       }
                       
                       const isTopMatchOfPair = matchIndex % 2 === 0;
+                      const marginTop = matchIndex === 0 ? initialTopMargin : gapBetweenMatches;
                       
                       return (
                         <div 
                           key={match.id} 
                           className="relative flex items-center gap-2"
+                          style={{ marginTop: `${marginTop}px` }}
                         >
                           {isLeftSide && (
                             <>
