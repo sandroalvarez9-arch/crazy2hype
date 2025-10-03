@@ -236,6 +236,7 @@ const EnhancedBracketView: React.FC<EnhancedBracketViewProps> = ({
     roundWidth: number;
   }> = ({ rounds, organizedMatches, matchHeight, roundWidth }) => {
     const lines: JSX.Element[] = [];
+    const baseGap = 80;
     
     rounds.forEach((roundNumber, roundIndex) => {
       if (roundIndex < rounds.length - 1) {
@@ -243,33 +244,71 @@ const EnhancedBracketView: React.FC<EnhancedBracketViewProps> = ({
         const nextRoundMatches = organizedMatches[rounds[roundIndex + 1]];
         
         currentRoundMatches.forEach((match, matchIndex) => {
-          const currentY = matchIndex * (matchHeight + 32) + matchHeight / 2;
+          const spacingMultiplier = Math.pow(2, roundNumber - 1);
+          const matchSpacing = matchHeight * spacingMultiplier + baseGap * spacingMultiplier;
+          const initialOffset = roundNumber > 1 ? ((matchSpacing / 2) - (matchHeight / 2)) : 0;
+          
+          const currentY = (matchIndex === 0 ? initialOffset : (matchIndex * matchSpacing + initialOffset)) + matchHeight / 2;
+          
           const nextMatchIndex = Math.floor(matchIndex / 2);
-          const nextY = nextMatchIndex * (matchHeight + 32) + matchHeight / 2;
+          const nextSpacingMultiplier = Math.pow(2, roundNumber);
+          const nextMatchSpacing = matchHeight * nextSpacingMultiplier + baseGap * nextSpacingMultiplier;
+          const nextInitialOffset = ((nextMatchSpacing / 2) - (matchHeight / 2));
+          const nextY = (nextMatchIndex === 0 ? nextInitialOffset : (nextMatchIndex * nextMatchSpacing + nextInitialOffset)) + matchHeight / 2;
           
           const startX = roundIndex * roundWidth + 320;
           const endX = (roundIndex + 1) * roundWidth + 40;
-          const controlX1 = startX + (endX - startX) * 0.3;
-          const controlX2 = startX + (endX - startX) * 0.7;
-          
-          const pathData = `M ${startX} ${currentY} C ${controlX1} ${currentY}, ${controlX2} ${nextY}, ${endX} ${nextY}`;
+          const midX = startX + (endX - startX) / 2;
           
           lines.push(
             <g key={`connection-${match.id}`}>
-              <path
-                d={pathData}
-                stroke="hsl(var(--border))"
+              {/* Horizontal line from match */}
+              <line
+                x1={startX}
+                y1={currentY}
+                x2={midX}
+                y2={currentY}
+                stroke="hsl(var(--primary))"
                 strokeWidth="2"
-                fill="none"
-                className="opacity-60"
+                opacity="0.7"
               />
-              <circle
-                cx={endX}
-                cy={nextY}
-                r="3"
-                fill="hsl(var(--primary))"
-                className="opacity-80"
+              {/* Vertical line connecting to next match */}
+              <line
+                x1={midX}
+                y1={currentY}
+                x2={midX}
+                y2={nextY}
+                stroke="hsl(var(--primary))"
+                strokeWidth="2"
+                opacity="0.5"
               />
+              {/* Horizontal line to next match */}
+              <line
+                x1={midX}
+                y1={nextY}
+                x2={endX}
+                y2={nextY}
+                stroke="hsl(var(--primary))"
+                strokeWidth="2"
+                opacity="0.7"
+                markerEnd="url(#arrowhead)"
+              />
+              {/* Arrow marker */}
+              <defs>
+                <marker
+                  id="arrowhead"
+                  markerWidth="10"
+                  markerHeight="10"
+                  refX="8"
+                  refY="3"
+                  orient="auto"
+                >
+                  <polygon
+                    points="0 0, 10 3, 0 6"
+                    fill="hsl(var(--primary))"
+                  />
+                </marker>
+              </defs>
             </g>
           );
         });
@@ -411,11 +450,12 @@ const EnhancedBracketView: React.FC<EnhancedBracketViewProps> = ({
                 {rounds.map((roundNumber, roundIndex) => {
                   // Calculate vertical spacing for proper bracket alignment
                   const spacingMultiplier = Math.pow(2, roundNumber - 1);
-                  const matchSpacing = matchHeight * spacingMultiplier + 32 * spacingMultiplier;
+                  const baseGap = 80; // Increased gap
+                  const matchSpacing = matchHeight * spacingMultiplier + baseGap * spacingMultiplier;
                   
                   // Calculate initial offset to center matches relative to previous round
                   const initialOffset = roundNumber > 1 
-                    ? (matchHeight * Math.pow(2, roundNumber - 2) + 32 * Math.pow(2, roundNumber - 2)) - (matchHeight / 2)
+                    ? ((matchSpacing / 2) - (matchHeight / 2))
                     : 0;
                   
                   return (

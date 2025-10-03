@@ -117,34 +117,47 @@ const TraditionalBracketView: React.FC<TraditionalBracketViewProps> = ({
 
   const BracketConnector: React.FC<{ orientation: 'right' | 'left'; length?: number }> = ({ 
     orientation, 
-    length = 40 
+    length = 50 
   }) => (
-    <div className="flex items-center justify-center">
-      <div className="relative">
-        {/* Horizontal line to match center */}
-        <div 
-          className="border-t-2 border-primary/60"
-          style={{ width: `${length}px`, height: '1px' }}
+    <div className="flex items-center justify-center mx-2">
+      <svg width={length} height="80" className="overflow-visible">
+        {/* Main horizontal line */}
+        <line 
+          x1={orientation === 'right' ? 0 : length} 
+          y1="40" 
+          x2={orientation === 'right' ? length : 0} 
+          y2="40"
+          stroke="hsl(var(--primary))"
+          strokeWidth="2"
+          markerEnd="url(#arrowhead)"
         />
-        {/* Vertical connecting line */}
-        <div 
-          className={`
-            absolute top-0 w-0.5 h-8 bg-primary/60
-            ${orientation === 'right' ? 'right-0' : 'left-0'}
-          `}
-          style={{ transform: 'translateY(-15px)' }}
+        {/* Vertical connecting lines */}
+        <line 
+          x1={orientation === 'right' ? 0 : length} 
+          y1="10" 
+          x2={orientation === 'right' ? 0 : length} 
+          y2="70"
+          stroke="hsl(var(--primary))"
+          strokeWidth="2"
+          opacity="0.6"
         />
-        {/* Arrow indicating direction */}
-        <div 
-          className={`
-            absolute top-0 text-primary/80 text-xs font-bold
-            ${orientation === 'right' ? 'right-1' : 'left-1'}
-          `}
-          style={{ transform: 'translateY(-12px)' }}
-        >
-          {orientation === 'right' ? '→' : '←'}
-        </div>
-      </div>
+        {/* Arrow marker definition */}
+        <defs>
+          <marker
+            id="arrowhead"
+            markerWidth="10"
+            markerHeight="10"
+            refX="5"
+            refY="3"
+            orient="auto"
+          >
+            <polygon
+              points="0 0, 5 3, 0 6"
+              fill="hsl(var(--primary))"
+            />
+          </marker>
+        </defs>
+      </svg>
     </div>
   );
 
@@ -214,13 +227,13 @@ const TraditionalBracketView: React.FC<TraditionalBracketViewProps> = ({
               
               // Calculate vertical spacing multiplier for this round
               const baseMatchHeight = bracketFormat === 'simple' ? 120 : 100;
-              const baseGap = 32;
+              const baseGap = 64; // Increased gap between matches
               const spacingMultiplier = Math.pow(2, roundNumber - 1);
               const matchSpacing = (baseMatchHeight + baseGap) * spacingMultiplier;
               
               // Calculate initial offset to center matches relative to previous round
               const initialOffset = roundNumber > 1 
-                ? ((baseMatchHeight + baseGap) * Math.pow(2, roundNumber - 2)) - (baseMatchHeight / 2)
+                ? ((matchSpacing / 2) - (baseMatchHeight / 2))
                 : 0;
               
               return (
@@ -333,7 +346,7 @@ const TraditionalBracketView: React.FC<TraditionalBracketViewProps> = ({
                               {roundIndex < rounds.length - 1 && (
                                 <BracketConnector 
                                   orientation="right" 
-                                  length={bracketFormat === 'simple' ? 40 : 30}
+                                  length={bracketFormat === 'simple' ? 50 : 40}
                                 />
                               )}
                             </>
@@ -344,7 +357,7 @@ const TraditionalBracketView: React.FC<TraditionalBracketViewProps> = ({
                               {roundIndex > 0 && (
                                 <BracketConnector 
                                   orientation="left" 
-                                  length={bracketFormat === 'simple' ? 40 : 30}
+                                  length={bracketFormat === 'simple' ? 50 : 40}
                                 />
                               )}
                               <div className="flex flex-col gap-1">
