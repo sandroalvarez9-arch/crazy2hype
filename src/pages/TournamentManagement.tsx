@@ -104,6 +104,11 @@ export default function TournamentManagement() {
     }
   }, [id, user]);
 
+  // Reset to page 1 when filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [checkInFilter]);
+
   const checkStripeStatus = async () => {
     try {
       const { data: profile } = await supabase
@@ -473,11 +478,6 @@ export default function TournamentManagement() {
   const filteredTeams = checkInFilter === 'all' 
     ? teams 
     : teams.filter(t => t.check_in_status === checkInFilter);
-
-  // Reset to page 1 when filter changes
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [checkInFilter]);
 
   return (
     <div className="container mx-auto p-2 sm:p-3 md:p-6 max-w-full overflow-x-hidden">
