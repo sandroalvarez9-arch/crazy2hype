@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
-import { ArrowLeft, Calendar, MapPin, Users, Trophy, DollarSign, Settings, UserPlus } from 'lucide-react';
+import { ArrowLeft, Calendar, MapPin, Users, Trophy, DollarSign, Settings, UserPlus, ExternalLink } from 'lucide-react';
 import { format } from 'date-fns';
 import TeamRegistrationDialog from '@/components/TeamRegistrationDialog';
 import TeamCheckInDialog from '@/components/TeamCheckInDialog';
@@ -85,6 +85,7 @@ const TournamentDetails = () => {
   const [paying, setPaying] = useState(false);
   const [distanceText, setDistanceText] = useState<string | null>(null);
   const [mapsLink, setMapsLink] = useState<string | null>(null);
+  const [stripeConnected, setStripeConnected] = useState(false);
 
 
   useEffect(() => {
@@ -94,6 +95,26 @@ const TournamentDetails = () => {
       fetchMatches();
     }
   }, [id]);
+
+  useEffect(() => {
+    if (user) {
+      checkStripeStatus();
+    }
+  }, [user]);
+
+  const checkStripeStatus = async () => {
+    try {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('stripe_connected, stripe_charges_enabled')
+        .eq('user_id', user?.id)
+        .single();
+      
+      setStripeConnected(profile?.stripe_connected && profile?.stripe_charges_enabled);
+    } catch (error) {
+      console.error('Error checking Stripe status:', error);
+    }
+  };
 
   const fetchTournamentDetails = async () => {
     try {
@@ -181,6 +202,31 @@ const TournamentDetails = () => {
       toast({
         title: "Payment Error",
         description: "Failed to initiate payment. Please try again or contact support.",
+        variant: "destructive",
+      });
+    } finally {
+      setPaying(false);
+    }
+  };
+
+  const handleConnectStripe = async () => {
+    try {
+      setPaying(true);
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Not authenticated");
+
+      const { data, error } = await supabase.functions.invoke("get-stripe-oauth-url", {
+        headers: { Authorization: `Bearer ${session.access_token}` }
+      });
+
+      if (error) throw error;
+      if (data?.url) {
+        window.location.href = data.url;
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to initiate Stripe connection",
         variant: "destructive",
       });
     } finally {
@@ -351,7 +397,7 @@ const TournamentDetails = () => {
                   Manage
                 </Button>
               )}
-              {tournament.entry_fee > 0 && user && (
+              {tournament.entry_fee > 0 && user && !isOrganizer && (
                 <Button 
                   size="sm"
                   className="gradient-primary hover:opacity-90 transition-opacity"
@@ -360,6 +406,17 @@ const TournamentDetails = () => {
                 >
                   <DollarSign className="h-4 w-4 mr-2" />
                   {paying ? 'Redirecting…' : 'Pay online (Stripe)'}
+                </Button>
+              )}
+              {tournament.entry_fee > 0 && user && isOrganizer && !stripeConnected && (
+                <Button 
+                  size="sm"
+                  className="bg-[#635BFF] hover:bg-[#5348E6] text-white"
+                  onClick={handleConnectStripe}
+                  disabled={paying}
+                >
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  {paying ? 'Redirecting…' : 'Connect to Stripe'}
                 </Button>
               )}
               {userTeams.length > 0 && (
