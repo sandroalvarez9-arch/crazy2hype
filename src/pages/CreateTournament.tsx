@@ -40,7 +40,7 @@ const formSchema = z.object({
   registration_deadline: z.date({
     required_error: 'Registration deadline is required',
   }),
-  first_game_time: z.string().min(1, 'First game time is required'),
+  first_game_time: z.string().min(1, 'First game time is required').regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, 'Time must be in HH:MM format (e.g., 09:00 or 14:30)'),
   tournament_format: z.enum(['pool_play', 'single_elimination', 'double_elimination', 'round_robin']),
   divisions: z.array(z.enum(['men','women','coed'])).default([]),
   skill_levels: z.array(z.enum(['open', 'aa', 'a', 'bb', 'b', 'c'])).min(1, 'At least one skill level is required'),
@@ -57,6 +57,14 @@ const formSchema = z.object({
   path: ["end_date"],
 }).refine((data) => data.registration_deadline <= data.start_date, {
   message: "Registration deadline must be before start date",
+  path: ["registration_deadline"],
+}).refine((data) => {
+  const now = new Date();
+  const deadline = new Date(data.registration_deadline);
+  const hoursDiff = (deadline.getTime() - now.getTime()) / (1000 * 60 * 60);
+  return hoursDiff >= 1;
+}, {
+  message: "Registration deadline must be at least 1 hour from now",
   path: ["registration_deadline"],
 });
 

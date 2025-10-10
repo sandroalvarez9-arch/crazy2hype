@@ -166,6 +166,50 @@ export default function TournamentManagement() {
     }
   };
 
+  const bulkCheckIn = async () => {
+    try {
+      const pendingTeamIds = teams
+        .filter(t => t.check_in_status === 'pending')
+        .map(t => t.id);
+      
+      if (pendingTeamIds.length === 0) {
+        toast({
+          title: "No teams to check in",
+          description: "All teams are already checked in or marked as no-show.",
+        });
+        return;
+      }
+
+      const { error } = await supabase
+        .from("teams")
+        .update({ 
+          check_in_status: 'checked_in',
+          check_in_time: new Date().toISOString()
+        })
+        .in("id", pendingTeamIds);
+
+      if (error) throw error;
+
+      await supabase.rpc('log_tournament_action', {
+        tournament_id: id,
+        action: 'bulk_check_in',
+        details: { team_count: pendingTeamIds.length }
+      });
+
+      fetchTournamentData();
+      toast({
+        title: "Success",
+        description: `${pendingTeamIds.length} teams checked in.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to bulk check-in teams",
+        variant: "destructive",
+      });
+    }
+  };
+
   const updateTeamCheckIn = async (teamId: string, status: string) => {
     try {
       const updateData: any = { check_in_status: status };
@@ -245,6 +289,51 @@ export default function TournamentManagement() {
       toast({
         title: "Error",
         description: "Failed to promote backup team",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const bulkMarkAsPaid = async () => {
+    try {
+      const unpaidTeamIds = teams
+        .filter(t => t.payment_status === 'pending')
+        .map(t => t.id);
+      
+      if (unpaidTeamIds.length === 0) {
+        toast({
+          title: "No teams to update",
+          description: "All teams are already marked as paid.",
+        });
+        return;
+      }
+
+      const { error } = await supabase
+        .from("teams")
+        .update({ 
+          payment_status: 'paid',
+          payment_date: new Date().toISOString(),
+          payment_method: 'manual'
+        })
+        .in("id", unpaidTeamIds);
+
+      if (error) throw error;
+
+      await supabase.rpc('log_tournament_action', {
+        tournament_id: id,
+        action: 'bulk_mark_paid',
+        details: { team_count: unpaidTeamIds.length }
+      });
+
+      fetchTournamentData();
+      toast({
+        title: "Success",
+        description: `${unpaidTeamIds.length} teams marked as paid.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to bulk update payment status",
         variant: "destructive",
       });
     }
@@ -469,8 +558,13 @@ export default function TournamentManagement() {
 
         <TabsContent value="teams" className="space-y-4">
           <Card>
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>Team Check-in Status</CardTitle>
+              {pendingTeams > 0 && (
+                <Button onClick={bulkCheckIn} variant="outline" size="sm">
+                  Check-in All Pending ({pendingTeams})
+                </Button>
+              )}
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
@@ -641,8 +735,13 @@ export default function TournamentManagement() {
             </div>
 
             <Card>
-              <CardHeader>
+              <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle>Payment Status</CardTitle>
+                {unpaidTeams > 0 && (
+                  <Button onClick={bulkMarkAsPaid} variant="outline" size="sm">
+                    Mark All as Paid ({unpaidTeams})
+                  </Button>
+                )}
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">

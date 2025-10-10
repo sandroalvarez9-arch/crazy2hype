@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,10 @@ import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { AlertCircle, CheckCircle, ExternalLink } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 interface ProfileFormValues {
   username: string;
@@ -28,6 +32,13 @@ const Profile = () => {
   const { profile, user, updateProfile, loading } = useAuth();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [stripeStatus, setStripeStatus] = useState<{
+    connected: boolean;
+    charges_enabled: boolean;
+    details_submitted: boolean;
+    account_id: string | null;
+  } | null>(null);
+  const [checkingStripe, setCheckingStripe] = useState(false);
 
   const form = useForm<ProfileFormValues>({
     defaultValues: {
@@ -84,6 +95,30 @@ if (profile) {
     }
   }, [profile, form]);
 
+  // Check Stripe status
+  useEffect(() => {
+    const checkStripe = async () => {
+      if (!user) return;
+      setCheckingStripe(true);
+      try {
+        const { data, error } = await supabase.functions.invoke('check-stripe-connect');
+        if (!error && data) {
+          setStripeStatus({
+            connected: data.connected || false,
+            charges_enabled: data.charges_enabled || false,
+            details_submitted: data.details_submitted || false,
+            account_id: data.account_id || null,
+          });
+        }
+      } catch (err) {
+        console.error('Error checking Stripe:', err);
+      } finally {
+        setCheckingStripe(false);
+      }
+    };
+    checkStripe();
+  }, [user]);
+
   // Basic SEO for the page
   useEffect(() => {
     document.title = "Profile Settings | VolleyTournament";
@@ -132,6 +167,26 @@ const onSubmit = async (values: ProfileFormValues) => {
     }
   };
 
+  const connectStripe = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke('get-stripe-oauth-url');
+      if (error || !data?.url) {
+        throw new Error(error?.message || 'Failed to get Stripe OAuth URL');
+      }
+      window.open(data.url, '_blank', 'noopener');
+      toast({
+        title: "Opening Stripe",
+        description: "Complete the setup in the new tab, then return here.",
+      });
+    } catch (err: any) {
+      toast({
+        title: "Error",
+        description: err?.message || "Failed to connect Stripe",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <div className="container mx-auto px-4 py-8">
       <header className="mb-6">
@@ -140,6 +195,77 @@ const onSubmit = async (values: ProfileFormValues) => {
           View and update your profile details.
         </p>
       </header>
+
+      {/* Stripe Connection Status */}
+      {(profile?.role === 'admin' || profile?.role === 'host') && (
+        <Card className="max-w-2xl mb-6">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              Stripe Payment Setup
+              {stripeStatus?.connected && stripeStatus?.charges_enabled && (
+                <CheckCircle className="h-5 w-5 text-green-600" />
+              )}
+            </CardTitle>
+            <CardDescription>
+              Connect Stripe to accept online payments for your tournaments
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {checkingStripe ? (
+              <p className="text-sm text-muted-foreground">Checking Stripe status...</p>
+            ) : stripeStatus?.connected ? (
+              <>
+                {stripeStatus.charges_enabled && stripeStatus.details_submitted ? (
+                  <Alert className="bg-green-50 border-green-200">
+                    <CheckCircle className="h-4 w-4 text-green-600" />
+                    <AlertTitle className="text-green-900">Stripe Connected & Ready</AlertTitle>
+                    <AlertDescription className="text-green-800">
+                      Your account is fully set up and can accept payments.
+                    </AlertDescription>
+                  </Alert>
+                ) : (
+                  <Alert className="bg-amber-50 border-amber-200">
+                    <AlertCircle className="h-4 w-4 text-amber-600" />
+                    <AlertTitle className="text-amber-900">Setup Incomplete</AlertTitle>
+                    <AlertDescription className="text-amber-800">
+                      Your Stripe account is connected but needs additional setup to accept payments.
+                    </AlertDescription>
+                  </Alert>
+                )}
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Badge variant={stripeStatus.details_submitted ? "default" : "secondary"}>
+                      {stripeStatus.details_submitted ? "Details Submitted" : "Details Pending"}
+                    </Badge>
+                    <Badge variant={stripeStatus.charges_enabled ? "default" : "secondary"}>
+                      {stripeStatus.charges_enabled ? "Charges Enabled" : "Charges Disabled"}
+                    </Badge>
+                  </div>
+                  {(!stripeStatus.charges_enabled || !stripeStatus.details_submitted) && (
+                    <Button 
+                      variant="default"
+                      onClick={() => window.open('https://dashboard.stripe.com/account/onboarding', '_blank')}
+                      className="gap-2"
+                    >
+                      Complete Stripe Setup
+                      <ExternalLink className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+              </>
+            ) : (
+              <>
+                <p className="text-sm text-muted-foreground">
+                  Connect your Stripe account to receive tournament registration payments directly.
+                </p>
+                <Button onClick={connectStripe} variant="default">
+                  Connect Stripe Account
+                </Button>
+              </>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       <section aria-labelledby="profile-details" className="max-w-2xl">
         <Form {...form}>
