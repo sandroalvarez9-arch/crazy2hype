@@ -87,7 +87,7 @@ export function LocationAutocompleteInput({ value, onChange, placeholder = "Sear
     const handle = setTimeout(async () => {
       try {
         setLoading(true);
-        const { data, error } = await supabase.functions.invoke("geocode-suggest", {
+        const { data, error } = await supabase.functions.invoke("google-places-autocomplete", {
           body: { query: q },
         });
         if (error) throw error;
