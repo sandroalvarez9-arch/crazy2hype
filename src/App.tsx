@@ -11,6 +11,7 @@ import CreateTournament from "./pages/CreateTournament";
 import TournamentDetails from "./pages/TournamentDetails";
 import TournamentManagement from "./pages/TournamentManagement";
 import Tournaments from "./pages/Tournaments";
+import MoneyReporting from "./pages/MoneyReporting";
 import NotFound from "./pages/NotFound";
 import PaymentSuccess from "./pages/PaymentSuccess";
 import PaymentCanceled from "./pages/PaymentCanceled";
@@ -96,6 +97,11 @@ const App = () => (
             <Route path="/tournament/:id/manage" element={
               <ProtectedRoute>
                 <TournamentManagement />
+              </ProtectedRoute>
+            } />
+            <Route path="/tournament/:id/money" element={
+              <ProtectedRoute>
+                <MoneyReporting />
               </ProtectedRoute>
             } />
             <Route path="/payment-success" element={

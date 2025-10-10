@@ -83,6 +83,73 @@ export type Database = {
         }
         Relationships: []
       }
+      manual_payments: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          notes: string | null
+          payer_name: string
+          payment_date: string
+          payment_method: string
+          recorded_by: string | null
+          status: string
+          team_id: string | null
+          tournament_id: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: string
+          notes?: string | null
+          payer_name: string
+          payment_date?: string
+          payment_method: string
+          recorded_by?: string | null
+          status?: string
+          team_id?: string | null
+          tournament_id: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          notes?: string | null
+          payer_name?: string
+          payment_date?: string
+          payment_method?: string
+          recorded_by?: string | null
+          status?: string
+          team_id?: string | null
+          tournament_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "manual_payments_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "manual_payments_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "manual_payments_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: false
+            referencedRelation: "tournaments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       matches: {
         Row: {
           bracket_position: string | null
@@ -364,6 +431,79 @@ export type Database = {
           username?: string
         }
         Relationships: []
+      }
+      refund_tracking: {
+        Row: {
+          created_at: string
+          id: string
+          notes: string | null
+          payment_amount: number
+          payment_method: string
+          refund_amount: number | null
+          refund_date: string | null
+          refund_method: string | null
+          refund_status: string
+          showed_up: boolean
+          team_id: string
+          team_name: string
+          tournament_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          payment_amount: number
+          payment_method: string
+          refund_amount?: number | null
+          refund_date?: string | null
+          refund_method?: string | null
+          refund_status?: string
+          showed_up?: boolean
+          team_id: string
+          team_name: string
+          tournament_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          payment_amount?: number
+          payment_method?: string
+          refund_amount?: number | null
+          refund_date?: string | null
+          refund_method?: string | null
+          refund_status?: string
+          showed_up?: boolean
+          team_id?: string
+          team_name?: string
+          tournament_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "refund_tracking_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "refund_tracking_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "refund_tracking_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: false
+            referencedRelation: "tournaments"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       stripe_oauth_states: {
         Row: {

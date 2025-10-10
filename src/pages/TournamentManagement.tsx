@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Users, UserCheck, UserX, Clock, Trophy, AlertTriangle, DollarSign, CheckCircle, ExternalLink } from "lucide-react";
+import { Users, UserCheck, UserX, Clock, Trophy, AlertTriangle, DollarSign, CheckCircle, ExternalLink, Receipt } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { PoolPlayManager } from "@/components/PoolPlayManager";
 import { GameFormatManager } from "@/components/GameFormatManager";
@@ -488,6 +488,13 @@ export default function TournamentManagement() {
         </div>
         {tournament && (
           <div className="flex flex-col gap-2 sm:flex-row sm:gap-2 sm:shrink-0">
+            <Button
+              variant="outline"
+              onClick={() => window.location.href = `/tournament/${id}/money`}
+            >
+              <Receipt className="h-4 w-4 mr-2" />
+              Money & Reporting
+            </Button>
             {tournament.status === 'draft' && !tournament.published && (
               <Button
                 onClick={publishTournament}
