@@ -8,7 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Users, UserCheck, UserX, Clock, Trophy, AlertTriangle, DollarSign, CheckCircle } from "lucide-react";
+import { Users, UserCheck, UserX, Clock, Trophy, AlertTriangle, DollarSign, CheckCircle, ExternalLink } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { PoolPlayManager } from "@/components/PoolPlayManager";
 import { GameFormatManager } from "@/components/GameFormatManager";
 import { Input } from "@/components/ui/input";
@@ -111,6 +112,28 @@ export default function TournamentManagement() {
       setStripeConnected(profile?.stripe_connected && profile?.stripe_charges_enabled);
     } catch (error) {
       console.error('Error checking Stripe status:', error);
+    }
+  };
+
+  const handleConnectStripe = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Not authenticated");
+
+      const { data, error } = await supabase.functions.invoke("get-stripe-oauth-url", {
+        headers: { Authorization: `Bearer ${session.access_token}` }
+      });
+
+      if (error) throw error;
+      if (data?.url) {
+        window.location.href = data.url;
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to initiate Stripe connection",
+        variant: "destructive",
+      });
     }
   };
 
@@ -499,6 +522,26 @@ export default function TournamentManagement() {
           </div>
         )}
       </div>
+
+      {!stripeConnected && tournament?.status === 'draft' && (
+        <Alert className="mb-6 border-amber-500 bg-amber-50 dark:bg-amber-950">
+          <AlertTriangle className="h-4 w-4 text-amber-600" />
+          <AlertTitle className="text-amber-900 dark:text-amber-100">Stripe Connection Required</AlertTitle>
+          <AlertDescription className="text-amber-800 dark:text-amber-200">
+            <p className="mb-3">
+              You need to connect your Stripe account to accept online payments and publish this tournament.
+            </p>
+            <Button 
+              onClick={handleConnectStripe}
+              variant="default"
+              className="bg-[#635BFF] hover:bg-[#5348E6]"
+            >
+              <ExternalLink className="mr-2 h-4 w-4" />
+              Connect with Stripe
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
         <Card>
