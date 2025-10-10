@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
@@ -45,7 +45,10 @@ const EnhancedBracketView: React.FC<EnhancedBracketViewProps> = ({
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0, panX: 0, panY: 0 });
+  const [centers, setCenters] = useState<Record<string, { x: number; y: number }>>({});
+  const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
+  const matchRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   // Update matches when initialMatches changes
   useEffect(() => {
@@ -178,6 +181,57 @@ const EnhancedBracketView: React.FC<EnhancedBracketViewProps> = ({
     setIsDragging(false);
   };
 
+  // Measure actual positions of match cards
+  useLayoutEffect(() => {
+    const measurePositions = () => {
+      const container = containerRef.current;
+      if (!container) return;
+
+      const containerRect = container.getBoundingClientRect();
+      const next: Record<string, { x: number; y: number }> = {};
+
+      for (const [id, el] of Object.entries(matchRefs.current)) {
+        if (!el) continue;
+        const rect = el.getBoundingClientRect();
+        // Convert to container-local coordinates
+        next[id] = {
+          x: (rect.left - containerRect.left - pan.x) / zoom + rect.width,
+          y: (rect.top - containerRect.top - pan.y) / zoom + rect.height / 2
+        };
+      }
+
+      setCenters(next);
+    };
+
+    // Delay measurement slightly to ensure DOM is settled
+    const timer = setTimeout(measurePositions, 50);
+    return () => clearTimeout(timer);
+  }, [matches, zoom, pan, containerSize, format]);
+
+  // Watch for container and card size changes with ResizeObserver
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const resizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        if (entry.target === container) {
+          setContainerSize({
+            width: entry.contentRect.width,
+            height: entry.contentRect.height
+          });
+        }
+      }
+    });
+
+    resizeObserver.observe(container);
+    Object.values(matchRefs.current).forEach(el => {
+      if (el) resizeObserver.observe(el);
+    });
+
+    return () => resizeObserver.disconnect();
+  }, [matches]);
+
   // Wheel zoom
   useEffect(() => {
     const handleWheel = (e: WheelEvent) => {
@@ -204,22 +258,22 @@ const EnhancedBracketView: React.FC<EnhancedBracketViewProps> = ({
   }> = ({ teamName, score, isWinner }) => {
     if (!teamName) {
       return (
-        <div className="bg-muted/50 p-3 rounded border border-dashed text-center">
-          <span className="text-muted-foreground text-sm">TBD</span>
+        <div className="bg-muted/50 p-2 rounded border border-dashed text-center">
+          <span className="text-muted-foreground text-xs">TBD</span>
         </div>
       );
     }
     
     return (
-      <div className={`p-3 rounded border transition-colors ${
+      <div className={`p-2 rounded border transition-colors ${
         isWinner 
           ? 'bg-green-50 border-green-200 font-semibold text-green-800' 
           : 'bg-background border-border hover:bg-muted/50'
       }`}>
-        <div className="flex justify-between items-center">
-          <span className="text-sm">{teamName}</span>
+        <div className="flex justify-between items-center gap-2">
+          <span className="text-xs truncate flex-1">{teamName}</span>
           {score !== undefined && score > 0 && (
-            <Badge variant="outline" className="text-xs">
+            <Badge variant="outline" className="text-xs shrink-0">
               {score}
             </Badge>
           )}
@@ -228,91 +282,70 @@ const EnhancedBracketView: React.FC<EnhancedBracketViewProps> = ({
     );
   };
 
-  // SVG Connection Lines Component
+  // SVG Connection Lines Component using measured positions
   const ConnectionLines: React.FC<{
     rounds: number[];
     organizedMatches: { [round: number]: BracketMatch[] };
-    matchHeight: number;
-    roundWidth: number;
-  }> = ({ rounds, organizedMatches, matchHeight, roundWidth }) => {
+  }> = ({ rounds, organizedMatches }) => {
     const lines: JSX.Element[] = [];
-    const baseGap = 60;
     
+    // Build edges based on bracket structure
     rounds.forEach((roundNumber, roundIndex) => {
-      if (roundIndex < rounds.length - 1) {
-        const currentRoundMatches = organizedMatches[roundNumber];
+      if (roundIndex >= rounds.length - 1) return; // No connections from final round
+      
+      const currentRoundMatches = organizedMatches[roundNumber];
+      
+      currentRoundMatches.forEach((match, matchIndex) => {
+        const nextMatchIndex = Math.floor(matchIndex / 2);
+        const nextRound = rounds[roundIndex + 1];
+        const nextMatch = organizedMatches[nextRound]?.[nextMatchIndex];
         
-        currentRoundMatches.forEach((match, matchIndex) => {
-          // Calculate gap for current round
-          let currentGap = baseGap;
-          for (let i = 1; i < roundNumber; i++) {
-            currentGap = (currentGap + matchHeight) * 2;
-          }
-          const currentTopMargin = roundNumber > 1 ? currentGap / 2 : 0;
-          
-          // Calculate current match Y position
-          const headerHeight = 100;
-          let currentY = headerHeight + currentTopMargin;
-          for (let i = 0; i < matchIndex; i++) {
-            currentY += currentGap + matchHeight;
-          }
-          currentY += matchHeight / 2;
-          
-          // Calculate next round gap
-          let nextGap = baseGap;
-          for (let i = 1; i < roundNumber + 1; i++) {
-            nextGap = (nextGap + matchHeight) * 2;
-          }
-          const nextTopMargin = nextGap / 2;
-          
-          // Calculate next match Y position
-          const nextMatchIndex = Math.floor(matchIndex / 2);
-          let nextY = headerHeight + nextTopMargin;
-          for (let i = 0; i < nextMatchIndex; i++) {
-            nextY += nextGap + matchHeight;
-          }
-          nextY += matchHeight / 2;
-          
-          const startX = roundIndex * roundWidth + 320;
-          const midX = startX + 60;
-          const endX = (roundIndex + 1) * roundWidth + 40;
-          
-          lines.push(
-            <g key={`connection-${match.id}`}>
-              {/* Horizontal line from match */}
-              <line
-                x1={startX}
-                y1={currentY}
-                x2={midX}
-                y2={currentY}
-                stroke="hsl(var(--primary))"
-                strokeWidth="2"
-                opacity="0.8"
-              />
-              {/* Vertical line to merge point */}
-              <line
-                x1={midX}
-                y1={currentY}
-                x2={midX}
-                y2={nextY}
-                stroke="hsl(var(--primary))"
-                strokeWidth="2"
-                opacity="0.6"
-              />
-              {/* Horizontal line to next match - both matches draw this */}
-              <line
-                x1={midX}
-                y1={nextY}
-                x2={endX}
-                y2={nextY}
-                stroke="hsl(var(--primary))"
-                strokeWidth="2"
-                opacity="0.8"
-              />
-            </g>
-          );
-        });
-      }
+        if (!nextMatch) return;
+        
+        const start = centers[match.id];
+        const end = centers[nextMatch.id];
+        
+        if (!start || !end) return;
+        
+        // Draw connection with elbow
+        const midX = start.x + 60;
+        const endX = end.x - 40;
+        
+        lines.push(
+          <g key={`${match.id}->${nextMatch.id}`}>
+            {/* Horizontal line from current match */}
+            <line
+              x1={start.x}
+              y1={start.y}
+              x2={midX}
+              y2={start.y}
+              stroke="hsl(var(--primary))"
+              strokeWidth="2"
+              opacity="0.8"
+            />
+            {/* Vertical line connecting matches */}
+            <line
+              x1={midX}
+              y1={start.y}
+              x2={midX}
+              y2={end.y}
+              stroke="hsl(var(--primary))"
+              strokeWidth="2"
+              opacity="0.6"
+            />
+            {/* Horizontal line to next match */}
+            <line
+              x1={midX}
+              y1={end.y}
+              x2={endX}
+              y2={end.y}
+              stroke="hsl(var(--primary))"
+              strokeWidth="2"
+              opacity="0.8"
+            />
+          </g>
+        );
+      });
     });
     
     return <>{lines}</>;
@@ -337,8 +370,11 @@ const EnhancedBracketView: React.FC<EnhancedBracketViewProps> = ({
 
   const roundWidth = 360;
   const matchHeight = format === 'detailed' ? 180 : 120;
-  const svgWidth = rounds.length * roundWidth;
-  const svgHeight = Math.max(...rounds.map(r => organizedMatches[r].length)) * (matchHeight + 32);
+  
+  // Calculate SVG dimensions based on actual content
+  const contentElement = containerRef.current?.querySelector('.relative > div');
+  const svgWidth = contentElement?.scrollWidth || rounds.length * roundWidth;
+  const svgHeight = contentElement?.scrollHeight || Math.max(...rounds.map(r => organizedMatches[r].length)) * (matchHeight + 200);
 
   return (
     <div className="space-y-4">
@@ -439,8 +475,6 @@ const EnhancedBracketView: React.FC<EnhancedBracketViewProps> = ({
               <ConnectionLines
                 rounds={rounds}
                 organizedMatches={organizedMatches}
-                matchHeight={matchHeight}
-                roundWidth={roundWidth}
               />
             </svg>
 
@@ -477,13 +511,14 @@ const EnhancedBracketView: React.FC<EnhancedBracketViewProps> = ({
                           
                           return (
                             <Card 
-                              key={match.id} 
-                              className="w-full bg-background/95 backdrop-blur-sm shadow-lg"
+                              key={match.id}
+                              ref={(el) => { matchRefs.current[match.id] = el; }}
+                              className="w-full bg-background/95 backdrop-blur-sm shadow-lg h-[120px] md:h-[180px]"
                               style={{ marginTop: `${marginTop}px` }}
                             >
-                          <CardHeader className="pb-3">
+                          <CardHeader className="pb-2 pt-3">
                             <div className="flex justify-between items-start">
-                              <CardTitle className="text-sm font-medium">
+                              <CardTitle className="text-sm font-medium truncate">
                                 {match.bracket_position}
                               </CardTitle>
                               <Badge 
@@ -495,7 +530,7 @@ const EnhancedBracketView: React.FC<EnhancedBracketViewProps> = ({
                             </div>
                           </CardHeader>
                           
-                          <CardContent className="space-y-3">
+                          <CardContent className="space-y-2 py-3">
                             {/* Teams */}
                             <TeamBox
                               teamName={match.team1_name}
@@ -503,7 +538,7 @@ const EnhancedBracketView: React.FC<EnhancedBracketViewProps> = ({
                               isWinner={match.status === 'completed' && match.winner_name === match.team1_name}
                             />
                             
-                            <div className="text-center text-xs text-muted-foreground font-medium">
+                            <div className="text-center text-xs text-muted-foreground font-medium py-1">
                               VS
                             </div>
                             
