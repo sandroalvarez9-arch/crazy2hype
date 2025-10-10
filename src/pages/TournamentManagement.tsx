@@ -96,6 +96,7 @@ export default function TournamentManagement() {
   const [currentPage, setCurrentPage] = useState(1);
   const [teamsPerPage] = useState(10);
   const [checkInFilter, setCheckInFilter] = useState<'all' | 'checked_in' | 'pending' | 'no_show'>('all');
+  const [divisionFilter, setDivisionFilter] = useState<string>('all');
 
   useEffect(() => {
     if (id && user) {
@@ -107,7 +108,7 @@ export default function TournamentManagement() {
   // Reset to page 1 when filter changes
   useEffect(() => {
     setCurrentPage(1);
-  }, [checkInFilter]);
+  }, [checkInFilter, divisionFilter]);
 
   const checkStripeStatus = async () => {
     try {
@@ -474,10 +475,44 @@ export default function TournamentManagement() {
   const isTournamentDay = tournament ?
     new Date().toDateString() === new Date(tournament.start_date).toDateString() : false;
 
-  // Filter teams based on check-in status
-  const filteredTeams = checkInFilter === 'all' 
-    ? teams 
-    : teams.filter(t => t.check_in_status === checkInFilter);
+  // Get unique divisions from teams
+  const uniqueDivisions = Array.from(
+    new Set(
+      teams
+        .map(t => t.division)
+        .filter(d => d !== null && d !== undefined && d !== '')
+    )
+  ).sort();
+
+  // Get unique skill levels (fallback if no divisions)
+  const uniqueSkillLevels = Array.from(
+    new Set(
+      teams
+        .map(t => t.skill_level)
+        .filter(s => s !== null && s !== undefined && s !== '')
+    )
+  ).sort();
+
+  // Determine if we should use divisions or skill levels for tabs
+  const useDivisions = uniqueDivisions.length > 0;
+  const categories = useDivisions ? uniqueDivisions : uniqueSkillLevels;
+
+  // Filter teams based on check-in status AND division/skill level
+  let filteredTeams = teams;
+  
+  // Apply check-in status filter
+  if (checkInFilter !== 'all') {
+    filteredTeams = filteredTeams.filter(t => t.check_in_status === checkInFilter);
+  }
+  
+  // Apply division/skill level filter
+  if (divisionFilter !== 'all') {
+    filteredTeams = filteredTeams.filter(t => 
+      useDivisions 
+        ? t.division === divisionFilter
+        : t.skill_level === divisionFilter
+    );
+  }
 
   return (
     <div className="container mx-auto p-2 sm:p-3 md:p-6 max-w-full overflow-x-hidden">
@@ -630,25 +665,56 @@ export default function TournamentManagement() {
               )}
             </CardHeader>
             <CardContent>
-              <Tabs value={checkInFilter} onValueChange={(value) => setCheckInFilter(value as any)} className="w-full mb-4">
-                <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 gap-1">
-                  <TabsTrigger value="all" className="text-xs md:text-sm">
-                    All ({teams.length})
-                  </TabsTrigger>
-                  <TabsTrigger value="checked_in" className="text-xs md:text-sm">
-                    <UserCheck className="h-3 w-3 mr-1 md:h-4 md:w-4" />
-                    Checked In ({checkedInTeams})
-                  </TabsTrigger>
-                  <TabsTrigger value="pending" className="text-xs md:text-sm">
-                    <Clock className="h-3 w-3 mr-1 md:h-4 md:w-4" />
-                    Pending ({pendingTeams})
-                  </TabsTrigger>
-                  <TabsTrigger value="no_show" className="text-xs md:text-sm">
-                    <UserX className="h-3 w-3 mr-1 md:h-4 md:w-4" />
-                    No Show ({noShowTeams})
-                  </TabsTrigger>
-                </TabsList>
-              </Tabs>
+              {/* Division/Category Tabs */}
+              {categories.length > 0 && (
+                <div className="mb-4">
+                  <Label className="text-sm font-medium mb-2 block">Filter by Category</Label>
+                  <Tabs value={divisionFilter} onValueChange={setDivisionFilter} className="w-full">
+                    <TabsList className="grid w-full gap-1" style={{ gridTemplateColumns: `repeat(${Math.min(categories.length + 1, 5)}, minmax(0, 1fr))` }}>
+                      <TabsTrigger value="all" className="text-xs md:text-sm">
+                        All ({teams.length})
+                      </TabsTrigger>
+                      {categories.map((category) => {
+                        const categoryTeams = teams.filter(t => 
+                          useDivisions ? t.division === category : t.skill_level === category
+                        );
+                        return (
+                          <TabsTrigger key={category} value={category} className="text-xs md:text-sm">
+                            {useDivisions 
+                              ? category.toUpperCase() 
+                              : formatSkillLevel(category as any)
+                            } ({categoryTeams.length})
+                          </TabsTrigger>
+                        );
+                      })}
+                    </TabsList>
+                  </Tabs>
+                </div>
+              )}
+
+              {/* Check-in Status Tabs */}
+              <div className="mb-4">
+                <Label className="text-sm font-medium mb-2 block">Filter by Check-in Status</Label>
+                <Tabs value={checkInFilter} onValueChange={(value) => setCheckInFilter(value as any)} className="w-full">
+                  <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 gap-1">
+                    <TabsTrigger value="all" className="text-xs md:text-sm">
+                      All
+                    </TabsTrigger>
+                    <TabsTrigger value="checked_in" className="text-xs md:text-sm">
+                      <UserCheck className="h-3 w-3 mr-1 md:h-4 md:w-4" />
+                      Checked In ({checkedInTeams})
+                    </TabsTrigger>
+                    <TabsTrigger value="pending" className="text-xs md:text-sm">
+                      <Clock className="h-3 w-3 mr-1 md:h-4 md:w-4" />
+                      Pending ({pendingTeams})
+                    </TabsTrigger>
+                    <TabsTrigger value="no_show" className="text-xs md:text-sm">
+                      <UserX className="h-3 w-3 mr-1 md:h-4 md:w-4" />
+                      No Show ({noShowTeams})
+                    </TabsTrigger>
+                  </TabsList>
+                </Tabs>
+              </div>
 
               <div className="space-y-4">
                 {filteredTeams.length === 0 ? (
