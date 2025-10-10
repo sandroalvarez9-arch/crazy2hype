@@ -95,6 +95,7 @@ export default function TournamentManagement() {
   const [publishingTournament, setPublishingTournament] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [teamsPerPage] = useState(10);
+  const [checkInFilter, setCheckInFilter] = useState<'all' | 'checked_in' | 'pending' | 'no_show'>('all');
 
   useEffect(() => {
     if (id && user) {
@@ -468,6 +469,16 @@ export default function TournamentManagement() {
   const isTournamentDay = tournament ?
     new Date().toDateString() === new Date(tournament.start_date).toDateString() : false;
 
+  // Filter teams based on check-in status
+  const filteredTeams = checkInFilter === 'all' 
+    ? teams 
+    : teams.filter(t => t.check_in_status === checkInFilter);
+
+  // Reset to page 1 when filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [checkInFilter]);
+
   return (
     <div className="container mx-auto p-2 sm:p-3 md:p-6 max-w-full overflow-x-hidden">
       <div className="mb-4 md:mb-6 flex flex-col gap-3 md:gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -610,7 +621,7 @@ export default function TournamentManagement() {
 
         <TabsContent value="teams" className="space-y-4">
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
+            <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <CardTitle>Team Check-in Status</CardTitle>
               {pendingTeams > 0 && (
                 <Button onClick={bulkCheckIn} variant="outline" size="sm">
@@ -619,10 +630,35 @@ export default function TournamentManagement() {
               )}
             </CardHeader>
             <CardContent>
+              <Tabs value={checkInFilter} onValueChange={(value) => setCheckInFilter(value as any)} className="w-full mb-4">
+                <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 gap-1">
+                  <TabsTrigger value="all" className="text-xs md:text-sm">
+                    All ({teams.length})
+                  </TabsTrigger>
+                  <TabsTrigger value="checked_in" className="text-xs md:text-sm">
+                    <UserCheck className="h-3 w-3 mr-1 md:h-4 md:w-4" />
+                    Checked In ({checkedInTeams})
+                  </TabsTrigger>
+                  <TabsTrigger value="pending" className="text-xs md:text-sm">
+                    <Clock className="h-3 w-3 mr-1 md:h-4 md:w-4" />
+                    Pending ({pendingTeams})
+                  </TabsTrigger>
+                  <TabsTrigger value="no_show" className="text-xs md:text-sm">
+                    <UserX className="h-3 w-3 mr-1 md:h-4 md:w-4" />
+                    No Show ({noShowTeams})
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
+
               <div className="space-y-4">
-                {teams
-                  .slice((currentPage - 1) * teamsPerPage, currentPage * teamsPerPage)
-                  .map((team) => (
+                {filteredTeams.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    No teams found in this category
+                  </div>
+                ) : (
+                  filteredTeams
+                    .slice((currentPage - 1) * teamsPerPage, currentPage * teamsPerPage)
+                    .map((team) => (
                   <div key={team.id} className="flex flex-col gap-3 p-3 sm:p-4 border rounded-lg sm:flex-row sm:items-center sm:justify-between">
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 mb-1">
@@ -693,14 +729,15 @@ export default function TournamentManagement() {
                       )}
                     </div>
                   </div>
-                ))}
+                ))
+              )}
               </div>
               
-              {teams.length > teamsPerPage && (
+              {filteredTeams.length > teamsPerPage && (
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-6 pt-4 border-t">
                   <div className="text-sm text-muted-foreground">
-                    Showing {Math.min((currentPage - 1) * teamsPerPage + 1, teams.length)} to{' '}
-                    {Math.min(currentPage * teamsPerPage, teams.length)} of {teams.length} teams
+                    Showing {Math.min((currentPage - 1) * teamsPerPage + 1, filteredTeams.length)} to{' '}
+                    {Math.min(currentPage * teamsPerPage, filteredTeams.length)} of {filteredTeams.length} teams
                   </div>
                   <div className="flex items-center gap-2">
                     <Button
@@ -712,9 +749,9 @@ export default function TournamentManagement() {
                       Previous
                     </Button>
                     <div className="flex items-center gap-1">
-                      {Array.from({ length: Math.ceil(teams.length / teamsPerPage) }, (_, i) => i + 1)
+                      {Array.from({ length: Math.ceil(filteredTeams.length / teamsPerPage) }, (_, i) => i + 1)
                         .filter(page => {
-                          const totalPages = Math.ceil(teams.length / teamsPerPage);
+                          const totalPages = Math.ceil(filteredTeams.length / teamsPerPage);
                           return page === 1 || 
                                  page === totalPages || 
                                  Math.abs(page - currentPage) <= 1;
@@ -738,8 +775,8 @@ export default function TournamentManagement() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => setCurrentPage(p => Math.min(Math.ceil(teams.length / teamsPerPage), p + 1))}
-                      disabled={currentPage === Math.ceil(teams.length / teamsPerPage)}
+                      onClick={() => setCurrentPage(p => Math.min(Math.ceil(filteredTeams.length / teamsPerPage), p + 1))}
+                      disabled={currentPage === Math.ceil(filteredTeams.length / teamsPerPage)}
                     >
                       Next
                     </Button>
