@@ -56,6 +56,33 @@ export type Database = {
         }
         Relationships: []
       }
+      contact_access_logs: {
+        Row: {
+          access_reason: string | null
+          accessed_by: string
+          accessed_record_id: string
+          accessed_table: string
+          created_at: string | null
+          id: string
+        }
+        Insert: {
+          access_reason?: string | null
+          accessed_by: string
+          accessed_record_id: string
+          accessed_table: string
+          created_at?: string | null
+          id?: string
+        }
+        Update: {
+          access_reason?: string | null
+          accessed_by?: string
+          accessed_record_id?: string
+          accessed_table?: string
+          created_at?: string | null
+          id?: string
+        }
+        Relationships: []
+      }
       matches: {
         Row: {
           bracket_position: string | null
@@ -741,12 +768,27 @@ export type Database = {
       players_tournament_view: {
         Row: {
           created_at: string | null
-          emergency_email: string | null
           id: string | null
           jersey_number: number | null
           name: string | null
           position: string | null
           team_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string | null
+          jersey_number?: number | null
+          name?: string | null
+          position?: string | null
+          team_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string | null
+          jersey_number?: number | null
+          name?: string | null
+          position?: string | null
+          team_id?: string | null
         }
         Relationships: []
       }
