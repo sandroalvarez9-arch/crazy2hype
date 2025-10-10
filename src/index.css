@@ -128,9 +128,22 @@ All colors MUST be HSL.
 }
 
 @layer base {
-  * {
-    @apply border-border;
+* {
+  @apply border-border;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Mobile touch improvements */
+@media (max-width: 768px) {
+  button, a, [role="button"] {
+    min-height: 44px;
+    min-width: 44px;
   }
+  
+  input, textarea, select {
+    font-size: 16px; /* Prevents iOS zoom on focus */
+  }
+}
 
   body {
     @apply bg-background text-foreground;

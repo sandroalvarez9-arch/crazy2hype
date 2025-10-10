@@ -286,55 +286,59 @@ const handleManualSubmit = async () => {
 };
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-3 md:px-4 py-4 md:py-8">
       <div className="max-w-6xl mx-auto">
-        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-8">
-          <div>
-            <h1 className="text-3xl lg:text-4xl font-bold gradient-text mb-2">
+        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-3 md:gap-4 mb-6 md:mb-8">
+          <div className="min-w-0">
+            <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold gradient-text mb-2 break-words">
               {showMyTournaments ? 'My Tournaments' : 'Browse Tournaments'}
             </h1>
-            <p className="text-muted-foreground">
+            <p className="text-sm md:text-base text-muted-foreground break-words">
               {showMyTournaments 
                 ? `${filteredTournaments.length} of ${tournaments.length} tournaments you've created`
                 : userLocation 
-                  ? `${filteredTournaments.length} of ${tournaments.length} tournaments sorted by distance from your location`
+                  ? `${filteredTournaments.length} of ${tournaments.length} tournaments sorted by distance`
                   : `${filteredTournaments.length} of ${tournaments.length} tournaments available`
               }
             </p>
           </div>
 
-          <div className="flex flex-col lg:flex-row gap-2">
+          <div className="flex flex-col sm:flex-row lg:flex-row gap-2 w-full lg:w-auto">
             <SkillLevelFilter 
               selectedLevels={selectedSkillLevels}
               onLevelsChange={setSelectedSkillLevels}
             />
             {locationPermission !== 'granted' && (
-              <div className="flex items-center gap-2">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full lg:w-auto">
                 <Input
-                  placeholder="Enter a city or ZIP"
+                  placeholder="City or ZIP"
                   aria-label="Enter a city or ZIP"
                   value={manualQuery}
                   onChange={(e) => setManualQuery(e.target.value)}
-                  className="w-[160px] h-8 text-sm"
+                  className="w-full sm:w-[140px] h-9 text-sm"
                 />
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleManualSubmit}
-                  disabled={!manualQuery.trim() || manualLoading}
-                >
-                  {manualLoading ? 'Setting...' : 'Set'}
-                </Button>
-                <Button 
-                  onClick={requestLocation}
-                  variant="outline"
-                  size="sm"
-                  className="flex items-center gap-2"
-                  title={isIframe ? 'Preview may block geolocation' : undefined}
-                >
-                  <Navigation className="h-4 w-4" />
-                  Use My Location
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleManualSubmit}
+                    disabled={!manualQuery.trim() || manualLoading}
+                    className="flex-1 sm:flex-initial text-xs"
+                  >
+                    {manualLoading ? 'Setting...' : 'Set'}
+                  </Button>
+                  <Button 
+                    onClick={requestLocation}
+                    variant="outline"
+                    size="sm"
+                    className="flex items-center justify-center gap-1 flex-1 sm:flex-initial text-xs"
+                    title={isIframe ? 'Preview may block geolocation' : undefined}
+                  >
+                    <Navigation className="h-3 w-3" />
+                    <span className="hidden sm:inline">Use Location</span>
+                    <span className="sm:hidden">Location</span>
+                  </Button>
+                </div>
               </div>
             )}
           </div>

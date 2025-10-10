@@ -350,24 +350,25 @@ const TournamentDetails = () => {
                      tournament.status === 'open';
 
   return (
-    <div className={`container mx-auto px-4 py-6 ${isMobile ? 'pb-4' : 'py-8'}`}>
-      <div className="mb-6 animate-fade-in">
+    <div className={`container mx-auto px-3 md:px-4 py-4 md:py-6 ${isMobile ? 'pb-4' : 'md:py-8'}`}>
+      <div className="mb-4 md:mb-6 animate-fade-in">
         <Button
           variant="ghost"
+          size={isMobile ? "sm" : "default"}
           onClick={() => navigate(-1)}
-          className="mb-4 hover:bg-muted"
+          className="mb-3 md:mb-4 hover:bg-muted"
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back
         </Button>
         
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-          <div>
-            <h1 className="text-2xl md:text-3xl font-bold mb-2 flex items-center gap-2">
-              <Trophy className="h-6 w-6 md:h-8 w-8 text-primary" />
-              {tournament.title}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 md:gap-4 mb-4 md:mb-6">
+          <div className="min-w-0">
+            <h1 className="text-xl md:text-3xl font-bold mb-2 flex items-center gap-2">
+              <Trophy className="h-5 w-5 md:h-8 md:w-8 text-primary shrink-0" />
+              <span className="break-words">{tournament.title}</span>
             </h1>
-            <p className="text-muted-foreground">
+            <p className="text-xs md:text-sm text-muted-foreground break-words">
               Organized by {tournament.organizer ? 
                 `${tournament.organizer.first_name} ${tournament.organizer.last_name} (@${tournament.organizer.username})` : 
                 'Unknown Organizer'
@@ -375,7 +376,7 @@ const TournamentDetails = () => {
             </p>
           </div>
           
-          <div className="flex gap-2 flex-wrap">
+          <div className="flex flex-col sm:flex-row gap-2 flex-wrap">
           <div className="flex flex-wrap gap-1">
             {tournament.skill_levels.map((level) => (
               <Badge key={level} variant={getSkillLevelBadgeVariant(level as any)}>
@@ -383,15 +384,16 @@ const TournamentDetails = () => {
               </Badge>
             ))}
           </div>
-            <Badge variant={tournament.status === 'open' ? 'default' : 'secondary'}>
+            <Badge variant={tournament.status === 'open' ? 'default' : 'secondary'} className="text-xs">
               {tournament.status}
             </Badge>
-            <div className="flex gap-2">
+            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
               {isOrganizer && (
                 <Button 
                   size="sm" 
                   variant="outline"
                   onClick={() => navigate(`/tournament/${id}/manage`)}
+                  className="w-full sm:w-auto text-xs"
                 >
                   <Settings className="h-4 w-4 mr-2" />
                   Manage
@@ -400,23 +402,23 @@ const TournamentDetails = () => {
               {tournament.entry_fee > 0 && user && !isOrganizer && (
                 <Button 
                   size="sm"
-                  className="gradient-primary hover:opacity-90 transition-opacity"
+                  className="gradient-primary hover:opacity-90 transition-opacity w-full sm:w-auto text-xs"
                   onClick={handlePayOnline}
                   disabled={paying}
                 >
                   <DollarSign className="h-4 w-4 mr-2" />
-                  {paying ? 'Redirecting…' : 'Pay online (Stripe)'}
+                  {paying ? 'Redirecting…' : 'Pay online'}
                 </Button>
               )}
               {tournament.entry_fee > 0 && user && isOrganizer && !stripeConnected && (
                 <Button 
                   size="sm"
-                  className="bg-[#635BFF] hover:bg-[#5348E6] text-white"
+                  className="bg-[#635BFF] hover:bg-[#5348E6] text-white w-full sm:w-auto text-xs"
                   onClick={handleConnectStripe}
                   disabled={paying}
                 >
                   <ExternalLink className="h-4 w-4 mr-2" />
-                  {paying ? 'Redirecting…' : 'Connect to Stripe'}
+                  {paying ? 'Redirecting…' : 'Connect Stripe'}
                 </Button>
               )}
               {userTeams.length > 0 && (
@@ -435,9 +437,9 @@ const TournamentDetails = () => {
           </div>
         </div>
 
-        <Card className="shadow-card mb-6 animate-scale-in">
-          <CardContent className="pt-6">
-            <div className={`grid ${isMobile ? 'grid-cols-1' : 'md:grid-cols-2 lg:grid-cols-4'} gap-4`}>
+        <Card className="shadow-card mb-4 md:mb-6 animate-scale-in">
+          <CardContent className="pt-4 md:pt-6 px-3 md:px-6">
+            <div className={`grid ${isMobile ? 'grid-cols-1' : 'md:grid-cols-2 lg:grid-cols-4'} gap-3 md:gap-4`}>
               <div className="flex items-center gap-3">
                 <MapPin className="h-5 w-5 text-primary" />
                 <div>

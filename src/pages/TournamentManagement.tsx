@@ -467,11 +467,11 @@ export default function TournamentManagement() {
     new Date().toDateString() === new Date(tournament.start_date).toDateString() : false;
 
   return (
-    <div className="container mx-auto p-3 sm:p-6">
-      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+    <div className="container mx-auto p-2 sm:p-3 md:p-6 max-w-full overflow-x-hidden">
+      <div className="mb-4 md:mb-6 flex flex-col gap-3 md:gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2 mb-2">
-            <h1 className="text-2xl sm:text-3xl font-bold break-words">{tournament?.title} - Management</h1>
+          <div className="flex items-center gap-2 mb-2 flex-wrap">
+            <h1 className="text-lg sm:text-2xl md:text-3xl font-bold break-words">{tournament?.title} - Management</h1>
             {tournament?.status === 'draft' && (
               <Badge variant="secondary" className="text-xs">DRAFT</Badge>
             )}

@@ -65,16 +65,16 @@ const Layout = ({ children }: LayoutProps) => {
       <CleanLogoBackground />
       
       <header className="sticky top-0 z-40 border-b border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60 shadow-elegant relative">
-        <div className="container mx-auto px-4 py-6 flex items-center justify-between">
-          <div className="flex items-center space-x-4">
+        <div className="container mx-auto px-3 md:px-4 py-3 md:py-6 flex items-center justify-between">
+          <div className="flex items-center space-x-2 md:space-x-4 min-w-0">
             {isMobile && <MobileMenu />}
-            <Link to="/" className="flex items-center space-x-4 hover-scale">
-              <img src={blockNationLogo} alt="Block Nation" className="h-12 w-12 md:h-16 md:w-16" />
-              <div className="flex flex-col">
-                <span className="text-2xl md:text-3xl font-bold gradient-hero bg-clip-text text-transparent">
+            <Link to="/" className="flex items-center space-x-2 md:space-x-4 hover-scale min-w-0">
+              <img src={blockNationLogo} alt="Block Nation" className="h-10 w-10 md:h-16 md:w-16 shrink-0" />
+              <div className="flex flex-col min-w-0">
+                <span className="text-lg md:text-3xl font-bold gradient-hero bg-clip-text text-transparent truncate">
                   Block Nation
                 </span>
-                <span className="text-xs md:text-sm text-muted-foreground font-medium">
+                <span className="text-xs md:text-sm text-muted-foreground font-medium hidden sm:block">
                   Elite Volleyball Platform
                 </span>
               </div>
@@ -97,7 +97,7 @@ const Layout = ({ children }: LayoutProps) => {
             </nav>
           )}
           
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-1 md:space-x-3 shrink-0">
             {user ? (
               <>
                 <Button variant="ghost" size="icon" className="hidden md:flex">
@@ -106,16 +106,16 @@ const Layout = ({ children }: LayoutProps) => {
                 
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="flex items-center space-x-2 px-2">
-                      <Avatar className="h-8 w-8">
+                    <Button variant="ghost" className="flex items-center space-x-2 px-1 md:px-2 min-w-0">
+                      <Avatar className="h-7 w-7 md:h-8 md:w-8 shrink-0">
                         <AvatarFallback className="bg-primary text-primary-foreground text-xs">
                           {profile?.username?.charAt(0).toUpperCase() || user.email?.charAt(0).toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
                       {!isMobile && (
-                        <div className="flex flex-col items-start">
-                          <span className="text-sm font-medium">{profile?.username || 'User'}</span>
-                          <span className="text-xs text-muted-foreground capitalize">{profile?.role || 'player'}</span>
+                        <div className="flex flex-col items-start min-w-0">
+                          <span className="text-sm font-medium truncate">{profile?.username || 'User'}</span>
+                          <span className="text-xs text-muted-foreground capitalize truncate">{profile?.role || 'player'}</span>
                         </div>
                       )}
                     </Button>
@@ -135,7 +135,7 @@ const Layout = ({ children }: LayoutProps) => {
               </>
             ) : (
               <Link to="/auth">
-                <Button className="gradient-primary hover:opacity-90 transition-opacity">
+                <Button size={isMobile ? "sm" : "default"} className="gradient-primary hover:opacity-90 transition-opacity text-xs md:text-sm">
                   Sign In
                 </Button>
               </Link>
