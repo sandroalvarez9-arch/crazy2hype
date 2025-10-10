@@ -46,7 +46,6 @@ const EnhancedBracketView: React.FC<EnhancedBracketViewProps> = ({
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0, panX: 0, panY: 0 });
   const [centers, setCenters] = useState<Record<string, { x: number; y: number }>>({});
-  const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
   const matchRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
@@ -181,56 +180,42 @@ const EnhancedBracketView: React.FC<EnhancedBracketViewProps> = ({
     setIsDragging(false);
   };
 
-  // Measure actual positions of match cards
+  // Measure actual positions of match cards with ResizeObserver for automatic updates
   useLayoutEffect(() => {
-    const measurePositions = () => {
-      const container = containerRef.current;
-      if (!container) return;
-
-      const containerRect = container.getBoundingClientRect();
-      const next: Record<string, { x: number; y: number }> = {};
-
-      for (const [id, el] of Object.entries(matchRefs.current)) {
-        if (!el) continue;
-        const rect = el.getBoundingClientRect();
-        // Convert to container-local coordinates
-        next[id] = {
-          x: (rect.left - containerRect.left - pan.x) / zoom + rect.width,
-          y: (rect.top - containerRect.top - pan.y) / zoom + rect.height / 2
-        };
-      }
-
-      setCenters(next);
-    };
-
-    // Delay measurement slightly to ensure DOM is settled
-    const timer = setTimeout(measurePositions, 50);
-    return () => clearTimeout(timer);
-  }, [matches, zoom, pan, containerSize, format]);
-
-  // Watch for container and card size changes with ResizeObserver
-  useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
 
-    const resizeObserver = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        if (entry.target === container) {
-          setContainerSize({
-            width: entry.contentRect.width,
-            height: entry.contentRect.height
-          });
-        }
-      }
+    const measurePositions = () => {
+      const containerRect = container.getBoundingClientRect();
+      const newPositions: Record<string, { x: number; y: number }> = {};
+
+      Object.entries(matchRefs.current).forEach(([id, el]) => {
+        if (!el) return;
+        const rect = el.getBoundingClientRect();
+        newPositions[id] = {
+          x: rect.left - containerRect.left + rect.width,
+          y: rect.top - containerRect.top + rect.height / 2,
+        };
+      });
+
+      setCenters(newPositions);
+    };
+
+    // Initial measurement
+    measurePositions();
+
+    // Set up ResizeObserver for automatic remeasurement
+    const observer = new ResizeObserver(() => {
+      measurePositions();
     });
 
-    resizeObserver.observe(container);
-    Object.values(matchRefs.current).forEach(el => {
-      if (el) resizeObserver.observe(el);
+    observer.observe(container);
+    Object.values(matchRefs.current).forEach((el) => {
+      if (el) observer.observe(el);
     });
 
-    return () => resizeObserver.disconnect();
-  }, [matches]);
+    return () => observer.disconnect();
+  }, [matches, format]);
 
   // Wheel zoom
   useEffect(() => {
@@ -287,68 +272,64 @@ const EnhancedBracketView: React.FC<EnhancedBracketViewProps> = ({
     rounds: number[];
     organizedMatches: { [round: number]: BracketMatch[] };
   }> = ({ rounds, organizedMatches }) => {
-    const lines: JSX.Element[] = [];
-    
-    // Build edges based on bracket structure
-    rounds.forEach((roundNumber, roundIndex) => {
-      if (roundIndex >= rounds.length - 1) return; // No connections from final round
-      
-      const currentRoundMatches = organizedMatches[roundNumber];
-      
-      currentRoundMatches.forEach((match, matchIndex) => {
-        const nextMatchIndex = Math.floor(matchIndex / 2);
-        const nextRound = rounds[roundIndex + 1];
-        const nextMatch = organizedMatches[nextRound]?.[nextMatchIndex];
-        
-        if (!nextMatch) return;
-        
-        const start = centers[match.id];
-        const end = centers[nextMatch.id];
-        
-        if (!start || !end) return;
-        
-        // Draw connection with elbow
-        const midX = start.x + 60;
-        const endX = end.x - 40;
-        
-        lines.push(
-          <g key={`${match.id}->${nextMatch.id}`}>
-            {/* Horizontal line from current match */}
-            <line
-              x1={start.x}
-              y1={start.y}
-              x2={midX}
-              y2={start.y}
-              stroke="hsl(var(--primary))"
-              strokeWidth="2"
-              opacity="0.8"
-            />
-            {/* Vertical line connecting matches */}
-            <line
-              x1={midX}
-              y1={start.y}
-              x2={midX}
-              y2={end.y}
-              stroke="hsl(var(--primary))"
-              strokeWidth="2"
-              opacity="0.6"
-            />
-            {/* Horizontal line to next match */}
-            <line
-              x1={midX}
-              y1={end.y}
-              x2={endX}
-              y2={end.y}
-              stroke="hsl(var(--primary))"
-              strokeWidth="2"
-              opacity="0.8"
-            />
-          </g>
-        );
-      });
-    });
-    
-    return <>{lines}</>;
+    // Build connections based on bracket structure
+    return (
+      <>
+        {rounds.flatMap((roundNumber, roundIndex) => {
+          if (roundIndex >= rounds.length - 1) return []; // No connections from final round
+          
+          const currentRoundMatches = organizedMatches[roundNumber];
+          
+          return currentRoundMatches.map((match, matchIndex) => {
+            const nextMatchIndex = Math.floor(matchIndex / 2);
+            const nextRound = rounds[roundIndex + 1];
+            const nextMatch = organizedMatches[nextRound]?.[nextMatchIndex];
+            
+            if (!nextMatch) return null;
+            
+            const from = centers[match.id];
+            const to = centers[nextMatch.id];
+            
+            if (!from || !to) return null;
+            
+            // Simple elbow connector
+            const midX = (from.x + to.x) / 2;
+            
+            return (
+              <g key={`${match.id}-${nextMatch.id}`}>
+                <line
+                  x1={from.x}
+                  y1={from.y}
+                  x2={midX}
+                  y2={from.y}
+                  stroke="hsl(var(--primary))"
+                  strokeWidth="2"
+                  opacity="0.8"
+                />
+                <line
+                  x1={midX}
+                  y1={from.y}
+                  x2={midX}
+                  y2={to.y}
+                  stroke="hsl(var(--primary))"
+                  strokeWidth="2"
+                  opacity="0.6"
+                />
+                <line
+                  x1={midX}
+                  y1={to.y}
+                  x2={to.x - 24}
+                  y2={to.y}
+                  stroke="hsl(var(--primary))"
+                  strokeWidth="2"
+                  opacity="0.8"
+                />
+              </g>
+            );
+          });
+        })}
+      </>
+    );
   };
 
   const organizedMatches = organizeMatches();
