@@ -93,6 +93,8 @@ export default function TournamentManagement() {
   const [activeTab, setActiveTab] = useState("teams");
   const [stripeConnected, setStripeConnected] = useState(false);
   const [publishingTournament, setPublishingTournament] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [teamsPerPage] = useState(10);
 
   useEffect(() => {
     if (id && user) {
@@ -618,7 +620,9 @@ export default function TournamentManagement() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {teams.map((team) => (
+                {teams
+                  .slice((currentPage - 1) * teamsPerPage, currentPage * teamsPerPage)
+                  .map((team) => (
                   <div key={team.id} className="flex flex-col gap-3 p-3 sm:p-4 border rounded-lg sm:flex-row sm:items-center sm:justify-between">
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 mb-1">
@@ -691,6 +695,57 @@ export default function TournamentManagement() {
                   </div>
                 ))}
               </div>
+              
+              {teams.length > teamsPerPage && (
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-6 pt-4 border-t">
+                  <div className="text-sm text-muted-foreground">
+                    Showing {Math.min((currentPage - 1) * teamsPerPage + 1, teams.length)} to{' '}
+                    {Math.min(currentPage * teamsPerPage, teams.length)} of {teams.length} teams
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                      disabled={currentPage === 1}
+                    >
+                      Previous
+                    </Button>
+                    <div className="flex items-center gap-1">
+                      {Array.from({ length: Math.ceil(teams.length / teamsPerPage) }, (_, i) => i + 1)
+                        .filter(page => {
+                          const totalPages = Math.ceil(teams.length / teamsPerPage);
+                          return page === 1 || 
+                                 page === totalPages || 
+                                 Math.abs(page - currentPage) <= 1;
+                        })
+                        .map((page, index, arr) => (
+                          <div key={page} className="flex items-center gap-1">
+                            {index > 0 && arr[index - 1] !== page - 1 && (
+                              <span className="px-2 text-muted-foreground">...</span>
+                            )}
+                            <Button
+                              variant={currentPage === page ? "default" : "outline"}
+                              size="sm"
+                              onClick={() => setCurrentPage(page)}
+                              className="w-8 h-8 p-0"
+                            >
+                              {page}
+                            </Button>
+                          </div>
+                        ))}
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(p => Math.min(Math.ceil(teams.length / teamsPerPage), p + 1))}
+                      disabled={currentPage === Math.ceil(teams.length / teamsPerPage)}
+                    >
+                      Next
+                    </Button>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
