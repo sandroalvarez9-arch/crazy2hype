@@ -70,6 +70,7 @@ interface Team {
   payment_notes: string | null;
   skill_level: string | null;
   division: string | null;
+  category: string | null;
 }
 
 interface BackupTeam {
@@ -96,7 +97,7 @@ export default function TournamentManagement() {
   const [currentPage, setCurrentPage] = useState(1);
   const [teamsPerPage] = useState(10);
   const [checkInFilter, setCheckInFilter] = useState<'all' | 'checked_in' | 'pending' | 'no_show'>('all');
-  const [divisionFilter, setDivisionFilter] = useState<string>('all');
+  const [categoryFilter, setCategoryFilter] = useState<string>('all');
 
   useEffect(() => {
     if (id && user) {
@@ -108,7 +109,7 @@ export default function TournamentManagement() {
   // Reset to page 1 when filter changes
   useEffect(() => {
     setCurrentPage(1);
-  }, [checkInFilter, divisionFilter]);
+  }, [checkInFilter, categoryFilter]);
 
   const checkStripeStatus = async () => {
     try {
@@ -475,29 +476,16 @@ export default function TournamentManagement() {
   const isTournamentDay = tournament ?
     new Date().toDateString() === new Date(tournament.start_date).toDateString() : false;
 
-  // Get unique divisions from teams
-  const uniqueDivisions = Array.from(
+  // Get unique categories from teams (e.g., "Men's A", "Men's B", "Women's A", "Women's B")
+  const uniqueCategories = Array.from(
     new Set(
       teams
-        .map(t => t.division)
-        .filter(d => d !== null && d !== undefined && d !== '')
+        .map(t => t.category)
+        .filter(c => c !== null && c !== undefined && c !== '')
     )
   ).sort();
 
-  // Get unique skill levels (fallback if no divisions)
-  const uniqueSkillLevels = Array.from(
-    new Set(
-      teams
-        .map(t => t.skill_level)
-        .filter(s => s !== null && s !== undefined && s !== '')
-    )
-  ).sort();
-
-  // Determine if we should use divisions or skill levels for tabs
-  const useDivisions = uniqueDivisions.length > 0;
-  const categories = useDivisions ? uniqueDivisions : uniqueSkillLevels;
-
-  // Filter teams based on check-in status AND division/skill level
+  // Filter teams based on check-in status AND category
   let filteredTeams = teams;
   
   // Apply check-in status filter
@@ -505,13 +493,9 @@ export default function TournamentManagement() {
     filteredTeams = filteredTeams.filter(t => t.check_in_status === checkInFilter);
   }
   
-  // Apply division/skill level filter
-  if (divisionFilter !== 'all') {
-    filteredTeams = filteredTeams.filter(t => 
-      useDivisions 
-        ? t.division === divisionFilter
-        : t.skill_level === divisionFilter
-    );
+  // Apply category filter
+  if (categoryFilter !== 'all') {
+    filteredTeams = filteredTeams.filter(t => t.category === categoryFilter);
   }
 
   return (
@@ -665,25 +649,20 @@ export default function TournamentManagement() {
               )}
             </CardHeader>
             <CardContent>
-              {/* Division/Category Tabs */}
-              {categories.length > 0 && (
+              {/* Category Filter Tabs */}
+              {uniqueCategories.length > 0 && (
                 <div className="mb-4">
                   <Label className="text-sm font-medium mb-2 block">Filter by Category</Label>
-                  <Tabs value={divisionFilter} onValueChange={setDivisionFilter} className="w-full">
-                    <TabsList className="grid w-full gap-1" style={{ gridTemplateColumns: `repeat(${Math.min(categories.length + 1, 5)}, minmax(0, 1fr))` }}>
-                      <TabsTrigger value="all" className="text-xs md:text-sm">
+                  <Tabs value={categoryFilter} onValueChange={setCategoryFilter} className="w-full">
+                    <TabsList className="grid w-full gap-1" style={{ gridTemplateColumns: `repeat(${Math.min(uniqueCategories.length + 1, 6)}, minmax(0, 1fr))` }}>
+                      <TabsTrigger value="all" className="text-xs md:text-sm whitespace-nowrap">
                         All ({teams.length})
                       </TabsTrigger>
-                      {categories.map((category) => {
-                        const categoryTeams = teams.filter(t => 
-                          useDivisions ? t.division === category : t.skill_level === category
-                        );
+                      {uniqueCategories.map((category) => {
+                        const categoryTeams = teams.filter(t => t.category === category);
                         return (
-                          <TabsTrigger key={category} value={category} className="text-xs md:text-sm">
-                            {useDivisions 
-                              ? category.toUpperCase() 
-                              : formatSkillLevel(category as any)
-                            } ({categoryTeams.length})
+                          <TabsTrigger key={category} value={category} className="text-xs md:text-sm whitespace-nowrap">
+                            {category} ({categoryTeams.length})
                           </TabsTrigger>
                         );
                       })}
@@ -692,7 +671,7 @@ export default function TournamentManagement() {
                 </div>
               )}
 
-              {/* Check-in Status Tabs */}
+              {/* Check-in Status Filter Tabs */}
               <div className="mb-4">
                 <Label className="text-sm font-medium mb-2 block">Filter by Check-in Status</Label>
                 <Tabs value={checkInFilter} onValueChange={(value) => setCheckInFilter(value as any)} className="w-full">
@@ -727,8 +706,13 @@ export default function TournamentManagement() {
                     .map((team) => (
                   <div key={team.id} className="flex flex-col gap-3 p-3 sm:p-4 border rounded-lg sm:flex-row sm:items-center sm:justify-between">
                     <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2 mb-1">
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
                         <h3 className="font-medium text-sm sm:text-base break-words">{team.name}</h3>
+                        {team.category && (
+                          <Badge variant="default" className="text-xs bg-primary">
+                            {team.category}
+                          </Badge>
+                        )}
                         {team.skill_level && (
                           <Badge variant={getSkillLevelBadgeVariant(team.skill_level as any)} className="text-xs">
                             {formatSkillLevel(team.skill_level as any)}

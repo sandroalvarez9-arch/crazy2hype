@@ -596,6 +596,7 @@ export type Database = {
       teams: {
         Row: {
           captain_id: string
+          category: string | null
           check_in_status: string | null
           check_in_time: string | null
           contact_email: string | null
@@ -619,6 +620,7 @@ export type Database = {
         }
         Insert: {
           captain_id: string
+          category?: string | null
           check_in_status?: string | null
           check_in_time?: string | null
           contact_email?: string | null
@@ -642,6 +644,7 @@ export type Database = {
         }
         Update: {
           captain_id?: string
+          category?: string | null
           check_in_status?: string | null
           check_in_time?: string | null
           contact_email?: string | null
