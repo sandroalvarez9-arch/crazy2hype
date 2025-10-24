@@ -55,7 +55,8 @@ const TeamRegistrationDialog = ({
     contactEmail: profile?.email || '',
     contactPhone: '',
     notes: '',
-    skillLevel: ''
+    skillLevel: '',
+    category: ''
   });
 
   // Fetch current team counts by skill level
@@ -159,6 +160,7 @@ const TeamRegistrationDialog = ({
           contact_email: formData.contactEmail,
           contact_phone: formData.contactPhone || null,
           skill_level: formData.skillLevel,
+          category: formData.category || null,
           is_registered: true,
           payment_status: 'pending'
         })
@@ -244,7 +246,8 @@ const TeamRegistrationDialog = ({
         contactEmail: profile?.email || '',
         contactPhone: '',
         notes: '',
-        skillLevel: ''
+        skillLevel: '',
+        category: ''
       });
       
       setPlayers(initializePlayers(playersPerTeam));
@@ -328,6 +331,23 @@ const TeamRegistrationDialog = ({
               placeholder="Enter your team name"
               required
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="category">Category *</Label>
+            <Select value={formData.category} onValueChange={(value) => handleInputChange('category', value)} required>
+              <SelectTrigger>
+                <SelectValue placeholder="Select team category" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Men's A">Men's A</SelectItem>
+                <SelectItem value="Men's B">Men's B</SelectItem>
+                <SelectItem value="Women's A">Women's A</SelectItem>
+                <SelectItem value="Women's B">Women's B</SelectItem>
+                <SelectItem value="Mixed">Mixed</SelectItem>
+                <SelectItem value="Other">Other</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           {tournamentSkillLevels && tournamentSkillLevels.length > 1 && (
