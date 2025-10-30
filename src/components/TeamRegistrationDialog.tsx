@@ -335,7 +335,7 @@ const TeamRegistrationDialog = ({
 
           <div className="space-y-2">
             <Label htmlFor="category">Category *</Label>
-            <Select value={formData.category} onValueChange={(value) => handleInputChange('category', value)} required>
+            <Select value={formData.category || undefined} onValueChange={(value) => handleInputChange('category', value)} required>
               <SelectTrigger>
                 <SelectValue placeholder="Select team category" />
               </SelectTrigger>
