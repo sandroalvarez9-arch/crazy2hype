@@ -102,12 +102,11 @@ export function ManualPaymentDialog({ tournamentId, teams, onPaymentAdded }: Man
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
               <Label htmlFor="team">Team (Optional)</Label>
-              <Select value={formData.team_id} onValueChange={(value) => setFormData({ ...formData, team_id: value })}>
+              <Select value={formData.team_id || undefined} onValueChange={(value) => setFormData({ ...formData, team_id: value })}>
                 <SelectTrigger id="team">
-                  <SelectValue placeholder="Select team" />
+                  <SelectValue placeholder="Select team (optional)" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">No team selected</SelectItem>
                   {teams.map((team) => (
                     <SelectItem key={team.id} value={team.id}>
                       {team.name}
