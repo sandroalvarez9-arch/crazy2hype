@@ -86,27 +86,28 @@ interface EmptyStateProps {
 }
 
 export const EmptyState = ({ title, description, actionLabel, actionHref, icon }: EmptyStateProps) => (
-  <Card className="shadow-card">
-    <CardContent className="py-12 text-center">
-      <div className="flex justify-center mb-6">
+  <Card className="shadow-card border-dashed">
+    <CardContent className="py-16 text-center">
+      <div className="flex justify-center mb-4">
         <div className="relative">
-          <img 
-            src={blockNationLogo} 
-            alt="Block Nation" 
-            className="h-16 w-16 opacity-50 hover-scale" 
-          />
-          {icon && (
-            <div className="absolute -bottom-2 -right-2 bg-primary rounded-full p-2">
+          {icon ? (
+            <div className="bg-muted rounded-full p-6 animate-fade-in">
               {icon}
             </div>
+          ) : (
+            <img 
+              src={blockNationLogo} 
+              alt="Block Nation" 
+              className="h-20 w-20 opacity-30" 
+            />
           )}
         </div>
       </div>
-      <h3 className="text-lg font-semibold mb-2">{title}</h3>
-      <p className="text-muted-foreground mb-6 max-w-md mx-auto">{description}</p>
+      <h3 className="text-xl font-semibold mb-2">{title}</h3>
+      <p className="text-muted-foreground mb-8 max-w-sm mx-auto">{description}</p>
       {actionLabel && actionHref && (
         <Link to={actionHref}>
-          <Button className="gradient-primary hover:opacity-90 transition-opacity">
+          <Button size="lg" className="gradient-primary hover:opacity-90">
             {actionLabel}
           </Button>
         </Link>

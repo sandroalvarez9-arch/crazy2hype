@@ -658,17 +658,25 @@ const TournamentDetails = () => {
               ))}
             </div>
           ) : (
-            <Card className="shadow-card">
-              <CardContent className="py-8 text-center">
-                <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <p className="text-muted-foreground">No teams registered yet</p>
+            <Card className="shadow-card border-dashed">
+              <CardContent className="py-12 text-center">
+                <div className="bg-muted rounded-full p-6 w-fit mx-auto mb-4">
+                  <Users className="h-12 w-12 text-muted-foreground" />
+                </div>
+                <h3 className="text-lg font-semibold mb-2">No Teams Yet</h3>
+                <p className="text-muted-foreground mb-6 max-w-sm mx-auto">
+                  {canRegister && profile?.role === 'player' 
+                    ? 'Be the first to register your team for this tournament'
+                    : 'Waiting for teams to register'}
+                </p>
                 {canRegister && profile?.role === 'player' && (
                   <Button 
-                    className="mt-4 gradient-primary hover:opacity-90 transition-opacity"
+                    size="lg"
+                    className="gradient-primary hover:opacity-90"
                     onClick={() => setShowRegistrationDialog(true)}
                   >
-                    <UserPlus className="h-4 w-4 mr-2" />
-                    Be the first to register!
+                    <UserPlus className="h-5 w-5 mr-2" />
+                    Register Your Team
                   </Button>
                 )}
               </CardContent>

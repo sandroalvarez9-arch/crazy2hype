@@ -746,9 +746,17 @@ export default function TournamentManagement() {
 
               <div className="space-y-4">
                 {filteredTeams.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    No teams found in this category
-                  </div>
+                  <Card className="border-dashed">
+                    <CardContent className="py-12 text-center">
+                      <div className="bg-muted rounded-full p-6 w-fit mx-auto mb-4">
+                        <Users className="h-10 w-10 text-muted-foreground" />
+                      </div>
+                      <h3 className="font-semibold mb-2">No Teams in This Category</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Try switching to a different category or wait for registrations
+                      </p>
+                    </CardContent>
+                  </Card>
                 ) : (
                   filteredTeams
                     .slice((currentPage - 1) * teamsPerPage, currentPage * teamsPerPage)
