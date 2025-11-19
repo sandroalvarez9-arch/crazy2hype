@@ -1,6 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
 import { Link } from 'react-router-dom';
 import { CalendarDays, Users, MapPin, Trophy, Star } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -30,8 +31,16 @@ interface TournamentCardProps {
 const TournamentCard = ({ tournament, featured = false, className = '' }: TournamentCardProps) => {
   const isMobile = useIsMobile();
   const teamCount = tournament.teams?.[0]?.count || 0;
-  const isAlmostFull = teamCount / tournament.max_teams > 0.8;
+  const fillPercentage = (teamCount / tournament.max_teams) * 100;
+  const isAlmostFull = fillPercentage > 80;
   const isPremium = tournament.entry_fee > 50;
+  
+  // Color coding based on availability
+  const getProgressColor = () => {
+    if (fillPercentage >= 90) return 'bg-destructive'; // Red - almost full
+    if (fillPercentage >= 70) return 'bg-volleyball-yellow'; // Yellow - filling up
+    return 'bg-primary'; // Green - available
+  };
 
   return (
     <Card 
@@ -86,21 +95,24 @@ const TournamentCard = ({ tournament, featured = false, className = '' }: Tourna
             })}</span>
           </div>
 
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="text-sm">
-                <span className="text-muted-foreground">Teams: </span>
-                <span className={`font-medium ${isAlmostFull ? 'text-volleyball-orange' : ''}`}>
-                  {teamCount}/{tournament.max_teams}
-                </span>
-              </div>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Registration</span>
+              <span className={`font-semibold ${fillPercentage >= 90 ? 'text-destructive' : fillPercentage >= 70 ? 'text-volleyball-yellow' : 'text-primary'}`}>
+                {teamCount}/{tournament.max_teams} teams
+              </span>
+            </div>
+            <Progress 
+              value={fillPercentage} 
+              className="h-2"
+              indicatorClassName={getProgressColor()}
+            />
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <span>{Math.round(fillPercentage)}% full</span>
               {tournament.entry_fee > 0 && (
-                <div className="text-sm">
-                  <span className="text-muted-foreground">Fee: </span>
-                  <span className={`font-medium ${isPremium ? 'text-volleyball-orange' : ''}`}>
-                    ${tournament.entry_fee}
-                  </span>
-                </div>
+                <span className={`font-medium ${isPremium ? 'text-volleyball-orange' : ''}`}>
+                  ${tournament.entry_fee} entry
+                </span>
               )}
             </div>
           </div>
