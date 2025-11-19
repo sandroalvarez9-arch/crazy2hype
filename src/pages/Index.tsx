@@ -298,10 +298,16 @@ const Index = () => {
             {loading ? (
               <LoadingSkeleton type="tournament" count={3} />
             ) : error ? (
-              <Card>
-                <CardContent className="py-8 text-center">
-                  <p className="text-muted-foreground mb-4">Failed to load tournaments</p>
-                  <Button onClick={retry}>Try Again</Button>
+              <Card className="border-destructive/50">
+                <CardContent className="py-12 text-center">
+                  <div className="bg-destructive/10 rounded-full p-6 w-fit mx-auto mb-4">
+                    <Trophy className="h-10 w-10 text-destructive" />
+                  </div>
+                  <h3 className="font-semibold mb-2">Failed to Load Tournaments</h3>
+                  <p className="text-sm text-muted-foreground mb-6">
+                    Something went wrong. Please try again.
+                  </p>
+                  <Button onClick={retry} variant="outline">Try Again</Button>
                 </CardContent>
               </Card>
             ) : tournaments.length === 0 ? (
