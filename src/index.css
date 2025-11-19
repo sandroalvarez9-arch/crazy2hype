@@ -148,6 +148,55 @@ All colors MUST be HSL.
   body {
     @apply bg-background text-foreground;
   }
+
+  /* Enhanced Button Micro-Interactions */
+  button:active:not(:disabled) {
+    transform: scale(0.98);
+    transition: transform 0.1s ease-in-out;
+  }
+
+  button {
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* Enhanced Card Hover Effects */
+  .hover\:shadow-elegant:hover {
+    box-shadow: 0 20px 40px -10px hsl(var(--primary) / 0.15);
+    transform: translateY(-2px);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* Enhanced Input Focus Rings */
+  input:focus,
+  textarea:focus,
+  select:focus {
+    outline: none;
+    ring: 2px;
+    ring-color: hsl(var(--primary));
+    ring-offset: 2px;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* Typography Consistency Classes */
+  .heading-1 {
+    @apply text-3xl md:text-4xl font-bold;
+  }
+
+  .heading-2 {
+    @apply text-2xl md:text-3xl font-bold;
+  }
+
+  .heading-3 {
+    @apply text-xl font-semibold;
+  }
+
+  .body-text {
+    @apply text-base leading-relaxed;
+  }
+
+  .small-text {
+    @apply text-sm;
+  }
 }
 
 @layer utilities {

@@ -6,6 +6,7 @@ import * as z from 'zod';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { celebrateSuccess } from '@/utils/animations';
 import { Form } from '@/components/ui/form';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -269,8 +270,13 @@ export function TournamentCreationWizard() {
         title: 'Success!',
         description: stripeConnected ? 'Tournament created and published!' : 'Tournament saved as draft. Connect Stripe to publish.',
       });
-
-      navigate(`/tournament/${tournament.id}/manage`);
+      
+      celebrateSuccess();
+      
+      // Delay navigation to show confetti
+      setTimeout(() => {
+        navigate(`/tournament/${tournament.id}/manage`);
+      }, 1500);
     } catch (error: any) {
       toast({
         title: 'Error',
