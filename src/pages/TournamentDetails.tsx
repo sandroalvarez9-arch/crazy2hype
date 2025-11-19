@@ -70,6 +70,9 @@ interface Team {
   };
   contact_email: string;
   contact_phone: string;
+  total_wins: number;
+  total_losses: number;
+  total_tournaments_played: number;
 }
 
 const TournamentDetails = () => {
@@ -648,7 +651,7 @@ const TournamentDetails = () => {
                 <Card key={team.id} className="shadow-card hover-scale">
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between">
-                      <div>
+                      <div className="flex-1">
                         <CardTitle className="text-lg">{team.name}</CardTitle>
                         <CardDescription>
                           Captain: {team.captain ? 
@@ -656,6 +659,13 @@ const TournamentDetails = () => {
                             'Unknown Captain'
                           }
                         </CardDescription>
+                        {(team.total_wins || team.total_losses) && (
+                          <div className="flex items-center gap-2 mt-1">
+                            <Badge variant="outline" className="text-xs">
+                              {team.total_wins || 0}W - {team.total_losses || 0}L
+                            </Badge>
+                          </div>
+                        )}
                       </div>
                       {user && team.captain_id === user.id && (
                         <Button
@@ -691,6 +701,14 @@ const TournamentDetails = () => {
                            <span className="truncate ml-2">{team.contact_email}</span>
                          </div>
                        )}
+                       <Button 
+                         variant="outline" 
+                         size="sm" 
+                         className="w-full mt-2"
+                         onClick={() => navigate(`/team/${team.id}`)}
+                       >
+                         View Profile
+                       </Button>
                      </div>
                   </CardContent>
                 </Card>
