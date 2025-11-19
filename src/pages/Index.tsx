@@ -1,13 +1,18 @@
+import { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
-import { useIsMobile } from '@/hooks/use-mobile';
-import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import LoadingSkeleton, { EmptyState } from '@/components/LoadingSkeleton';
+import { format } from 'date-fns';
+import { Calendar, MapPin, Users, Trophy, Plus, List, CalendarDays } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { Link } from 'react-router-dom';
-import { CalendarDays, Users, Trophy, MapPin, Plus, Search, Star, Zap, Target } from 'lucide-react';
+import logo from '@/assets/block-nation-logo.png';
+import { useAsync } from '@/hooks/useAsync';
+import { useIsMobile } from '@/hooks/use-mobile';
 import blockNationLogo from '@/assets/block-nation-logo.png';
+import { Star, Zap, Target, Search } from 'lucide-react';
 
 interface Tournament {
   id: string;
@@ -15,33 +20,37 @@ interface Tournament {
   description: string;
   location: string;
   start_date: string;
+  end_date: string;
   registration_deadline: string;
   max_teams: number;
   entry_fee: number;
   status: string;
   organizer: {
     username: string;
+    first_name: string;
+    last_name: string;
   };
   teams: { count: number }[];
 }
 
 const Index = () => {
   const { user, profile } = useAuth();
+  const navigate = useNavigate();
   const isMobile = useIsMobile();
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [userStats, setUserStats] = useState({
+    activeTournaments: 0,
+    registeredTeams: 0,
+    upcomingMatches: 0,
+  });
 
-  useEffect(() => {
-    fetchTournaments();
-  }, []);
-
-  const fetchTournaments = async () => {
-    try {
+  const { execute: fetchTournaments, loading, error, retry } = useAsync(
+    async () => {
       const { data, error } = await supabase
         .from('tournaments')
         .select(`
           *,
-          organizer:profiles_public!tournaments_organizer_id_fkey(username),
+          organizer:profiles!tournaments_organizer_id_fkey(username, first_name, last_name),
           teams(count)
         `)
         .eq('status', 'open')
@@ -51,13 +60,73 @@ const Index = () => {
 
       if (error) throw error;
       setTournaments(data || []);
-    } catch (error) {
-      console.error('Error fetching tournaments:', error);
-    } finally {
-      setLoading(false);
+      return data;
+    },
+    {
+      errorMessage: 'Failed to load tournaments. Please try again.',
     }
-  };
+  );
 
+  const { execute: fetchUserStats } = useAsync(
+    async () => {
+      if (!user) return null;
+
+      // Fetch user's teams
+      const { data: teams, error: teamsError } = await supabase
+        .from('teams')
+        .select('id, tournament_id, tournaments!inner(status, start_date, end_date)')
+        .eq('captain_id', user.id);
+
+      if (teamsError) throw teamsError;
+
+      // Count active tournaments (user's tournaments that haven't ended)
+      const activeTournaments = teams?.filter(
+        (team: any) => new Date(team.tournaments.end_date) >= new Date()
+      ).length || 0;
+
+      // Fetch upcoming matches for user's teams
+      const teamIds = teams?.map((team: any) => team.id) || [];
+      if (teamIds.length > 0) {
+        const { data: matches, error: matchesError } = await supabase
+          .from('matches')
+          .select('id')
+          .or(`team1_id.in.(${teamIds.join(',')}),team2_id.in.(${teamIds.join(',')})`)
+          .eq('status', 'scheduled')
+          .gte('scheduled_time', new Date().toISOString());
+
+        if (matchesError) throw matchesError;
+
+        setUserStats({
+          activeTournaments,
+          registeredTeams: teams?.length || 0,
+          upcomingMatches: matches?.length || 0,
+        });
+      } else {
+        setUserStats({
+          activeTournaments,
+          registeredTeams: 0,
+          upcomingMatches: 0,
+        });
+      }
+
+      return { activeTournaments, teams: teams?.length || 0 };
+    },
+    {
+      errorMessage: 'Failed to load your stats',
+    }
+  );
+
+  useEffect(() => {
+    fetchTournaments();
+  }, []);
+
+  useEffect(() => {
+    if (user) {
+      fetchUserStats();
+    }
+  }, [user]);
+
+  // Unauthenticated view
   if (!user) {
     return (
       <div className={`min-h-screen flex items-center justify-center gradient-hero p-4 ${isMobile ? 'pt-8 pb-20' : ''}`}>
@@ -93,24 +162,32 @@ const Index = () => {
                   <Zap className="h-8 w-8 text-white" />
                 </div>
                 <h3 className="text-xl font-semibold mb-3 text-white">Lightning Fast</h3>
-                <p className="text-white/80 leading-relaxed">Instant team registration, live score updates, and seamless tournament management</p>
+                <p className="text-white/80 leading-relaxed">Seamless tournament management with instant updates and real-time bracket progression</p>
               </div>
               <div className="text-center p-6 rounded-xl bg-white/10 backdrop-blur-sm border border-white/20 shadow-elegant hover-scale animate-fade-in" style={{animationDelay: '0.2s'}}>
                 <div className="inline-flex p-3 rounded-full bg-white/20 mb-4">
                   <Target className="h-8 w-8 text-white" />
                 </div>
                 <h3 className="text-xl font-semibold mb-3 text-white">Championship Ready</h3>
-                <p className="text-white/80 leading-relaxed">Advanced statistics, referee management, and playoff progression tracking</p>
+                <p className="text-white/80 leading-relaxed">Tournament organizers and players united on one powerful platform</p>
               </div>
             </div>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+            <div className={`flex ${isMobile ? 'flex-col space-y-4' : 'justify-center gap-6'}`}>
               <Link to="/auth">
-                <Button size="lg" className="bg-white text-primary hover:bg-white/90 transition-all duration-300 px-8 py-4 text-lg font-semibold shadow-elegant">
+                <Button 
+                  size="lg" 
+                  className={`${isMobile ? 'w-full' : ''} gradient-primary hover:opacity-90 transition-all px-8 py-6 text-lg font-semibold shadow-elegant hover-scale`}
+                >
                   Start Your Tournament
                 </Button>
               </Link>
               <Link to="/tournaments">
-                <Button size="lg" variant="outline" className="border-2 border-white/30 text-white hover:bg-white/10 transition-all duration-300 px-8 py-4 text-lg">
+                <Button 
+                  size="lg" 
+                  variant="outline" 
+                  className={`${isMobile ? 'w-full' : ''} bg-white/10 backdrop-blur-sm border-white/30 text-white hover:bg-white/20 px-8 py-6 text-lg font-semibold shadow-elegant hover-scale`}
+                >
+                  <Search className="mr-2 h-5 w-5" />
                   Explore Tournaments
                 </Button>
               </Link>
@@ -121,234 +198,205 @@ const Index = () => {
     );
   }
 
+  // Authenticated user view
   return (
-    <div className={`container mx-auto px-4 py-6 ${isMobile ? 'pb-4' : 'py-8'}`}>
-      <div className="mb-6 animate-fade-in">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h1 className="text-2xl md:text-3xl font-bold mb-2 flex items-center gap-3">
-              <img src={blockNationLogo} alt="Block Nation" className="h-8 w-8" />
-              Welcome back, {profile?.username || user.email?.split('@')[0]}!
+    <div className="min-h-screen bg-background">
+      {/* Hero Section with Welcome Message */}
+      <section className="relative py-12 md:py-16 border-b bg-gradient-to-b from-background to-muted/20">
+        <div className="container mx-auto px-4">
+          <div className="max-w-4xl mx-auto text-center space-y-4">
+            <img 
+              src={logo} 
+              alt="Block Nation" 
+              className="h-16 mx-auto mb-2"
+            />
+            <h1 className="text-3xl md:text-4xl font-bold">
+              Welcome back, {profile?.first_name || profile?.username || 'Player'}!
             </h1>
-            <p className="text-muted-foreground">
+            <p className="text-lg text-muted-foreground">
               {profile?.role === 'host' 
-                ? 'Manage your tournaments and create championship experiences' 
-                : 'Discover elite tournaments and elevate your volleyball game'
-              }
+                ? 'Manage your tournaments and create amazing events' 
+                : 'Discover elite tournaments and showcase your skills'}
             </p>
           </div>
         </div>
-      </div>
+      </section>
 
-      <div className={`grid ${isMobile ? 'grid-cols-1 gap-4' : 'md:grid-cols-2 gap-6'} mb-8 animate-scale-in`}>
-        {profile?.role === 'host' ? (
-          <>
-            <Card className="shadow-card hover-scale gradient-card border-primary/20">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-primary">
-                  <Plus className="h-5 w-5" />
-                  Create Elite Tournament
+      {/* Stats Dashboard */}
+      <section className="py-8 bg-muted/30">
+        <div className="container mx-auto px-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-4xl mx-auto">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardDescription>Active Tournaments</CardDescription>
+                <CardTitle className="text-3xl flex items-center gap-2">
+                  <Trophy className="h-6 w-6 text-primary" />
+                  {userStats.activeTournaments}
                 </CardTitle>
-                <CardDescription>
-                  Launch a professional volleyball tournament with advanced bracket generation
-                </CardDescription>
               </CardHeader>
-              <CardContent>
-                <Link to="/create-tournament">
-                  <Button className="w-full gradient-primary hover:opacity-90 transition-opacity shadow-glow">
-                    Create Championship Tournament
-                  </Button>
-                </Link>
-              </CardContent>
             </Card>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardDescription>Registered Teams</CardDescription>
+                <CardTitle className="text-3xl flex items-center gap-2">
+                  <Users className="h-6 w-6 text-primary" />
+                  {userStats.registeredTeams}
+                </CardTitle>
+              </CardHeader>
+            </Card>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardDescription>Upcoming Matches</CardDescription>
+                <CardTitle className="text-3xl flex items-center gap-2">
+                  <CalendarDays className="h-6 w-6 text-primary" />
+                  {userStats.upcomingMatches}
+                </CardTitle>
+              </CardHeader>
+            </Card>
+          </div>
+        </div>
+      </section>
 
-            <Card className="shadow-card hover-scale">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Trophy className="h-5 w-5 text-volleyball-orange" />
-                  Tournament Dashboard
-                </CardTitle>
-                <CardDescription>
-                  Monitor and manage your hosted tournaments with real-time analytics
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Link to="/my-tournaments">
-                  <Button variant="outline" className="w-full">
-                    View Tournament Dashboard
-                  </Button>
-                </Link>
-              </CardContent>
-            </Card>
-          </>
-        ) : (
-          <>
-            <Card className="shadow-card hover-scale gradient-card border-primary/20">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-primary">
-                  <Search className="h-5 w-5" />
-                  Discover Elite Tournaments
-                </CardTitle>
-                <CardDescription>
-                  Join premium volleyball tournaments and compete at championship level
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Link to="/tournaments">
-                  <Button className="w-full gradient-primary hover:opacity-90 transition-opacity shadow-glow">
-                    Explore Elite Tournaments
-                  </Button>
-                </Link>
-              </CardContent>
-            </Card>
+      {/* Quick Actions */}
+      <section className="py-8">
+        <div className="container mx-auto px-4">
+          <div className="max-w-4xl mx-auto">
+            <h2 className="text-2xl font-bold mb-4">Quick Actions</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {profile?.role === 'host' ? (
+                <>
+                  <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => navigate('/tournaments/create')}>
+                    <CardHeader>
+                      <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                          <Plus className="h-5 w-5 text-primary" />
+                        </div>
+                        <div>
+                          <CardTitle className="text-lg">Create Tournament</CardTitle>
+                          <CardDescription>Set up a new elite event</CardDescription>
+                        </div>
+                      </div>
+                    </CardHeader>
+                  </Card>
+                  <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => navigate('/tournaments')}>
+                    <CardHeader>
+                      <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                          <List className="h-5 w-5 text-primary" />
+                        </div>
+                        <div>
+                          <CardTitle className="text-lg">My Tournaments</CardTitle>
+                          <CardDescription>Manage your events</CardDescription>
+                        </div>
+                      </div>
+                    </CardHeader>
+                  </Card>
+                </>
+              ) : (
+                <>
+                  <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => navigate('/tournaments')}>
+                    <CardHeader>
+                      <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                          <Trophy className="h-5 w-5 text-primary" />
+                        </div>
+                        <div>
+                          <CardTitle className="text-lg">Browse Tournaments</CardTitle>
+                          <CardDescription>Find your next competition</CardDescription>
+                        </div>
+                      </div>
+                    </CardHeader>
+                  </Card>
+                  <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => navigate('/tournaments/create')}>
+                    <CardHeader>
+                      <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                          <Plus className="h-5 w-5 text-primary" />
+                        </div>
+                        <div>
+                          <CardTitle className="text-lg">Host Tournament</CardTitle>
+                          <CardDescription>Organize your own event</CardDescription>
+                        </div>
+                      </div>
+                    </CardHeader>
+                  </Card>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      </section>
 
-            <Card className="shadow-card hover-scale">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Plus className="h-5 w-5 text-volleyball-orange" />
-                  Host Your Tournament
-                </CardTitle>
-                <CardDescription>
-                  Organize your own professional volleyball tournament experience
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Link to="/create-tournament">
-                  <Button variant="outline" className="w-full">
-                    Become a Tournament Host
-                  </Button>
-                </Link>
-              </CardContent>
-            </Card>
-          </>
-        )}
-      </div>
-
-      <div className="mb-6">
-        <h2 className="text-xl md:text-2xl font-bold mb-4">Upcoming Tournaments</h2>
-        {loading ? (
-          <div className={`grid ${isMobile ? 'grid-cols-1 gap-4' : 'md:grid-cols-2 lg:grid-cols-3 gap-6'}`}>
-            {[...Array(isMobile ? 3 : 6)].map((_, i) => (
-              <Card key={i} className="animate-pulse shadow-card">
-                <CardHeader>
-                  <div className="h-4 bg-muted rounded w-3/4 mb-2"></div>
-                  <div className="h-3 bg-muted rounded w-1/2"></div>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    <div className="h-3 bg-muted rounded"></div>
-                    <div className="h-3 bg-muted rounded w-3/4"></div>
-                  </div>
+      {/* Upcoming Tournaments */}
+      <section className="py-8">
+        <div className="container mx-auto px-4">
+          <div className="max-w-6xl mx-auto">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-3xl font-bold">Upcoming Tournaments</h2>
+              <Button variant="outline" onClick={() => navigate('/tournaments')}>
+                View All
+              </Button>
+            </div>
+            
+            {loading ? (
+              <LoadingSkeleton type="tournament" count={3} />
+            ) : error ? (
+              <Card>
+                <CardContent className="py-8 text-center">
+                  <p className="text-muted-foreground mb-4">Failed to load tournaments</p>
+                  <Button onClick={retry}>Try Again</Button>
                 </CardContent>
               </Card>
-            ))}
-          </div>
-        ) : tournaments.length > 0 ? (
-          <div className={`grid ${isMobile ? 'grid-cols-1 gap-4' : 'md:grid-cols-2 lg:grid-cols-3 gap-6'}`}>
-            {tournaments.slice(0, isMobile ? 4 : 6).map((tournament, index) => (
-              <Card key={tournament.id} className="hover:shadow-lg transition-all duration-200 shadow-card hover-scale animate-fade-in">
-                <CardHeader className="pb-3">
-                  <div className="flex justify-between items-start">
-                    <CardTitle className={`${isMobile ? 'text-lg' : 'text-xl'} line-clamp-2`}>
-                      {tournament.title}
-                    </CardTitle>
-                    <div className="flex flex-col gap-1">
-                      <Badge 
-                        variant={tournament.status === 'open' ? 'default' : 'secondary'} 
-                        className="shrink-0"
-                      >
-                        {tournament.status}
-                      </Badge>
-                      {index === 0 && (
-                        <Badge variant="outline" className="text-xs bg-volleyball-orange/10 border-volleyball-orange/30">
-                          Featured
-                        </Badge>
-                      )}
-                    </div>
-                  </div>
-                  <CardDescription className="flex items-center gap-1 text-sm">
-                    <Users className="h-3 w-3" />
-                    by {tournament.organizer?.username}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="pt-0">
-                  <div className="space-y-2">{isMobile ? (
-                      <>
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                          <MapPin className="h-3 w-3" />
-                          {tournament.location}
-                        </div>
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                          <CalendarDays className="h-3 w-3" />
-                          {new Date(tournament.start_date).toLocaleDateString()}
-                        </div>
-                        <div className="flex justify-between items-center text-xs">
-                          <span className="text-muted-foreground">
-                            {tournament.teams?.[0]?.count || 0}/{tournament.max_teams} teams
-                          </span>
+            ) : tournaments.length === 0 ? (
+              <EmptyState
+                title="No tournaments available"
+                description="Be the first to create an elite tournament!"
+                actionLabel="Create Tournament"
+                actionHref="/tournaments/create"
+                icon={<Trophy className="h-12 w-12 text-muted-foreground" />}
+              />
+            ) : (
+              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                {tournaments.map((tournament) => (
+                  <Link key={tournament.id} to={`/tournaments/${tournament.id}`}>
+                    <Card className="h-full hover:shadow-lg transition-shadow cursor-pointer">
+                      <CardHeader>
+                        <CardTitle className="text-xl mb-2">{tournament.title}</CardTitle>
+                        <CardDescription className="line-clamp-2">
+                          {tournament.description || 'Join this exciting volleyball tournament'}
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-3">
+                          <div className="flex items-center gap-2 text-sm">
+                            <MapPin className="h-4 w-4 text-muted-foreground" />
+                            <span className="truncate">{tournament.location}</span>
+                          </div>
+                          <div className="flex items-center gap-2 text-sm">
+                            <Calendar className="h-4 w-4 text-muted-foreground" />
+                            <span>{format(new Date(tournament.start_date), 'MMM d, yyyy')}</span>
+                          </div>
+                          <div className="flex items-center gap-2 text-sm">
+                            <Users className="h-4 w-4 text-muted-foreground" />
+                            <span>
+                              {tournament.teams?.[0]?.count || 0}/{tournament.max_teams} teams
+                            </span>
+                          </div>
                           {tournament.entry_fee > 0 && (
-                            <span className="font-medium">${tournament.entry_fee}</span>
+                            <Badge variant="secondary" className="mt-2">
+                              ${tournament.entry_fee} entry fee
+                            </Badge>
                           )}
                         </div>
-                      </>
-                    ) : (
-                      <>
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <MapPin className="h-4 w-4" />
-                          {tournament.location}
-                        </div>
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <CalendarDays className="h-4 w-4" />
-                          {new Date(tournament.start_date).toLocaleDateString()}
-                        </div>
-                        <div className="flex justify-between items-center">
-                          <span className="text-sm text-muted-foreground">
-                            {tournament.teams?.[0]?.count || 0}/{tournament.max_teams} teams
-                          </span>
-                          {tournament.entry_fee > 0 && (
-                            <span className="text-sm font-medium">${tournament.entry_fee}</span>
-                          )}
-                        </div>
-                      </>
-                    )}
-                    <Link to={`/tournament/${tournament.id}`}>
-                      <Button variant="outline" size={isMobile ? "sm" : "default"} className="w-full">
-                        View Details
-                      </Button>
-                    </Link>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        ) : (
-          <Card className="shadow-card">
-            <CardContent className="py-12 text-center">
-              <div className="flex justify-center mb-6">
-                <div className="relative">
-                  <img 
-                    src={blockNationLogo} 
-                    alt="Block Nation" 
-                    className="h-16 w-16 opacity-50 hover-scale" 
-                  />
-                  <div className="absolute -bottom-2 -right-2 bg-primary rounded-full p-2">
-                    <Trophy className="h-4 w-4 text-primary-foreground" />
-                  </div>
-                </div>
+                      </CardContent>
+                    </Card>
+                  </Link>
+                ))}
               </div>
-              <h3 className="text-xl font-semibold mb-2">No Elite Tournaments Yet</h3>
-              <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-                Be the pioneer and create the first championship-level tournament in the Block Nation platform.
-              </p>
-              <Link to="/create-tournament">
-                <Button className="gradient-primary hover:opacity-90 transition-opacity shadow-glow">
-                  Create the First Elite Tournament
-                </Button>
-              </Link>
-            </CardContent>
-          </Card>
-        )}
-      </div>
+            )}
+          </div>
+        </div>
+      </section>
     </div>
   );
 };
