@@ -3,10 +3,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ArrowLeft, Users, Calendar, Trophy } from "lucide-react";
+import { ArrowLeft, Users, Calendar, Trophy, ExternalLink } from "lucide-react";
 import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { Link } from "react-router-dom";
 
 interface Player {
   id: string;
@@ -121,15 +122,25 @@ export function TeamDetailsView({ teamId, teamName, allMatches, onBack }: TeamDe
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-4">
-        <Button onClick={onBack} variant="outline" size="sm">
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Pool
-        </Button>
-        <div>
-          <h2 className="text-2xl font-bold">{teamName}</h2>
-          <p className="text-muted-foreground">Team roster and schedule</p>
+      <div className="flex items-center justify-between gap-4 flex-wrap">
+        <div className="flex items-center gap-4">
+          <Button onClick={onBack} variant="outline" size="sm">
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Pool
+          </Button>
+          <div>
+            <h2 className="text-2xl font-bold">{teamName}</h2>
+            <p className="text-muted-foreground">
+              Record: {teamRecord.wins}W - {teamRecord.losses}L
+            </p>
+          </div>
         </div>
+        <Link to={`/team/${teamId}`}>
+          <Button variant="outline" size="sm">
+            <ExternalLink className="h-4 w-4 mr-2" />
+            View Full Profile
+          </Button>
+        </Link>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

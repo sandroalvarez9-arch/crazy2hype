@@ -339,6 +339,71 @@ export type Database = {
           },
         ]
       }
+      player_statistics: {
+        Row: {
+          aces: number | null
+          blocks: number | null
+          created_at: string
+          id: string
+          matches_played: number | null
+          player_id: string
+          points_scored: number | null
+          tournament_id: string
+          updated_at: string
+        }
+        Insert: {
+          aces?: number | null
+          blocks?: number | null
+          created_at?: string
+          id?: string
+          matches_played?: number | null
+          player_id: string
+          points_scored?: number | null
+          tournament_id: string
+          updated_at?: string
+        }
+        Update: {
+          aces?: number | null
+          blocks?: number | null
+          created_at?: string
+          id?: string
+          matches_played?: number | null
+          player_id?: string
+          points_scored?: number | null
+          tournament_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "player_statistics_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "player_statistics_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "players_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "player_statistics_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "players_tournament_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "player_statistics_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: false
+            referencedRelation: "tournaments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       players: {
         Row: {
           created_at: string
@@ -615,6 +680,9 @@ export type Database = {
           players_count: number | null
           seed_number: number | null
           skill_level: string | null
+          total_losses: number | null
+          total_tournaments_played: number | null
+          total_wins: number | null
           tournament_id: string
           updated_at: string
         }
@@ -639,6 +707,9 @@ export type Database = {
           players_count?: number | null
           seed_number?: number | null
           skill_level?: string | null
+          total_losses?: number | null
+          total_tournaments_played?: number | null
+          total_wins?: number | null
           tournament_id: string
           updated_at?: string
         }
@@ -663,6 +734,9 @@ export type Database = {
           players_count?: number | null
           seed_number?: number | null
           skill_level?: string | null
+          total_losses?: number | null
+          total_tournaments_played?: number | null
+          total_wins?: number | null
           tournament_id?: string
           updated_at?: string
         }
