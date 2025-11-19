@@ -33,13 +33,13 @@ const MobileNavigation = () => {
               key={item.path}
               to={item.path}
               className={cn(
-                "flex flex-col items-center justify-center flex-1 py-2 px-1 transition-colors",
+                "flex flex-col items-center justify-center flex-1 py-2 px-1 transition-colors min-h-[44px]",
                 isActive 
                   ? "text-primary" 
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
-              <item.icon className={cn("h-5 w-5 mb-1", isActive && "text-primary")} />
+              <item.icon className={cn("h-6 w-6 mb-1", isActive && "text-primary")} />
               <span className="text-xs font-medium">{item.label}</span>
             </Link>
           );
