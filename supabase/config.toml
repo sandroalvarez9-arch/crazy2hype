@@ -1,20 +1,34 @@
 
 project_id = "bsthkkljpqzuimkcbcfy"
 
+[functions.check-stripe-connect]
+verify_jwt = true
+
+[functions.create-payment]
+verify_jwt = true
+
+[functions.finish-stripe-connect]
+verify_jwt = true
+
 [functions.geocode]
 verify_jwt = false
 
 [functions.geocode-suggest]
 verify_jwt = false
 
-[functions.send-bulk-email]
-verify_jwt = false
-
 [functions.get-stripe-oauth-url]
 verify_jwt = true
 
-[functions.finish-stripe-connect]
+[functions.get-stripe-payouts]
 verify_jwt = true
 
-[functions.create-payment]
-verify_jwt = true
+[functions.get-weather]
+verify_jwt = false
+
+[functions.google-places-autocomplete]
+verify_jwt = false
+
+[functions.send-bulk-email]
+verify_jwt = false
+
+
