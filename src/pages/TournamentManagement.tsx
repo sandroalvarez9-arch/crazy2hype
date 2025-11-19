@@ -23,6 +23,7 @@ import EditCapacityDialog from "@/components/EditCapacityDialog";
 import { TournamentTestingDashboard } from "@/components/TournamentTestingDashboard";
 import { TournamentDayDashboard } from "@/components/TournamentDayDashboard";
 import { formatSkillLevel, getSkillLevelBadgeVariant } from "@/utils/skillLevels";
+import { ConfirmationDialog } from "@/components/ConfirmationDialog";
 
 interface Tournament {
   id: string;
@@ -94,6 +95,7 @@ export default function TournamentManagement() {
   const [activeTab, setActiveTab] = useState("teams");
   const [stripeConnected, setStripeConnected] = useState(false);
   const [publishingTournament, setPublishingTournament] = useState(false);
+  const [publishConfirmOpen, setPublishConfirmOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [teamsPerPage] = useState(10);
   const [checkInFilter, setCheckInFilter] = useState<'all' | 'checked_in' | 'pending' | 'no_show'>('all');
@@ -528,13 +530,23 @@ export default function TournamentManagement() {
               Money & Reporting
             </Button>
             {tournament.status === 'draft' && !tournament.published && (
-              <Button
-                onClick={publishTournament}
-                disabled={!stripeConnected || publishingTournament}
-                className="bg-green-600 hover:bg-green-700"
-              >
-                {publishingTournament ? 'Publishing...' : 'Publish Tournament'}
-              </Button>
+              <>
+                <Button
+                  onClick={() => setPublishConfirmOpen(true)}
+                  disabled={!stripeConnected || publishingTournament}
+                  className="bg-green-600 hover:bg-green-700"
+                >
+                  {publishingTournament ? 'Publishing...' : 'Publish Tournament'}
+                </Button>
+                <ConfirmationDialog
+                  open={publishConfirmOpen}
+                  onOpenChange={setPublishConfirmOpen}
+                  title="Publish Tournament?"
+                  description="This will make your tournament visible to all players. Make sure all tournament details, payment methods, and capacity settings are correct before publishing."
+                  confirmText="Publish Now"
+                  onConfirm={publishTournament}
+                />
+              </>
             )}
             <EditCapacityDialog
               tournament={{

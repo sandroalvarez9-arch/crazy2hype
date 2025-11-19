@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { ArrowLeft, Calendar, MapPin, Users, Trophy, DollarSign, Settings, UserPlus, ExternalLink } from 'lucide-react';
 import { format } from 'date-fns';
-import TeamRegistrationDialog from '@/components/TeamRegistrationDialog';
+import { TeamRegistrationWizard } from '@/components/TeamRegistrationWizard';
 import TeamCheckInDialog from '@/components/TeamCheckInDialog';
 import TeamEditDialog from '@/components/TeamEditDialog';
 import { TeamScheduleView } from '@/components/TeamScheduleView';
@@ -680,7 +680,7 @@ const TournamentDetails = () => {
         )}
       </Tabs>
 
-      <TeamRegistrationDialog
+      <TeamRegistrationWizard
         isOpen={showRegistrationDialog}
         onOpenChange={setShowRegistrationDialog}
         tournamentId={id!}
