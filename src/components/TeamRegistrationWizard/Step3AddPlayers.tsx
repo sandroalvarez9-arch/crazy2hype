@@ -59,7 +59,7 @@ export function Step3AddPlayers({
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="space-y-2 sm:col-span-2">
+                 <div className="space-y-2 sm:col-span-2">
                   <Label htmlFor={`player-name-${index}`}>
                     Name {index === 0 && '*'}
                   </Label>
@@ -69,6 +69,7 @@ export function Step3AddPlayers({
                     value={player.name}
                     onChange={(e) => onUpdatePlayer(index, 'name', e.target.value)}
                     maxLength={100}
+                    className="min-h-[44px]"
                   />
                 </div>
 
@@ -81,6 +82,7 @@ export function Step3AddPlayers({
                     value={player.email}
                     onChange={(e) => onUpdatePlayer(index, 'email', e.target.value)}
                     maxLength={255}
+                    className="min-h-[44px]"
                   />
                 </div>
 
@@ -93,6 +95,7 @@ export function Step3AddPlayers({
                     value={player.phone}
                     onChange={(e) => onUpdatePlayer(index, 'phone', e.target.value)}
                     maxLength={20}
+                    className="min-h-[44px]"
                   />
                 </div>
 
@@ -104,6 +107,7 @@ export function Step3AddPlayers({
                     value={player.position}
                     onChange={(e) => onUpdatePlayer(index, 'position', e.target.value)}
                     maxLength={50}
+                    className="min-h-[44px]"
                   />
                 </div>
 
@@ -111,10 +115,13 @@ export function Step3AddPlayers({
                   <Label htmlFor={`player-jersey-${index}`}>Jersey #</Label>
                   <Input
                     id={`player-jersey-${index}`}
+                    type="text"
+                    inputMode="numeric"
                     placeholder="e.g., 10"
                     value={player.jerseyNumber}
                     onChange={(e) => onUpdatePlayer(index, 'jerseyNumber', e.target.value)}
                     maxLength={3}
+                    className="min-h-[44px]"
                   />
                 </div>
               </div>
@@ -127,7 +134,7 @@ export function Step3AddPlayers({
         type="button"
         variant="outline"
         onClick={onAddPlayer}
-        className="w-full"
+        className="w-full min-h-[44px]"
       >
         <Plus className="h-4 w-4 mr-2" />
         Add Another Player
