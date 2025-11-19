@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
+import { celebrateSuccess } from '@/utils/animations';
 import { Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { SkillLevel } from '@/utils/skillLevels';
 import { StepIndicator } from './StepIndicator';
@@ -198,19 +199,24 @@ export function TeamRegistrationWizard(props: TeamRegistrationWizardProps) {
         description: 'Your team has been registered for the tournament.',
       });
 
-      props.onSuccess();
-      props.onOpenChange(false);
+      celebrateSuccess();
       
-      // Reset form
-      setCurrentStep(0);
-      setFormData({
-        teamName: '',
-        contactEmail: profile?.email || '',
-        contactPhone: '',
-        skillLevel: '',
-        category: '',
-      });
-      setPlayers(initializePlayers(props.playersPerTeam));
+      // Delay closing to show confetti
+      setTimeout(() => {
+        props.onSuccess();
+        props.onOpenChange(false);
+        
+        // Reset form
+        setCurrentStep(0);
+        setFormData({
+          teamName: '',
+          contactEmail: profile?.email || '',
+          contactPhone: '',
+          skillLevel: '',
+          category: '',
+        });
+        setPlayers(initializePlayers(props.playersPerTeam));
+      }, 1500);
     } catch (error: any) {
       console.error('Error registering team:', error);
       toast({

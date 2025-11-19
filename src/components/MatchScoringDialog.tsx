@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { MatchScoringInterface } from "./MatchScoringInterface";
 import { useToast } from "@/hooks/use-toast";
 import { X, Trophy, Clock, MapPin } from "lucide-react";
+import { celebrateSimple } from "@/utils/animations";
 
 interface Match {
   id: string;
@@ -79,6 +80,7 @@ export function MatchScoringDialog({
     onMatchUpdate();
     // Keep dialog open until match is completed, then auto-close
     if (match && match.status === 'completed') {
+      celebrateSimple();
       toast({
         title: "🎉 Match Completed!",
         description: "Dialog will close automatically in 3 seconds...",
