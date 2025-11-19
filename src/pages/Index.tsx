@@ -315,7 +315,7 @@ const Index = () => {
                 title="No tournaments available"
                 description="Be the first to create one!"
                 actionLabel="Create Tournament"
-                actionHref="/tournaments/create"
+                actionHref="/create-tournament"
                 icon={<Trophy className="h-12 w-12 text-muted-foreground" />}
               />
             ) : (
