@@ -187,7 +187,16 @@ export function TournamentCreationWizard() {
   };
 
   const onSubmit = async (values: FormValues) => {
-    if (!user) return;
+    console.log('Form submitted with values:', values);
+    
+    if (!user) {
+      toast({
+        title: 'Error',
+        description: 'You must be logged in to create a tournament',
+        variant: 'destructive',
+      });
+      return;
+    }
 
     setSubmitting(true);
 
@@ -304,6 +313,20 @@ export function TournamentCreationWizard() {
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               {renderStep()}
 
+              {/* Show validation errors if form is invalid */}
+              {Object.keys(form.formState.errors).length > 0 && (
+                <div className="rounded-md bg-destructive/10 p-4 text-sm text-destructive">
+                  <p className="font-semibold mb-2">Please fix the following errors:</p>
+                  <ul className="list-disc list-inside space-y-1">
+                    {Object.entries(form.formState.errors).map(([field, error]) => (
+                      <li key={field}>
+                        {field}: {error?.message?.toString() || 'Invalid value'}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
               <div className="flex justify-between pt-6">
                 <Button
                   type="button"
@@ -322,7 +345,16 @@ export function TournamentCreationWizard() {
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
                 ) : (
-                  <Button type="submit" disabled={submitting} className="min-h-[44px]">
+                  <Button 
+                    type="submit" 
+                    disabled={submitting}
+                    onClick={(e) => {
+                      console.log('Submit button clicked');
+                      console.log('Form is valid:', form.formState.isValid);
+                      console.log('Form errors:', form.formState.errors);
+                    }}
+                    className="min-h-[44px]"
+                  >
                     {submitting ? 'Creating...' : stripeConnected ? 'Create Tournament' : 'Save as Draft'}
                   </Button>
                 )}
