@@ -12,6 +12,7 @@ import { ArrowLeft, Calendar, MapPin, Users, Trophy, DollarSign, Settings, UserP
 import { format } from 'date-fns';
 import TeamRegistrationDialog from '@/components/TeamRegistrationDialog';
 import TeamCheckInDialog from '@/components/TeamCheckInDialog';
+import TeamEditDialog from '@/components/TeamEditDialog';
 import { TeamScheduleView } from '@/components/TeamScheduleView';
 import { useToast } from '@/hooks/use-toast';
 import { formatSkillLevel, getSkillLevelBadgeVariant } from '@/utils/skillLevels';
@@ -80,6 +81,8 @@ const TournamentDetails = () => {
   const [teams, setTeams] = useState<Team[]>([]);
   const [loading, setLoading] = useState(true);
   const [showRegistrationDialog, setShowRegistrationDialog] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
   const [userTeams, setUserTeams] = useState<Team[]>([]);
   const [matches, setMatches] = useState<any[]>([]);
   const [paying, setPaying] = useState(false);
@@ -578,13 +581,29 @@ const TournamentDetails = () => {
               {registeredTeams.map((team) => (
                 <Card key={team.id} className="shadow-card hover-scale">
                   <CardHeader className="pb-3">
-                    <CardTitle className="text-lg">{team.name}</CardTitle>
-                    <CardDescription>
-                      Captain: {team.captain ? 
-                        `${team.captain.first_name} ${team.captain.last_name}` : 
-                        'Unknown Captain'
-                      }
-                    </CardDescription>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <CardTitle className="text-lg">{team.name}</CardTitle>
+                        <CardDescription>
+                          Captain: {team.captain ? 
+                            `${team.captain.first_name} ${team.captain.last_name}` : 
+                            'Unknown Captain'
+                          }
+                        </CardDescription>
+                      </div>
+                      {user && team.captain_id === user.id && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setSelectedTeam(team);
+                            setShowEditDialog(true);
+                          }}
+                        >
+                          Edit
+                        </Button>
+                      )}
+                    </div>
                   </CardHeader>
                   <CardContent>
                      <div className="space-y-2">
@@ -677,6 +696,20 @@ const TournamentDetails = () => {
         otherPaymentMethods={tournament?.other_payment_methods}
         onSuccess={fetchTeams}
       />
+
+      {selectedTeam && (
+        <TeamEditDialog
+          isOpen={showEditDialog}
+          onOpenChange={setShowEditDialog}
+          team={selectedTeam}
+          checkInDeadline={tournament?.check_in_deadline}
+          onSuccess={() => {
+            fetchTeams();
+            setShowEditDialog(false);
+            setSelectedTeam(null);
+          }}
+        />
+      )}
     </div>
   );
 };
