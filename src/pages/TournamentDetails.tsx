@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
-import { ArrowLeft, Calendar, MapPin, Users, Trophy, DollarSign, Settings, UserPlus, ExternalLink } from 'lucide-react';
+import { ArrowLeft, Calendar, MapPin, Users, Trophy, DollarSign, Settings, UserPlus, ExternalLink, Share2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { TeamRegistrationWizard } from '@/components/TeamRegistrationWizard';
 import TeamCheckInDialog from '@/components/TeamCheckInDialog';
@@ -237,6 +237,22 @@ const TournamentDetails = () => {
     }
   };
 
+  const handleSharePublicView = () => {
+    const publicUrl = `${window.location.origin}/tournament/${id}/live`;
+    navigator.clipboard.writeText(publicUrl).then(() => {
+      toast({
+        title: "Link Copied!",
+        description: "Public view link copied to clipboard. Share it with spectators!",
+      });
+    }).catch(() => {
+      toast({
+        title: "Copy Failed",
+        description: publicUrl,
+        variant: "destructive",
+      });
+    });
+  };
+
   // Compute real-world distance to tournament location
   useEffect(() => {
     const computeDistance = async () => {
@@ -392,15 +408,26 @@ const TournamentDetails = () => {
             </Badge>
             <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
               {isOrganizer && (
-                <Button 
-                  size="sm" 
-                  variant="outline"
-                  onClick={() => navigate(`/tournament/${id}/manage`)}
-                  className="w-full sm:w-auto text-xs"
-                >
-                  <Settings className="h-4 w-4 mr-2" />
-                  Manage
-                </Button>
+                <>
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={handleSharePublicView}
+                    className="w-full sm:w-auto text-xs"
+                  >
+                    <Share2 className="h-3 w-3 mr-1" />
+                    Share Live View
+                  </Button>
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={() => navigate(`/tournament/${id}/manage`)}
+                    className="w-full sm:w-auto text-xs"
+                  >
+                    <Settings className="h-4 w-4 mr-2" />
+                    Manage
+                  </Button>
+                </>
               )}
               {tournament.entry_fee > 0 && user && !isOrganizer && (
                 <Button 

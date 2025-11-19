@@ -17,6 +17,7 @@ import PaymentSuccess from "./pages/PaymentSuccess";
 import PaymentCanceled from "./pages/PaymentCanceled";
 import StripeConnectCallback from "./pages/StripeConnectCallback";
 import Profile from "./pages/Profile";
+import TournamentPublicView from "./pages/TournamentPublicView";
 
 const queryClient = new QueryClient();
 
@@ -88,6 +89,9 @@ const App = () => (
               <ProtectedRoute>
                 <Tournaments showMyTournaments={true} />
               </ProtectedRoute>
+            } />
+            <Route path="/tournament/:id/live" element={
+              <TournamentPublicView />
             } />
             <Route path="/tournament/:id" element={
               <ProtectedRoute>
