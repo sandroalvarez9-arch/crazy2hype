@@ -16,6 +16,7 @@ import TeamEditDialog from '@/components/TeamEditDialog';
 import { TeamScheduleView } from '@/components/TeamScheduleView';
 import { useToast } from '@/hooks/use-toast';
 import { formatSkillLevel, getSkillLevelBadgeVariant } from '@/utils/skillLevels';
+import { WeatherWidget } from '@/components/WeatherWidget';
 
 interface Tournament {
   id: string;
@@ -528,6 +529,44 @@ const TournamentDetails = () => {
                 </div>
               </div>
             </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Weather & Maps Section */}
+      <div className="space-y-6 mb-6">
+        <WeatherWidget location={tournament.location} startDate={tournament.start_date} />
+        
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <MapPin className="h-5 w-5" />
+              Tournament Location
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="rounded-lg overflow-hidden border">
+              <iframe
+                title="Tournament Location Map"
+                src={`https://maps.google.com/maps?q=${encodeURIComponent(tournament.location)}&output=embed&zoom=14`}
+                className="w-full h-64 md:h-96"
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+              />
+            </div>
+            {mapsLink && (
+              <div className="mt-4">
+                <a
+                  href={mapsLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 text-primary hover:underline"
+                >
+                  <ExternalLink className="h-4 w-4" />
+                  Get Directions to {tournament.location}
+                </a>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
