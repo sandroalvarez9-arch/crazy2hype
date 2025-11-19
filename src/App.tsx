@@ -7,7 +7,7 @@ import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import Layout from "@/components/Layout";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
-import CreateTournament from "./pages/CreateTournament";
+import { TournamentCreationWizard } from "./components/TournamentCreationWizard";
 import TournamentDetails from "./pages/TournamentDetails";
 import TournamentManagement from "./pages/TournamentManagement";
 import Tournaments from "./pages/Tournaments";
@@ -76,7 +76,7 @@ const App = () => (
             } />
             <Route path="/create-tournament" element={
               <ProtectedRoute>
-                <CreateTournament />
+                <TournamentCreationWizard />
               </ProtectedRoute>
             } />
             <Route path="/tournaments" element={
