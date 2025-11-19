@@ -284,18 +284,27 @@ export function TeamRegistrationWizard(props: TeamRegistrationWizardProps) {
             variant="outline"
             onClick={handleBack}
             disabled={currentStep === 0 || loading}
+            className="min-h-[44px]"
           >
             <ChevronLeft className="h-4 w-4 mr-1" />
             Back
           </Button>
 
           {currentStep < STEPS.length - 1 ? (
-            <Button onClick={handleNext} disabled={!canProceed() || loading}>
+            <Button 
+              onClick={handleNext} 
+              disabled={!canProceed() || loading}
+              className="min-h-[44px]"
+            >
               Next
               <ChevronRight className="h-4 w-4 ml-1" />
             </Button>
           ) : (
-            <Button onClick={handleSubmit} disabled={loading}>
+            <Button 
+              onClick={handleSubmit} 
+              disabled={loading}
+              className="min-h-[44px]"
+            >
               {loading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />

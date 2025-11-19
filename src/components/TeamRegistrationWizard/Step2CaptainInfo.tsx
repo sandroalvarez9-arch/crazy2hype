@@ -42,6 +42,7 @@ export function Step2CaptainInfo({ formData, onChange, captainName }: Step2Props
             value={formData.contactEmail}
             onChange={(e) => onChange('contactEmail', e.target.value)}
             maxLength={255}
+            className="min-h-[44px]"
           />
         </div>
 
@@ -57,6 +58,7 @@ export function Step2CaptainInfo({ formData, onChange, captainName }: Step2Props
             value={formData.contactPhone}
             onChange={(e) => onChange('contactPhone', e.target.value)}
             maxLength={20}
+            className="min-h-[44px]"
           />
         </div>
       </div>

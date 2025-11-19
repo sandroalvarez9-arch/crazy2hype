@@ -5,6 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
@@ -601,37 +602,73 @@ export default function TournamentManagement() {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-xl sm:text-2xl font-bold">{teams.length}</div>
+            <div className="text-xl sm:text-2xl font-bold mb-2">{teams.length}</div>
+            <Progress 
+              value={(teams.length / tournament.max_teams) * 100} 
+              className="h-2"
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              {Math.round((teams.length / tournament.max_teams) * 100)}% of {tournament.max_teams} capacity
+            </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-xs sm:text-sm font-medium">Checked In</CardTitle>
+            <CardTitle className="text-xs sm:text-sm font-medium">Check-in Progress</CardTitle>
             <UserCheck className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-xl sm:text-2xl font-bold text-green-600">{checkedInTeams}</div>
+            <div className="text-xl sm:text-2xl font-bold mb-2 text-green-600">
+              {checkedInTeams}/{teams.length}
+            </div>
+            <Progress 
+              value={teams.length > 0 ? (checkedInTeams / teams.length) * 100 : 0} 
+              className="h-2"
+              indicatorClassName="bg-green-600"
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              {teams.length > 0 ? Math.round((checkedInTeams / teams.length) * 100) : 0}% teams checked in
+            </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-xs sm:text-sm font-medium">No Shows</CardTitle>
+            <CardTitle className="text-xs sm:text-sm font-medium">Payment Progress</CardTitle>
+            <DollarSign className="h-4 w-4 text-primary" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-xl sm:text-2xl font-bold mb-2">
+              {teams.filter(t => t.payment_status === 'paid').length}/{teams.length}
+            </div>
+            <Progress 
+              value={teams.length > 0 ? (teams.filter(t => t.payment_status === 'paid').length / teams.length) * 100 : 0} 
+              className="h-2"
+              indicatorClassName="bg-primary"
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              ${(teams.filter(t => t.payment_status === 'paid').length * (tournament.entry_fee || 0)).toFixed(0)} collected
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-xs sm:text-sm font-medium">Issues</CardTitle>
             <UserX className="h-4 w-4 text-red-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-xl sm:text-2xl font-bold text-red-600">{noShowTeams}</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-xs sm:text-sm font-medium">Pending</CardTitle>
-            <Clock className="h-4 w-4 text-yellow-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-xl sm:text-2xl font-bold text-yellow-600">{pendingTeams}</div>
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-sm text-muted-foreground">No Shows</div>
+                <div className="text-lg font-bold text-red-600">{noShowTeams}</div>
+              </div>
+              <div>
+                <div className="text-sm text-muted-foreground">Pending</div>
+                <div className="text-lg font-bold text-yellow-600">{pendingTeams}</div>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>
