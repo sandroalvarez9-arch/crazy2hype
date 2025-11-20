@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -30,34 +31,29 @@ serve(async (req) => {
       );
     }
 
-    // First, get coordinates from location name
-    const geoUrl = `https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(location)}&limit=1&appid=${OPENWEATHER_API_KEY}`;
-    console.log('Fetching coordinates for:', location);
-    
-    const geoResponse = await fetch(geoUrl);
-    if (!geoResponse.ok) {
-      const errorText = await geoResponse.text();
-      console.error('Geocoding error:', geoResponse.status, errorText);
-      return new Response(
-        JSON.stringify({ error: 'Failed to geocode location' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    // Use the geocode edge function to get coordinates
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const geoData = await geoResponse.json();
-    if (!geoData || geoData.length === 0) {
-      console.error('Location not found:', location);
+    console.log('Fetching coordinates for:', location);
+    const { data: geoData, error: geoError } = await supabase.functions.invoke('geocode', {
+      body: { query: location },
+    });
+
+    if (geoError || !geoData || geoData.error) {
+      console.error('Geocoding error:', geoError || geoData?.error);
       return new Response(
         JSON.stringify({ error: 'Location not found' }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const { lat, lon } = geoData[0];
-    console.log('Coordinates found:', lat, lon);
+    const { lat, lng } = geoData;
+    console.log('Coordinates found:', lat, lng);
 
     // Get 5-day weather forecast
-    const weatherUrl = `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&units=imperial&appid=${OPENWEATHER_API_KEY}`;
+    const weatherUrl = `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lng}&units=imperial&appid=${OPENWEATHER_API_KEY}`;
     console.log('Fetching weather forecast');
     
     const weatherResponse = await fetch(weatherUrl);
