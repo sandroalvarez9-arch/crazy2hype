@@ -198,7 +198,7 @@ const Index = () => {
           <div className="grid grid-cols-3 gap-3 md:gap-6 max-w-5xl mx-auto">
             <Card 
               className="text-center hover:shadow-md transition-shadow cursor-pointer" 
-              onClick={() => navigate('/my-tournaments')}
+              onClick={() => navigate('/tournaments')}
             >
               <CardContent className="pt-6 pb-6">
                 <Trophy className="h-8 w-8 md:h-10 md:w-10 text-primary mx-auto mb-2" />
