@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
-import { ArrowLeft, Calendar, MapPin, Users, Trophy, DollarSign, Settings, UserPlus, ExternalLink, Share2 } from 'lucide-react';
+import { ArrowLeft, Calendar, MapPin, Users, Trophy, DollarSign, Settings, UserPlus, ExternalLink, Share2, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { TeamRegistrationWizard } from '@/components/TeamRegistrationWizard';
 import TeamCheckInDialog from '@/components/TeamCheckInDialog';
@@ -17,6 +17,7 @@ import { TeamScheduleView } from '@/components/TeamScheduleView';
 import { useToast } from '@/hooks/use-toast';
 import { formatSkillLevel, getSkillLevelBadgeVariant } from '@/utils/skillLevels';
 import { WeatherWidget } from '@/components/WeatherWidget';
+import { ConfirmationDialog } from '@/components/ConfirmationDialog';
 
 interface Tournament {
   id: string;
@@ -86,6 +87,7 @@ const TournamentDetails = () => {
   const [loading, setLoading] = useState(true);
   const [showRegistrationDialog, setShowRegistrationDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
   const [userTeams, setUserTeams] = useState<Team[]>([]);
   const [matches, setMatches] = useState<any[]>([]);
@@ -108,6 +110,42 @@ const TournamentDetails = () => {
       checkStripeStatus();
     }
   }, [user]);
+
+  const handleDeleteTeam = async () => {
+    if (!selectedTeam) return;
+
+    try {
+      // Delete all players first (cascade should handle this, but being explicit)
+      const { error: playersError } = await supabase
+        .from('players')
+        .delete()
+        .eq('team_id', selectedTeam.id);
+
+      if (playersError) throw playersError;
+
+      // Delete the team
+      const { error: teamError } = await supabase
+        .from('teams')
+        .delete()
+        .eq('id', selectedTeam.id);
+
+      if (teamError) throw teamError;
+
+      toast({
+        title: "Team deleted",
+        description: "Your team has been successfully removed from the tournament.",
+      });
+
+      fetchTeams();
+      setSelectedTeam(null);
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete team",
+        variant: "destructive",
+      });
+    }
+  };
 
   const checkStripeStatus = async () => {
     try {
@@ -668,16 +706,28 @@ const TournamentDetails = () => {
                         )}
                       </div>
                       {user && team.captain_id === user.id && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => {
-                            setSelectedTeam(team);
-                            setShowEditDialog(true);
-                          }}
-                        >
-                          Edit
-                        </Button>
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              setSelectedTeam(team);
+                              setShowEditDialog(true);
+                            }}
+                          >
+                            Edit
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => {
+                              setSelectedTeam(team);
+                              setShowDeleteDialog(true);
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       )}
                     </div>
                   </CardHeader>
@@ -802,6 +852,17 @@ const TournamentDetails = () => {
           }}
         />
       )}
+
+      <ConfirmationDialog
+        open={showDeleteDialog}
+        onOpenChange={setShowDeleteDialog}
+        title="Delete Team?"
+        description={`Are you sure you want to delete "${selectedTeam?.name}"? This action cannot be undone and will remove all players from the team.`}
+        confirmText="Delete Team"
+        cancelText="Cancel"
+        onConfirm={handleDeleteTeam}
+        variant="destructive"
+      />
     </div>
   );
 };
