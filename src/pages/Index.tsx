@@ -196,7 +196,10 @@ const Index = () => {
       <section className="py-6 bg-muted/20">
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-3 gap-3 md:gap-6 max-w-5xl mx-auto">
-            <Card className="text-center hover:shadow-md transition-shadow">
+            <Card 
+              className="text-center hover:shadow-md transition-shadow cursor-pointer" 
+              onClick={() => navigate('/my-tournaments')}
+            >
               <CardContent className="pt-6 pb-6">
                 <Trophy className="h-8 w-8 md:h-10 md:w-10 text-primary mx-auto mb-2" />
                 <div className="text-3xl md:text-4xl font-bold mb-1">
@@ -207,7 +210,10 @@ const Index = () => {
                 </div>
               </CardContent>
             </Card>
-            <Card className="text-center hover:shadow-md transition-shadow">
+            <Card 
+              className="text-center hover:shadow-md transition-shadow cursor-pointer" 
+              onClick={() => navigate('/my-tournaments')}
+            >
               <CardContent className="pt-6 pb-6">
                 <List className="h-8 w-8 md:h-10 md:w-10 text-primary mx-auto mb-2" />
                 <div className="text-3xl md:text-4xl font-bold mb-1">
@@ -218,7 +224,10 @@ const Index = () => {
                 </div>
               </CardContent>
             </Card>
-            <Card className="text-center hover:shadow-md transition-shadow">
+            <Card 
+              className="text-center hover:shadow-md transition-shadow cursor-pointer" 
+              onClick={() => navigate('/my-tournaments')}
+            >
               <CardContent className="pt-6 pb-6">
                 <CalendarDays className="h-8 w-8 md:h-10 md:w-10 text-primary mx-auto mb-2" />
                 <div className="text-3xl md:text-4xl font-bold mb-1">
