@@ -52,6 +52,26 @@ serve(async (req) => {
   }
 
   try {
+    // SECURITY: Verify the authenticated user
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: "Missing authorization header" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser(
+      authHeader.replace("Bearer ", "")
+    );
+
+    if (authError || !user) {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const { tournament_id, subject, html, text }: SendBulkEmailRequest = await req.json();
 
     if (!tournament_id || !subject || (!html && !text)) {
@@ -72,6 +92,14 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ error: "Tournament not found" }),
         { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // SECURITY: Verify the user is the tournament organizer
+    if (tournament.organizer_id !== user.id) {
+      return new Response(
+        JSON.stringify({ error: "Forbidden: Only tournament organizers can send emails" }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
