@@ -518,12 +518,12 @@ export function TournamentDayDashboard({ tournament, teams }: TournamentDayDashb
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="matches" className="space-y-4">
+        <TabsContent value="matches" className="space-y-4 pt-4">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+              <CardTitle className="flex items-center gap-2 flex-wrap">
                 <Play className="h-5 w-5" />
-                Active & Upcoming Matches
+                <span className="break-words">Active &amp; Upcoming Matches</span>
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -540,9 +540,9 @@ export function TournamentDayDashboard({ tournament, teams }: TournamentDayDashb
                     .slice(0, 3)
                     .map(match => (
                       <div key={match.id} className="border rounded-lg p-4">
-                        <div className="flex justify-between items-start mb-4">
-                          <div>
-                             <h4 className="font-semibold">
+                        <div className="flex flex-col gap-2 sm:flex-row sm:justify-between sm:items-start mb-4">
+                          <div className="flex-1 min-w-0">
+                             <h4 className="font-semibold break-words">
                                {match.team1_name} vs {match.team2_name}
                              </h4>
                              <p className="text-sm text-muted-foreground">
@@ -554,7 +554,9 @@ export function TournamentDayDashboard({ tournament, teams }: TournamentDayDashb
                               </p>
                             )}
                           </div>
-                          {getMatchStatusBadge(match)}
+                          <div className="shrink-0">
+                            {getMatchStatusBadge(match)}
+                          </div>
                         </div>
                         
                         {match.status === 'in_progress' && (
@@ -564,7 +566,7 @@ export function TournamentDayDashboard({ tournament, teams }: TournamentDayDashb
                               handleMatchSelect(match);
                             }}
                             size="sm"
-                            className="mb-2"
+                            className="mb-2 min-h-[44px] sm:min-h-0"
                           >
                             Continue Scoring
                           </Button>
@@ -579,6 +581,7 @@ export function TournamentDayDashboard({ tournament, teams }: TournamentDayDashb
                             }}
                             size="sm"
                             variant="outline"
+                            className="min-h-[44px] sm:min-h-0"
                           >
                             Start Match
                           </Button>
