@@ -423,13 +423,13 @@ const TournamentDetails = () => {
           Back
         </Button>
         
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 md:gap-4 mb-4 md:mb-6">
-          <div className="min-w-0">
-            <h1 className="text-xl md:text-3xl font-bold mb-2 flex items-center gap-2">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+          <div className="min-w-0 flex-1">
+            <h1 className="text-xl md:text-3xl font-bold mb-2 flex items-center gap-2 flex-wrap">
               <Trophy className="h-5 w-5 md:h-8 md:w-8 text-primary shrink-0" />
               <span className="break-words">{tournament.title}</span>
             </h1>
-            <p className="text-xs md:text-sm text-muted-foreground break-words">
+            <p className="text-sm md:text-base text-muted-foreground break-words">
               Organized by {tournament.organizer ? 
                 `${tournament.organizer.first_name} ${tournament.organizer.last_name} (@${tournament.organizer.username})` : 
                 'Unknown Organizer'
@@ -438,7 +438,7 @@ const TournamentDetails = () => {
           </div>
           
           <div className="flex flex-col sm:flex-row gap-2 flex-wrap">
-          <div className="flex flex-wrap gap-1">
+          <div className="flex flex-wrap gap-2">
             {tournament.skill_levels.map((level) => (
               <Badge key={level} variant={getSkillLevelBadgeVariant(level as any)}>
                 {formatSkillLevel(level as any)}
@@ -511,12 +511,12 @@ const TournamentDetails = () => {
 
         <Card className="shadow-card mb-4 md:mb-6 animate-scale-in">
           <CardContent className="pt-4 md:pt-6 px-3 md:px-6">
-            <div className={`grid ${isMobile ? 'grid-cols-1' : 'md:grid-cols-2 lg:grid-cols-4'} gap-3 md:gap-4`}>
-              <div className="flex items-center gap-3">
-                <MapPin className="h-5 w-5 text-primary" />
-                <div>
-                  <p className="text-sm text-muted-foreground">Location</p>
-                  <p className="font-medium">{tournament.location}</p>
+            <div className={`grid ${isMobile ? 'grid-cols-1' : 'md:grid-cols-2 lg:grid-cols-4'} gap-4 md:gap-6`}>
+              <div className="flex items-start gap-3">
+                <MapPin className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-muted-foreground mb-1">Location</p>
+                  <p className="font-medium text-sm md:text-base break-words">{tournament.location}</p>
                   {distanceText && (
                     <p className="text-xs text-muted-foreground mt-0.5">
                       {distanceText}
@@ -534,27 +534,27 @@ const TournamentDetails = () => {
                 </div>
               </div>
               
-              <div className="flex items-center gap-3">
-                <Calendar className="h-5 w-5 text-primary" />
-                <div>
-                  <p className="text-sm text-muted-foreground">Start Date</p>
-                  <p className="font-medium">{format(new Date(tournament.start_date), 'PPP')}</p>
+              <div className="flex items-start gap-3">
+                <Calendar className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-muted-foreground mb-1">Start Date</p>
+                  <p className="font-medium text-sm md:text-base">{format(new Date(tournament.start_date), 'PPP')}</p>
                 </div>
               </div>
               
-              <div className="flex items-center gap-3">
-                <Users className="h-5 w-5 text-primary" />
-                <div>
-                  <p className="text-sm text-muted-foreground">Teams</p>
-                  <p className="font-medium">{registeredTeams.length}/{tournament.max_teams}</p>
+              <div className="flex items-start gap-3">
+                <Users className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-muted-foreground mb-1">Teams</p>
+                  <p className="font-medium text-sm md:text-base">{registeredTeams.length}/{tournament.max_teams}</p>
                   {tournament.skill_levels.length > 1 && (
-                    <div className="text-xs text-muted-foreground mt-1">
+                    <div className="flex flex-wrap gap-1 mt-2">
                       {tournament.skill_levels.map(level => (
-                        <div key={level} className="inline-flex items-center gap-1 mr-2">
-                          <Badge variant={getSkillLevelBadgeVariant(level as any)} className="text-xs">
+                        <div key={level} className="inline-flex items-center gap-1">
+                          <Badge variant={getSkillLevelBadgeVariant(level as any)} className="text-xs shrink-0">
                             {formatSkillLevel(level as any)}
                           </Badge>
-                          <span>{skillLevelStatus[level]?.registered || 0}/{skillLevelStatus[level]?.max || 0}</span>
+                          <span className="text-xs whitespace-nowrap">{skillLevelStatus[level]?.registered || 0}/{skillLevelStatus[level]?.max || 0}</span>
                         </div>
                       ))}
                     </div>
@@ -562,11 +562,11 @@ const TournamentDetails = () => {
                 </div>
               </div>
               
-              <div className="flex items-center gap-3">
-                <DollarSign className="h-5 w-5 text-primary" />
-                <div>
-                  <p className="text-sm text-muted-foreground">Entry Fee</p>
-                  <p className="font-medium">{tournament.entry_fee > 0 ? `$${tournament.entry_fee}` : 'Free'}</p>
+              <div className="flex items-start gap-3">
+                <DollarSign className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-muted-foreground mb-1">Entry Fee</p>
+                  <p className="font-medium text-sm md:text-base">{tournament.entry_fee > 0 ? `$${tournament.entry_fee}` : 'Free'}</p>
                 </div>
               </div>
             </div>
@@ -684,29 +684,30 @@ const TournamentDetails = () => {
           </div>
 
           {registeredTeams.length > 0 ? (
-            <div className={`grid ${isMobile ? 'grid-cols-1' : 'md:grid-cols-2 lg:grid-cols-3'} gap-4`}>
+            <div className={`grid ${isMobile ? 'grid-cols-1' : 'md:grid-cols-2 lg:grid-cols-3'} gap-4 md:gap-6`}>
               {registeredTeams.map((team) => (
                 <Card key={team.id} className="shadow-card hover-scale">
                   <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <CardTitle className="text-lg">{team.name}</CardTitle>
-                        <CardDescription>
+                    <div className="flex flex-col gap-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex-1 min-w-0">
+                          <CardTitle className="text-base md:text-lg break-words">{team.name}</CardTitle>
+                          <CardDescription className="text-sm break-words mt-1">
                           Captain: {team.captain ? 
                             `${team.captain.first_name} ${team.captain.last_name}` : 
                             'Unknown Captain'
                           }
                         </CardDescription>
                         {(team.total_wins || team.total_losses) && (
-                          <div className="flex items-center gap-2 mt-1">
-                            <Badge variant="outline" className="text-xs">
+                          <div className="flex flex-wrap items-center gap-2 mt-2">
+                            <Badge variant="outline" className="text-xs shrink-0">
                               {team.total_wins || 0}W - {team.total_losses || 0}L
                             </Badge>
                           </div>
                         )}
                       </div>
                       {user && team.captain_id === user.id && (
-                        <div className="flex gap-2">
+                        <div className="flex gap-2 shrink-0">
                           <Button
                             size="sm"
                             variant="outline"
@@ -714,6 +715,7 @@ const TournamentDetails = () => {
                               setSelectedTeam(team);
                               setShowEditDialog(true);
                             }}
+                            className="min-h-[44px] sm:min-h-0"
                           >
                             Edit
                           </Button>
@@ -724,12 +726,14 @@ const TournamentDetails = () => {
                               setSelectedTeam(team);
                               setShowDeleteDialog(true);
                             }}
+                            className="min-h-[44px] sm:min-h-0"
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
                       )}
                     </div>
+                  </div>
                   </CardHeader>
                   <CardContent>
                      <div className="space-y-2">
