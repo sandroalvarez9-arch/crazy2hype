@@ -151,7 +151,7 @@ const EnhancedBracketView: React.FC<EnhancedBracketViewProps> = ({
     setPan({ x: 0, y: 0 });
   };
 
-  // Pan controls
+  // Pan controls - Mouse
   const handleMouseDown = (e: React.MouseEvent) => {
     if (e.button === 0) { // Left mouse button
       setIsDragging(true);
@@ -177,6 +177,37 @@ const EnhancedBracketView: React.FC<EnhancedBracketViewProps> = ({
   };
 
   const handleMouseUp = () => {
+    setIsDragging(false);
+  };
+
+  // Pan controls - Touch (for mobile)
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length === 1) {
+      const touch = e.touches[0];
+      setIsDragging(true);
+      setDragStart({
+        x: touch.clientX,
+        y: touch.clientY,
+        panX: pan.x,
+        panY: pan.y
+      });
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (isDragging && e.touches.length === 1) {
+      const touch = e.touches[0];
+      const deltaX = touch.clientX - dragStart.x;
+      const deltaY = touch.clientY - dragStart.y;
+      setPan({
+        x: dragStart.panX + deltaX,
+        y: dragStart.panY + deltaY
+      });
+      e.preventDefault(); // Prevent scrolling while dragging
+    }
+  };
+
+  const handleTouchEnd = () => {
     setIsDragging(false);
   };
 
@@ -432,11 +463,14 @@ const EnhancedBracketView: React.FC<EnhancedBracketViewProps> = ({
       <Card className="overflow-hidden">
         <div 
           ref={containerRef}
-          className="relative w-full h-[600px] overflow-hidden cursor-grab active:cursor-grabbing bg-muted/20"
+          className="relative w-full h-[600px] overflow-hidden cursor-grab active:cursor-grabbing bg-muted/20 touch-none"
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
           onMouseLeave={handleMouseUp}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
         >
           <div
             style={{
@@ -611,7 +645,8 @@ const EnhancedBracketView: React.FC<EnhancedBracketViewProps> = ({
             </div>
           </div>
           <div className="text-center mt-2 text-xs text-muted-foreground">
-            Use Ctrl/Cmd + Mouse Wheel to zoom • Click and drag to pan
+            <span className="hidden md:inline">Use Ctrl/Cmd + Mouse Wheel to zoom • Click and drag to pan</span>
+            <span className="md:hidden">Pinch to zoom • Drag to pan</span>
           </div>
         </CardContent>
       </Card>
