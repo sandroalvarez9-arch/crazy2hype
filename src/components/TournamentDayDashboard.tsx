@@ -187,15 +187,22 @@ export function TournamentDayDashboard({ tournament, teams }: TournamentDayDashb
 
       setMatches(formattedMatches);
       
-      // Check if playoff brackets exist
-      const hasPlayoffs = formattedMatches.some(m => m.tournament_phase === 'playoffs' || m.tournament_phase === 'bracket');
+      // Check if playoff brackets exist with actual teams assigned
+      const hasPlayoffsWithTeams = formattedMatches.some(m => 
+        (m.tournament_phase === 'playoffs' || m.tournament_phase === 'bracket') && 
+        m.team1_id && m.team2_id
+      );
       console.log('DEBUG: Playoff bracket check:', { 
-        hasPlayoffs, 
+        hasPlayoffsWithTeams, 
         totalMatches: formattedMatches.length, 
         playoffMatches: formattedMatches.filter(m => m.tournament_phase === 'playoffs' || m.tournament_phase === 'bracket'),
+        playoffMatchesWithTeams: formattedMatches.filter(m => 
+          (m.tournament_phase === 'playoffs' || m.tournament_phase === 'bracket') && 
+          m.team1_id && m.team2_id
+        ),
         allPhases: [...new Set(formattedMatches.map(m => m.tournament_phase))]
       });
-      setPlayoffBracketsExist(hasPlayoffs);
+      setPlayoffBracketsExist(hasPlayoffsWithTeams);
       
     } catch (error) {
       console.error('Error fetching matches:', error);
