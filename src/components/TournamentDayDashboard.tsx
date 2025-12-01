@@ -495,12 +495,20 @@ export function TournamentDayDashboard({ tournament, teams }: TournamentDayDashb
         </Card>
       </div>
 
-      <Tabs defaultValue="matches" className="w-full">
+      <Tabs defaultValue={playoffBracketsExist ? "brackets" : "matches"} className="w-full">
         <TabsList className="grid w-full grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-1">
-          <TabsTrigger value="matches" className="text-xs md:text-sm">
-            <span className="hidden sm:inline">Live Matches</span>
-            <span className="sm:hidden">Live</span>
-          </TabsTrigger>
+          {playoffBracketsExist ? (
+            <TabsTrigger value="brackets" className="text-xs md:text-sm">
+              <Trophy className="h-3 w-3 md:h-4 md:w-4 mr-1" />
+              <span className="hidden sm:inline">Brackets</span>
+              <span className="sm:hidden">Bracket</span>
+            </TabsTrigger>
+          ) : (
+            <TabsTrigger value="matches" className="text-xs md:text-sm">
+              <span className="hidden sm:inline">Live Matches</span>
+              <span className="sm:hidden">Live</span>
+            </TabsTrigger>
+          )}
           <TabsTrigger value="pools" className="relative text-xs md:text-sm">
             <span className="hidden sm:inline">Pool Play</span>
             <span className="sm:hidden">Pools</span>
@@ -508,16 +516,6 @@ export function TournamentDayDashboard({ tournament, teams }: TournamentDayDashb
               <Badge className="ml-1 md:ml-2 bg-green-600 text-white text-xs hidden md:inline-flex">Complete</Badge>
             )}
           </TabsTrigger>
-          {playoffBracketsExist && (
-            <>
-              <TabsTrigger value="brackets" className="relative text-xs md:text-sm bg-blue-50/50 border-blue-200 animate-pulse">
-                <Trophy className="h-3 w-3 md:h-4 md:w-4 mr-1 text-blue-600" />
-                <span className="hidden sm:inline">Playoff Bracket</span>
-                <span className="sm:hidden">Bracket</span>
-                <Badge className="ml-1 md:ml-2 bg-blue-600 text-white text-xs">Active</Badge>
-              </TabsTrigger>
-            </>
-          )}
           <TabsTrigger value="schedule" className="text-xs md:text-sm">
             <span className="hidden sm:inline">Full Schedule</span>
             <span className="sm:hidden">Schedule</span>
