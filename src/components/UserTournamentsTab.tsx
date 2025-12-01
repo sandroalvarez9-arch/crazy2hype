@@ -15,6 +15,7 @@ export const UserTournamentsTab = () => {
   const { teams, loading, error, refetch } = useUserTeams();
   const navigate = useNavigate();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteAllDialogOpen, setDeleteAllDialogOpen] = useState(false);
   const [teamToDelete, setTeamToDelete] = useState<{ id: string; name: string } | null>(null);
   const [deleting, setDeleting] = useState(false);
 
@@ -42,6 +43,34 @@ export const UserTournamentsTab = () => {
     } catch (err: any) {
       console.error("Error deleting team:", err);
       toast.error(err.message || "Failed to delete team");
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const handleDeleteAllClick = () => {
+    if (teams.length === 0) return;
+    setDeleteAllDialogOpen(true);
+  };
+
+  const handleConfirmDeleteAll = async () => {
+    setDeleting(true);
+    try {
+      const teamIds = teams.map(team => team.id);
+      
+      const { error } = await supabase
+        .from("teams")
+        .delete()
+        .in("id", teamIds);
+
+      if (error) throw error;
+
+      toast.success(`Successfully deleted ${teamIds.length} team${teamIds.length > 1 ? 's' : ''}`);
+      refetch();
+      setDeleteAllDialogOpen(false);
+    } catch (err: any) {
+      console.error("Error deleting teams:", err);
+      toast.error(err.message || "Failed to delete teams");
     } finally {
       setDeleting(false);
     }
@@ -130,6 +159,20 @@ export const UserTournamentsTab = () => {
 
   return (
     <div className="space-y-6">
+      {/* Delete All Button */}
+      {teams.length > 0 && (
+        <div className="flex justify-end">
+          <Button
+            variant="outline"
+            onClick={handleDeleteAllClick}
+            className="text-destructive hover:text-destructive hover:bg-destructive/10"
+          >
+            <Trash2 className="h-4 w-4 mr-2" />
+            Delete All Teams ({teams.length})
+          </Button>
+        </div>
+      )}
+
       {/* Upcoming Tournaments */}
       {upcomingTournaments.length > 0 && (
         <div>
@@ -290,6 +333,16 @@ export const UserTournamentsTab = () => {
         description={`Are you sure you want to delete "${teamToDelete?.name}"? This action cannot be undone and will remove all associated data including players and match history.`}
         onConfirm={handleConfirmDelete}
         confirmText="Delete Team"
+        variant="destructive"
+      />
+
+      <ConfirmationDialog
+        open={deleteAllDialogOpen}
+        onOpenChange={setDeleteAllDialogOpen}
+        title="Delete All Teams"
+        description={`Are you sure you want to delete all ${teams.length} team${teams.length > 1 ? 's' : ''}? This action cannot be undone and will remove all teams, players, and match history from your profile.`}
+        onConfirm={handleConfirmDeleteAll}
+        confirmText={`Delete All ${teams.length} Team${teams.length > 1 ? 's' : ''}`}
         variant="destructive"
       />
     </div>
