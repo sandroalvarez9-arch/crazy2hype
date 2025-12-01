@@ -724,21 +724,21 @@ export default function TournamentManagement() {
               <div className="mb-4">
                 <Label className="text-sm font-medium mb-2 block">Filter by Check-in Status</Label>
                 <Tabs value={checkInFilter} onValueChange={(value) => setCheckInFilter(value as any)} className="w-full">
-                  <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 gap-1">
-                    <TabsTrigger value="all" className="text-xs md:text-sm">
+                  <TabsList className="flex flex-wrap w-full gap-2">
+                    <TabsTrigger value="all" className="text-xs md:text-sm px-3 py-1">
                       All
                     </TabsTrigger>
-                    <TabsTrigger value="checked_in" className="text-xs md:text-sm">
-                      <UserCheck className="h-3 w-3 mr-1 md:h-4 md:w-4" />
-                      Checked In ({checkedInTeams})
+                    <TabsTrigger value="checked_in" className="flex items-center gap-1 text-xs md:text-sm px-3 py-1">
+                      <UserCheck className="h-3 w-3 md:h-4 md:w-4" />
+                      <span className="whitespace-nowrap">Checked In ({checkedInTeams})</span>
                     </TabsTrigger>
-                    <TabsTrigger value="pending" className="text-xs md:text-sm">
-                      <Clock className="h-3 w-3 mr-1 md:h-4 md:w-4" />
-                      Pending ({pendingTeams})
+                    <TabsTrigger value="pending" className="flex items-center gap-1 text-xs md:text-sm px-3 py-1">
+                      <Clock className="h-3 w-3 md:h-4 md:w-4" />
+                      <span className="whitespace-nowrap">Pending ({pendingTeams})</span>
                     </TabsTrigger>
-                    <TabsTrigger value="no_show" className="text-xs md:text-sm">
-                      <UserX className="h-3 w-3 mr-1 md:h-4 md:w-4" />
-                      No Show ({noShowTeams})
+                    <TabsTrigger value="no_show" className="flex items-center gap-1 text-xs md:text-sm px-3 py-1">
+                      <UserX className="h-3 w-3 md:h-4 md:w-4" />
+                      <span className="whitespace-nowrap">No Show ({noShowTeams})</span>
                     </TabsTrigger>
                   </TabsList>
                 </Tabs>
@@ -790,7 +790,7 @@ export default function TournamentManagement() {
                         </p>
                       )}
                     </div>
-                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-2 sm:shrink-0">
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-2 sm:shrink-0 w-full sm:w-auto mt-2 sm:mt-0">
                       <Badge 
                         variant={
                           team.check_in_status === 'checked_in' ? 'default' :
@@ -801,17 +801,17 @@ export default function TournamentManagement() {
                         {team.check_in_status.replace('_', ' ').toUpperCase()}
                       </Badge>
                       {team.check_in_status === 'pending' && isTournamentDay && (
-                        <div className="flex gap-2">
+                        <div className="flex flex-wrap gap-2">
                           <Button
                             size="sm"
                             onClick={() => updateTeamCheckIn(team.id, 'checked_in')}
-                            className="text-xs px-2 py-1 h-8"
+                            className="text-xs px-3 py-1 h-9 min-h-[44px] sm:min-h-0"
                           >
                             Check In
                           </Button>
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
-                              <Button size="sm" variant="destructive" className="text-xs px-2 py-1 h-8">
+                              <Button size="sm" variant="destructive" className="text-xs px-3 py-1 h-9 min-h-[44px] sm:min-h-0">
                                 No Show
                               </Button>
                             </AlertDialogTrigger>
