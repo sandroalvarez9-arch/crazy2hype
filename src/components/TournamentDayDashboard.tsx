@@ -459,6 +459,23 @@ export function TournamentDayDashboard({ tournament, teams }: TournamentDayDashb
         </Card>
       )}
 
+      {/* Bracket Available Alert */}
+      {playoffBracketsExist && (
+        <Card className="border-blue-200 bg-blue-50">
+          <CardContent className="pt-4">
+            <div className="flex items-center gap-3">
+              <Trophy className="h-6 w-6 text-blue-600" />
+              <div className="flex-1">
+                <h3 className="font-semibold text-blue-800">🏆 Playoff Brackets Active</h3>
+                <p className="text-sm text-blue-700">
+                  Click the "Bracket" tab above to view and manage playoff brackets.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Tournament Day Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card>
@@ -509,11 +526,14 @@ export function TournamentDayDashboard({ tournament, teams }: TournamentDayDashb
             )}
           </TabsTrigger>
           {playoffBracketsExist && (
-            <TabsTrigger value="brackets" className="relative text-xs md:text-sm">
-              <span className="hidden sm:inline">Playoff Bracket</span>
-              <span className="sm:hidden">Bracket</span>
-              <Badge className="ml-1 md:ml-2 bg-blue-600 text-white text-xs hidden md:inline-flex">Active</Badge>
-            </TabsTrigger>
+            <>
+              <TabsTrigger value="brackets" className="relative text-xs md:text-sm bg-blue-50/50 border-blue-200 animate-pulse">
+                <Trophy className="h-3 w-3 md:h-4 md:w-4 mr-1 text-blue-600" />
+                <span className="hidden sm:inline">Playoff Bracket</span>
+                <span className="sm:hidden">Bracket</span>
+                <Badge className="ml-1 md:ml-2 bg-blue-600 text-white text-xs">Active</Badge>
+              </TabsTrigger>
+            </>
           )}
           <TabsTrigger value="schedule" className="text-xs md:text-sm">
             <span className="hidden sm:inline">Full Schedule</span>
