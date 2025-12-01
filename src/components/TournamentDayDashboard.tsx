@@ -459,23 +459,6 @@ export function TournamentDayDashboard({ tournament, teams }: TournamentDayDashb
         </Card>
       )}
 
-      {/* Bracket Available Alert */}
-      {playoffBracketsExist && (
-        <Card className="border-blue-200 bg-blue-50">
-          <CardContent className="pt-4">
-            <div className="flex items-center gap-3">
-              <Trophy className="h-6 w-6 text-blue-600" />
-              <div className="flex-1">
-                <h3 className="font-semibold text-blue-800">🏆 Playoff Brackets Active</h3>
-                <p className="text-sm text-blue-700">
-                  Click the "Bracket" tab above to view and manage playoff brackets.
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
       {/* Tournament Day Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card>
