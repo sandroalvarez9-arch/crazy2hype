@@ -73,8 +73,8 @@ export function PoolPlayManager({ tournament, teams, onBracketsGenerated }: Pool
           court_number,
           team1_id,
           team2_id,
-          teams!matches_team1_id_fkey(id, name, skill_level),
-          teams_team2:teams!matches_team2_id_fkey(id, name, skill_level)
+          team1:teams!matches_team1_id_fkey(id, name, skill_level, division),
+          team2:teams!matches_team2_id_fkey(id, name, skill_level, division)
         `)
         .eq('tournament_id', tournament.id)
         .eq('tournament_phase', 'pool_play');
@@ -99,14 +99,28 @@ export function PoolPlayManager({ tournament, teams, onBracketsGenerated }: Pool
         const poolData = poolsMap.get(match.pool_name)!;
         poolData.matches_count++;
 
-        // Add teams to the pool
-        if (match.teams && !poolData.teams.has(match.team1_id)) {
+        // Add team1 to the pool
+        if (match.team1_id && match.team1 && !poolData.teams.has(match.team1_id)) {
           poolData.teams.add(match.team1_id);
-          poolData.teamData.push(match.teams as any);
+          poolData.teamData.push({
+            id: match.team1.id,
+            name: match.team1.name,
+            check_in_status: 'checked_in',
+            skill_level: match.team1.skill_level,
+            division: match.team1.division
+          });
         }
-        if (match.teams_team2 && !poolData.teams.has(match.team2_id)) {
+        
+        // Add team2 to the pool
+        if (match.team2_id && match.team2 && !poolData.teams.has(match.team2_id)) {
           poolData.teams.add(match.team2_id);
-          poolData.teamData.push(match.teams_team2 as any);
+          poolData.teamData.push({
+            id: match.team2.id,
+            name: match.team2.name,
+            check_in_status: 'checked_in',
+            skill_level: match.team2.skill_level,
+            division: match.team2.division
+          });
         }
       });
 
@@ -118,6 +132,7 @@ export function PoolPlayManager({ tournament, teams, onBracketsGenerated }: Pool
         matches_count: data.matches_count
       }));
 
+      console.log('Fetched pools:', pools);
       setGeneratedPools(pools);
     } catch (error) {
       console.error('Error fetching generated pools:', error);
