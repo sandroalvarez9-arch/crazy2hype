@@ -1,15 +1,51 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useUserTeams } from "@/hooks/useUserTeams";
-import { Calendar, MapPin, Users, AlertCircle } from "lucide-react";
+import { Calendar, MapPin, Users, AlertCircle, Trash2 } from "lucide-react";
 import { format } from "date-fns";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { ConfirmationDialog } from "./ConfirmationDialog";
 
 export const UserTournamentsTab = () => {
   const { teams, loading, error, refetch } = useUserTeams();
   const navigate = useNavigate();
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [teamToDelete, setTeamToDelete] = useState<{ id: string; name: string } | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  const handleDeleteClick = (teamId: string, teamName: string) => {
+    setTeamToDelete({ id: teamId, name: teamName });
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!teamToDelete) return;
+
+    setDeleting(true);
+    try {
+      const { error } = await supabase
+        .from("teams")
+        .delete()
+        .eq("id", teamToDelete.id);
+
+      if (error) throw error;
+
+      toast.success(`Team "${teamToDelete.name}" has been deleted`);
+      refetch();
+      setDeleteDialogOpen(false);
+      setTeamToDelete(null);
+    } catch (err: any) {
+      console.error("Error deleting team:", err);
+      toast.error(err.message || "Failed to delete team");
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -127,7 +163,7 @@ export const UserTournamentsTab = () => {
                         key={team.id}
                         className="flex flex-wrap items-center justify-between gap-2 p-3 bg-muted/50 rounded-lg"
                       >
-                        <div className="flex flex-wrap items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-2 flex-1">
                           <span className="font-medium">{team.name}</span>
                           {team.skill_level && (
                             <Badge variant="outline">{team.skill_level}</Badge>
@@ -136,13 +172,21 @@ export const UserTournamentsTab = () => {
                             <Badge variant="outline">{team.division}</Badge>
                           )}
                         </div>
-                        <div className="flex flex-wrap gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
                           <Badge variant={getCheckInBadgeVariant(team.check_in_status)}>
                             {team.check_in_status === "checked_in" ? "Checked In" : "Not Checked In"}
                           </Badge>
                           <Badge variant={getPaymentBadgeVariant(team.payment_status)}>
                             {team.payment_status === "paid" ? "Paid" : team.payment_status === "pending" ? "Payment Pending" : "Payment Failed"}
                           </Badge>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDeleteClick(team.id, team.name)}
+                            className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
                         </div>
                       </div>
                     ))}
@@ -201,15 +245,25 @@ export const UserTournamentsTab = () => {
                     {group.teams.map((team) => (
                       <div
                         key={team.id}
-                        className="flex flex-wrap items-center gap-2 p-3 bg-muted/50 rounded-lg"
+                        className="flex flex-wrap items-center justify-between gap-2 p-3 bg-muted/50 rounded-lg"
                       >
-                        <span className="font-medium">{team.name}</span>
-                        {team.skill_level && (
-                          <Badge variant="outline">{team.skill_level}</Badge>
-                        )}
-                        {team.division && (
-                          <Badge variant="outline">{team.division}</Badge>
-                        )}
+                        <div className="flex flex-wrap items-center gap-2 flex-1">
+                          <span className="font-medium">{team.name}</span>
+                          {team.skill_level && (
+                            <Badge variant="outline">{team.skill_level}</Badge>
+                          )}
+                          {team.division && (
+                            <Badge variant="outline">{team.division}</Badge>
+                          )}
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDeleteClick(team.id, team.name)}
+                          className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       </div>
                     ))}
                   </div>
@@ -228,6 +282,16 @@ export const UserTournamentsTab = () => {
           </div>
         </div>
       )}
+
+      <ConfirmationDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        title="Delete Team"
+        description={`Are you sure you want to delete "${teamToDelete?.name}"? This action cannot be undone and will remove all associated data including players and match history.`}
+        onConfirm={handleConfirmDelete}
+        confirmText="Delete Team"
+        variant="destructive"
+      />
     </div>
   );
 };
