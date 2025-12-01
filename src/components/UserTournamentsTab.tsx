@@ -207,7 +207,12 @@ export const UserTournamentsTab = () => {
                         className="flex flex-wrap items-center justify-between gap-2 p-3 bg-muted/50 rounded-lg"
                       >
                         <div className="flex flex-wrap items-center gap-2 flex-1">
-                          <span className="font-medium">{team.name}</span>
+                          <span 
+                            className="font-medium cursor-pointer hover:underline hover:text-primary transition-colors"
+                            onClick={() => navigate(`/tournament/${group.tournament.id}`)}
+                          >
+                            {team.name}
+                          </span>
                           {team.skill_level && (
                             <Badge variant="outline">{team.skill_level}</Badge>
                           )}
@@ -291,7 +296,12 @@ export const UserTournamentsTab = () => {
                         className="flex flex-wrap items-center justify-between gap-2 p-3 bg-muted/50 rounded-lg"
                       >
                         <div className="flex flex-wrap items-center gap-2 flex-1">
-                          <span className="font-medium">{team.name}</span>
+                          <span 
+                            className="font-medium cursor-pointer hover:underline hover:text-primary transition-colors"
+                            onClick={() => navigate(`/tournament/${group.tournament.id}`)}
+                          >
+                            {team.name}
+                          </span>
                           {team.skill_level && (
                             <Badge variant="outline">{team.skill_level}</Badge>
                           )}
