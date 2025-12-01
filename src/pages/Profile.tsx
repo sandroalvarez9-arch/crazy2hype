@@ -19,6 +19,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { AlertCircle, CheckCircle, ExternalLink } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { UserTournamentsTab } from "@/components/UserTournamentsTab";
 
 interface ProfileFormValues {
   username: string;
@@ -188,17 +190,25 @@ const onSubmit = async (values: ProfileFormValues) => {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-8 max-w-4xl">
       <header className="mb-6">
-        <h1 className="text-2xl font-semibold tracking-tight">Player Profile Settings</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Player Profile</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          View and update your profile details.
+          Manage your profile and view your tournaments.
         </p>
       </header>
 
-      {/* Stripe Connection Status */}
-      {(profile?.role === 'admin' || profile?.role === 'host') && (
-        <Card className="max-w-2xl mb-6">
+      <Tabs defaultValue="settings" className="w-full">
+        <TabsList className="grid w-full grid-cols-2 mb-6">
+          <TabsTrigger value="settings">Profile Settings</TabsTrigger>
+          <TabsTrigger value="tournaments">My Tournaments</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="settings" className="space-y-6">
+
+          {/* Stripe Connection Status */}
+          {(profile?.role === 'admin' || profile?.role === 'host') && (
+            <Card className="mb-6">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               Stripe Payment Setup
@@ -263,11 +273,11 @@ const onSubmit = async (values: ProfileFormValues) => {
                 </Button>
               </>
             )}
-          </CardContent>
-        </Card>
-      )}
+            </CardContent>
+          </Card>
+          )}
 
-      <section aria-labelledby="profile-details" className="max-w-2xl">
+          <section aria-labelledby="profile-details">
         <Form {...form}>
           <form
             onSubmit={form.handleSubmit(onSubmit)}
@@ -422,7 +432,13 @@ const onSubmit = async (values: ProfileFormValues) => {
             </div>
           </form>
         </Form>
-      </section>
+          </section>
+        </TabsContent>
+
+        <TabsContent value="tournaments">
+          <UserTournamentsTab />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
