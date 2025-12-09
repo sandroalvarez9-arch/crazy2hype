@@ -3,21 +3,27 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import { UseFormReturn } from 'react-hook-form';
-import { AlertTriangle, CheckCircle, CreditCard } from 'lucide-react';
+import { AlertTriangle, CheckCircle, CreditCard, Code } from 'lucide-react';
 
 interface Step4PaymentSetupProps {
   form: UseFormReturn<any>;
   stripeConnected: boolean;
   connectingStripe: boolean;
   onConnectStripe: () => void;
+  skipStripe: boolean;
+  onSkipStripeChange: (skip: boolean) => void;
 }
 
 export function Step4PaymentSetup({ 
   form, 
   stripeConnected, 
   connectingStripe, 
-  onConnectStripe 
+  onConnectStripe,
+  skipStripe,
+  onSkipStripeChange
 }: Step4PaymentSetupProps) {
   return (
     <div className="space-y-6">
@@ -66,6 +72,14 @@ export function Step4PaymentSetup({
                 Teams can pay directly with credit cards. You'll receive payments in your Stripe account.
               </AlertDescription>
             </Alert>
+          ) : skipStripe ? (
+            <Alert className="border-yellow-500/50 bg-yellow-500/10">
+              <Code className="h-4 w-4 text-yellow-600" />
+              <AlertTitle>Dev Mode: Stripe Skipped</AlertTitle>
+              <AlertDescription>
+                Tournament will be created as "open" without Stripe. Teams will need to pay via alternative methods.
+              </AlertDescription>
+            </Alert>
           ) : (
             <Alert variant="destructive">
               <AlertTriangle className="h-4 w-4" />
@@ -86,6 +100,23 @@ export function Step4PaymentSetup({
                 </p>
               </AlertDescription>
             </Alert>
+          )}
+
+          {/* Dev Mode Toggle */}
+          {!stripeConnected && (
+            <div className="flex items-center space-x-3 p-4 border rounded-lg bg-muted/30">
+              <Switch
+                id="skip-stripe"
+                checked={skipStripe}
+                onCheckedChange={onSkipStripeChange}
+              />
+              <Label htmlFor="skip-stripe" className="flex flex-col cursor-pointer">
+                <span className="font-medium">Skip Stripe (Dev Mode)</span>
+                <span className="text-xs text-muted-foreground">
+                  Create tournament as "open" without requiring Stripe connection
+                </span>
+              </Label>
+            </div>
           )}
 
           <div className="space-y-4">

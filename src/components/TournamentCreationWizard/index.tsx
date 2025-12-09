@@ -72,6 +72,7 @@ export function TournamentCreationWizard() {
   const [submitting, setSubmitting] = useState(false);
   const [stripeConnected, setStripeConnected] = useState(false);
   const [connectingStripe, setConnectingStripe] = useState(false);
+  const [skipStripe, setSkipStripe] = useState(false);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -257,7 +258,7 @@ export function TournamentCreationWizard() {
           allow_backup_teams: values.allow_backup_teams,
           organizer_id: user.id,
           max_teams: maxTeams,
-          status: stripeConnected && values.entry_fee > 0 ? 'open' : 'draft',
+          status: (stripeConnected || skipStripe) && values.entry_fee > 0 ? 'open' : (values.entry_fee === 0 ? 'open' : 'draft'),
         }])
         .select()
         .single();
@@ -268,7 +269,7 @@ export function TournamentCreationWizard() {
 
       toast({
         title: 'Success!',
-        description: stripeConnected ? 'Tournament created and published!' : 'Tournament saved as draft. Connect Stripe to publish.',
+        description: (stripeConnected || skipStripe || values.entry_fee === 0) ? 'Tournament created and published!' : 'Tournament saved as draft. Connect Stripe to publish.',
       });
       
       celebrateSuccess();
@@ -303,6 +304,8 @@ export function TournamentCreationWizard() {
             stripeConnected={stripeConnected}
             connectingStripe={connectingStripe}
             onConnectStripe={connectStripe}
+            skipStripe={skipStripe}
+            onSkipStripeChange={setSkipStripe}
           />
         );
       default:
@@ -373,7 +376,7 @@ export function TournamentCreationWizard() {
                     }}
                     className="min-h-[44px]"
                   >
-                    {submitting ? 'Creating...' : stripeConnected ? 'Create Tournament' : 'Save as Draft'}
+                    {submitting ? 'Creating...' : (stripeConnected || skipStripe || form.watch('entry_fee') === 0) ? 'Create Tournament' : 'Save as Draft'}
                   </Button>
                 )}
               </div>
