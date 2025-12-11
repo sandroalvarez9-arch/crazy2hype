@@ -331,7 +331,16 @@ export function TournamentCreationWizard() {
         </CardHeader>
         <CardContent>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <form 
+              onSubmit={form.handleSubmit(onSubmit)} 
+              className="space-y-6"
+              onKeyDown={(e) => {
+                // Prevent Enter from submitting the form unless on the last step
+                if (e.key === 'Enter' && currentStep < steps.length - 1) {
+                  e.preventDefault();
+                }
+              }}
+            >
               {renderStep()}
 
               {/* Show validation errors if form is invalid */}
