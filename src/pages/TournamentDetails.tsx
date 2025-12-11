@@ -572,6 +572,31 @@ const TournamentDetails = () => {
             </div>
           </CardContent>
         </Card>
+
+        {/* Prominent Registration CTA */}
+        {canRegister && profile?.role === 'player' && (
+          <Card className="shadow-card border-primary/20 bg-primary/5 animate-scale-in">
+            <CardContent className="py-4 px-4 md:px-6">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div className="text-center sm:text-left">
+                  <h3 className="font-semibold text-lg">Ready to compete?</h3>
+                  <p className="text-sm text-muted-foreground">
+                    {registeredTeams.length}/{tournament.max_teams} teams registered
+                    {tournament.entry_fee > 0 && ` • $${tournament.entry_fee} entry fee`}
+                  </p>
+                </div>
+                <Button 
+                  size="lg"
+                  className="gradient-primary hover:opacity-90 transition-opacity w-full sm:w-auto min-h-[48px]"
+                  onClick={() => setShowRegistrationDialog(true)}
+                >
+                  <UserPlus className="h-5 w-5 mr-2" />
+                  Register Your Team
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       {/* Weather & Maps Section */}
