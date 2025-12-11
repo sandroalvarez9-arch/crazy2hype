@@ -331,22 +331,7 @@ export function TournamentCreationWizard() {
         </CardHeader>
         <CardContent>
           <Form {...form}>
-            <form 
-              onSubmit={(e) => {
-                e.preventDefault();
-                // Only allow submit on the final step
-                if (currentStep === steps.length - 1) {
-                  form.handleSubmit(onSubmit)(e);
-                }
-              }} 
-              className="space-y-6"
-              onKeyDown={(e) => {
-                // Prevent Enter from submitting the form unless on the last step
-                if (e.key === 'Enter' && currentStep < steps.length - 1) {
-                  e.preventDefault();
-                }
-              }}
-            >
+            <div className="space-y-6">
               {renderStep()}
 
               {/* Show validation errors if form is invalid */}
@@ -382,7 +367,8 @@ export function TournamentCreationWizard() {
                   </Button>
                 ) : (
                   <Button 
-                    type="submit" 
+                    type="button"
+                    onClick={form.handleSubmit(onSubmit)}
                     disabled={submitting}
                     className="min-h-[44px]"
                   >
@@ -390,7 +376,7 @@ export function TournamentCreationWizard() {
                   </Button>
                 )}
               </div>
-            </form>
+            </div>
           </Form>
         </CardContent>
       </Card>
