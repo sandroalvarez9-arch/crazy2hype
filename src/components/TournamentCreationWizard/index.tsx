@@ -317,11 +317,11 @@ export function TournamentCreationWizard() {
     <div className="container mx-auto px-4 py-8 max-w-3xl">
       <Button
         variant="ghost"
-        onClick={() => navigate('/tournaments')}
+        onClick={() => currentStep === 0 ? navigate('/tournaments') : prevStep()}
         className="mb-6 min-h-[44px]"
       >
         <ArrowLeft className="mr-2 h-4 w-4" />
-        Back to Tournaments
+        {currentStep === 0 ? 'Back to Tournaments' : `Back to ${steps[currentStep - 1]}`}
       </Button>
 
       <Card>
