@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { ArrowLeft, Calendar, MapPin, Users, Trophy, DollarSign, Settings, UserPlus, ExternalLink, Share2, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { TeamRegistrationWizard } from '@/components/TeamRegistrationWizard';
@@ -409,6 +410,7 @@ const TournamentDetails = () => {
   const skillLevelStatus = getRegistrationStatusBySkillLevel();
   const canRegister = new Date() < new Date(tournament.registration_deadline) && 
                      tournament.status === 'open';
+  const isPastTournament = new Date() > new Date(tournament.end_date);
 
   return (
     <div className={`container mx-auto px-3 md:px-4 py-4 md:py-6 ${isMobile ? 'pb-4' : 'md:py-8'}`}>
@@ -508,6 +510,15 @@ const TournamentDetails = () => {
             </div>
           </div>
         </div>
+
+        {isPastTournament && (
+          <Alert variant="destructive" className="mb-4 md:mb-6">
+            <AlertTitle>Tournament has ended</AlertTitle>
+            <AlertDescription>
+              This event is no longer available for registration. You can still view teams and results.
+            </AlertDescription>
+          </Alert>
+        )}
 
         <Card className="shadow-card mb-4 md:mb-6 animate-scale-in">
           <CardContent className="pt-4 md:pt-6 px-3 md:px-6">
