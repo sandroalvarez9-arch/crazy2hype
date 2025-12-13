@@ -15,24 +15,28 @@ export function StepIndicator({ steps, currentStep }: StepIndicatorProps) {
             <div className="flex flex-col items-center flex-1">
               <div
                 className={cn(
-                  'w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors',
+                  'w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold transition-all duration-300',
                   index < currentStep
-                    ? 'bg-primary text-primary-foreground'
+                    ? 'bg-green-500 text-white shadow-md'
                     : index === currentStep
-                    ? 'bg-primary text-primary-foreground ring-4 ring-primary/20'
+                    ? 'bg-primary text-primary-foreground ring-4 ring-primary/20 shadow-lg scale-110'
                     : 'bg-muted text-muted-foreground'
                 )}
               >
                 {index < currentStep ? (
-                  <Check className="h-4 w-4" />
+                  <Check className="h-5 w-5 stroke-[3]" />
                 ) : (
                   <span>{index + 1}</span>
                 )}
               </div>
               <span
                 className={cn(
-                  'text-xs mt-2 hidden sm:block',
-                  index <= currentStep ? 'text-foreground font-medium' : 'text-muted-foreground'
+                  'text-xs mt-2 text-center hidden sm:block transition-colors',
+                  index < currentStep 
+                    ? 'text-green-600 font-semibold' 
+                    : index === currentStep 
+                    ? 'text-foreground font-semibold' 
+                    : 'text-muted-foreground'
                 )}
               >
                 {step}
@@ -41,8 +45,8 @@ export function StepIndicator({ steps, currentStep }: StepIndicatorProps) {
             {index < steps.length - 1 && (
               <div
                 className={cn(
-                  'h-0.5 flex-1 mx-2 transition-colors',
-                  index < currentStep ? 'bg-primary' : 'bg-muted'
+                  'h-1 flex-1 mx-2 rounded-full transition-all duration-300',
+                  index < currentStep ? 'bg-green-500' : 'bg-muted'
                 )}
               />
             )}
