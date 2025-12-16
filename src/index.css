@@ -346,7 +346,7 @@ All colors MUST be HSL.
 }
 
 .championship-team-name {
-  @apply text-sm font-medium text-foreground truncate;
+  @apply text-sm font-bold text-white truncate;
 }
 
 .championship-team-score {
