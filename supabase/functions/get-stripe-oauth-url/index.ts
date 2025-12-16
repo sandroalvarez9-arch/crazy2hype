@@ -14,24 +14,49 @@ serve(async (req) => {
 
   try {
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) throw new Error("Missing Authorization header");
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: "Authentication required", code: "AUTH_REQUIRED" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 401,
+      });
+    }
     const token = authHeader.replace("Bearer ", "");
 
-    // Decode JWT payload directly to avoid session lookups that can fail for expired/revoked sessions
-    // Platform-level verify_jwt already validates signature when enabled
-    const base64Url = token.split(".")[1];
-    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
-    const payloadJson = atob(base64);
-    const payload = JSON.parse(payloadJson);
-    const userId = payload?.sub as string | undefined;
-    if (!userId) throw new Error("User not authenticated");
+    // Use Supabase auth to properly validate the token
+    const supabaseClient = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_ANON_KEY") ?? ""
+    );
+
+    const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
+    if (userError || !userData.user) {
+      console.error("[get-stripe-oauth-url] Auth error:", userError?.message);
+      return new Response(JSON.stringify({ error: "Authentication failed", code: "AUTH_FAILED" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 401,
+      });
+    }
+    
+    const userId = userData.user.id;
+    console.log("[get-stripe-oauth-url] User authenticated:", userId);
 
     const rawClientId = Deno.env.get("STRIPE_CONNECT_CLIENT_ID") || Deno.env.get("STRIPE_CLIENT_ID");
     const clientId = rawClientId?.trim()?.replace(/["'\s]/g, "")?.replace(/\.$/, "");
-    if (!clientId) throw new Error("Stripe Connect client ID is not configured");
+    if (!clientId) {
+      console.error("[get-stripe-oauth-url] Stripe Connect client ID not configured");
+      return new Response(JSON.stringify({ error: "Payment service configuration error", code: "CONFIG_ERROR" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 500,
+      });
+    }
+    
     // Must be a Connect Client ID (starts with 'ca_'), not a secret/public API key
     if (!clientId.startsWith("ca_")) {
-      throw new Error("Invalid Stripe Connect client ID. Ensure STRIPE_CONNECT_CLIENT_ID is your Connect client_id (starts with 'ca_') with no spaces or trailing characters.");
+      console.error("[get-stripe-oauth-url] Invalid Stripe Connect client ID format");
+      return new Response(JSON.stringify({ error: "Payment service configuration error", code: "CONFIG_ERROR" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 500,
+      });
     }
 
     const origin = req.headers.get("origin") || "https://bsthkkljpqzuimkcbcfy.supabase.co";
@@ -52,9 +77,8 @@ serve(async (req) => {
       status: 200,
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    console.error("[get-stripe-oauth-url] Error:", message);
-    return new Response(JSON.stringify({ error: message }), {
+    console.error("[get-stripe-oauth-url] Unexpected error:", error instanceof Error ? error.message : String(error));
+    return new Response(JSON.stringify({ error: "An unexpected error occurred", code: "INTERNAL_ERROR" }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 500,
     });

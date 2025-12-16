@@ -30,89 +30,145 @@ serve(async (req) => {
     console.log("[finish-stripe-connect] Processing request...");
     
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) throw new Error("Missing Authorization header");
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: "Authentication required", code: "AUTH_REQUIRED" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 401,
+      });
+    }
     const token = authHeader.replace("Bearer ", "");
     console.log("[finish-stripe-connect] Auth header found");
 
-    // Authenticate user: try JWT decode first (platform verifies signature), fallback to Supabase auth
-    let userId: string | undefined;
-    let userEmail: string | undefined;
-
-    try {
-      const base64Url = token.split(".")[1];
-      const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
-      const payloadJson = atob(base64);
-      const payload = JSON.parse(payloadJson);
-      userId = payload?.sub;
-      userEmail = payload?.email;
-      console.log("[finish-stripe-connect] JWT decoded user:", { userId, userEmail });
-    } catch (e) {
-      console.log("[finish-stripe-connect] JWT decode failed, will fallback to auth.getUser");
+    // Properly authenticate user using Supabase auth
+    const { data: userData, error: userError } = await supabaseAnon.auth.getUser(token);
+    if (userError || !userData.user) {
+      console.error("[finish-stripe-connect] Auth error:", userError?.message);
+      return new Response(JSON.stringify({ error: "Authentication failed", code: "AUTH_FAILED" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 401,
+      });
     }
 
-    if (!userId) {
-      const { data: userData, error: userError } = await supabaseAnon.auth.getUser(token);
-      if (userError) throw new Error(`Authentication error: ${userError.message}`);
-      userId = userData.user?.id;
-      userEmail = userData.user?.email || undefined;
-    }
-
-    if (!userId) throw new Error("User not authenticated");
-    console.log("[finish-stripe-connect] User authenticated:", userId, userEmail);
+    const userId = userData.user.id;
+    const userEmail = userData.user.email;
+    console.log("[finish-stripe-connect] User authenticated:", userId);
 
     const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
-    if (!stripeKey) throw new Error("STRIPE_SECRET_KEY is not set");
-    console.log("[finish-stripe-connect] Stripe key found");
+    if (!stripeKey) {
+      console.error("[finish-stripe-connect] STRIPE_SECRET_KEY not set");
+      return new Response(JSON.stringify({ error: "Payment service configuration error", code: "CONFIG_ERROR" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 500,
+      });
+    }
 
     const { code } = await req.json();
-    if (!code) throw new Error("Missing OAuth code");
+    if (!code) {
+      return new Response(JSON.stringify({ error: "Missing authorization code", code: "MISSING_CODE" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 400,
+      });
+    }
     console.log("[finish-stripe-connect] OAuth code received");
 
     const stripe = new Stripe(stripeKey, { apiVersion: "2023-10-16" });
 
     // Exchange the code for a connected account token
     console.log("[finish-stripe-connect] Exchanging OAuth code...");
-    const tokenResponse = await stripe.oauth.token({
-      grant_type: "authorization_code",
-      code,
-    });
+    let tokenResponse;
+    try {
+      tokenResponse = await stripe.oauth.token({
+        grant_type: "authorization_code",
+        code,
+      });
+    } catch (stripeError) {
+      console.error("[finish-stripe-connect] Stripe OAuth error:", stripeError);
+      return new Response(JSON.stringify({ error: "Failed to connect Stripe account", code: "STRIPE_OAUTH_ERROR" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 400,
+      });
+    }
     console.log("[finish-stripe-connect] Token exchange successful");
 
     const accountId = tokenResponse.stripe_user_id;
-    if (!accountId) throw new Error("Stripe did not return an account id");
+    if (!accountId) {
+      console.error("[finish-stripe-connect] No account ID returned from Stripe");
+      return new Response(JSON.stringify({ error: "Failed to connect Stripe account", code: "NO_ACCOUNT_ID" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 400,
+      });
+    }
     console.log("[finish-stripe-connect] Account ID:", accountId);
 
-    const account = await stripe.accounts.retrieve(accountId);
-    console.log("[finish-stripe-connect] Account details:", {
-      id: account.id,
-      charges_enabled: account.charges_enabled,
-      details_submitted: account.details_submitted
-    });
+    let account;
+    try {
+      account = await stripe.accounts.retrieve(accountId);
+    } catch (stripeError) {
+      console.error("[finish-stripe-connect] Failed to retrieve account:", stripeError);
+      return new Response(JSON.stringify({ error: "Failed to verify Stripe account", code: "ACCOUNT_VERIFY_ERROR" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 400,
+      });
+    }
+    console.log("[finish-stripe-connect] Account details retrieved");
 
-    // Store on the profile using UPSERT to ensure profile exists
-    console.log("[finish-stripe-connect] Upserting profile in database...");
-    const { data: updateData, error: updateError } = await supabaseService
+    // Verify profile exists before updating (prevents race condition)
+    const { data: existingProfile, error: profileCheckError } = await supabaseService
       .from("profiles")
-      .upsert({
-        user_id: userId,
-        username: userEmail?.split('@')[0] || `user_${userId.slice(0, 8)}`,
-        email: userEmail || '',
-        stripe_account_id: accountId,
-        stripe_connected: true,
-        stripe_charges_enabled: account.charges_enabled ?? false,
-        stripe_details_submitted: account.details_submitted ?? false,
-        updated_at: new Date().toISOString(),
-      }, {
-        onConflict: 'user_id'
-      })
-      .select();
+      .select("user_id, stripe_account_id")
+      .eq("user_id", userId)
+      .maybeSingle();
 
-    if (updateError) {
-      console.error("[finish-stripe-connect] Database update error:", updateError);
-      throw new Error(`Database update failed: ${updateError.message}`);
+    if (profileCheckError) {
+      console.error("[finish-stripe-connect] Profile check error:", profileCheckError);
+      return new Response(JSON.stringify({ error: "Failed to verify user profile", code: "PROFILE_CHECK_ERROR" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 500,
+      });
+    }
+
+    // If profile doesn't exist, create it; if it exists, update it
+    console.log("[finish-stripe-connect] Updating profile in database...");
+    let updateResult;
+    
+    if (!existingProfile) {
+      // Profile doesn't exist - create it
+      updateResult = await supabaseService
+        .from("profiles")
+        .insert({
+          user_id: userId,
+          username: userEmail?.split('@')[0] || `user_${userId.slice(0, 8)}`,
+          email: userEmail || '',
+          stripe_account_id: accountId,
+          stripe_connected: true,
+          stripe_charges_enabled: account.charges_enabled ?? false,
+          stripe_details_submitted: account.details_submitted ?? false,
+        })
+        .select();
+    } else {
+      // Profile exists - only update Stripe fields (prevents race condition)
+      updateResult = await supabaseService
+        .from("profiles")
+        .update({
+          stripe_account_id: accountId,
+          stripe_connected: true,
+          stripe_charges_enabled: account.charges_enabled ?? false,
+          stripe_details_submitted: account.details_submitted ?? false,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("user_id", userId)
+        .select();
+    }
+
+    if (updateResult.error) {
+      console.error("[finish-stripe-connect] Database update error:", updateResult.error);
+      return new Response(JSON.stringify({ error: "Failed to save account connection", code: "DB_UPDATE_ERROR" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 500,
+      });
     }
     
-    console.log("[finish-stripe-connect] Database update successful:", updateData);
+    console.log("[finish-stripe-connect] Database update successful");
 
     return new Response(JSON.stringify({
       account_id: accountId,
@@ -123,9 +179,8 @@ serve(async (req) => {
       status: 200,
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    console.error("[finish-stripe-connect] Error:", message);
-    return new Response(JSON.stringify({ error: message }), {
+    console.error("[finish-stripe-connect] Unexpected error:", error instanceof Error ? error.message : String(error));
+    return new Response(JSON.stringify({ error: "An unexpected error occurred", code: "INTERNAL_ERROR" }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 500,
     });
