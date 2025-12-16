@@ -206,8 +206,8 @@ const onSubmit = async (values: ProfileFormValues) => {
 
         <TabsContent value="settings" className="space-y-6">
 
-          {/* Stripe Connection Status */}
-          {(profile?.role === 'admin' || profile?.role === 'host') && (
+          {/* Stripe Connection Status - Available to all users who want to organize tournaments */}
+          {user && (
             <Card className="mb-6">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">

@@ -12,6 +12,7 @@ import { Step1TeamBasics } from './Step1TeamBasics';
 import { Step2CaptainInfo } from './Step2CaptainInfo';
 import { Step3AddPlayers } from './Step3AddPlayers';
 import { Step4Review } from './Step4Review';
+import { PaymentOptionsDialog } from '@/components/PaymentOptionsDialog';
 
 interface TeamRegistrationWizardProps {
   isOpen: boolean;
@@ -38,6 +39,7 @@ export function TeamRegistrationWizard(props: TeamRegistrationWizardProps) {
   const [currentStep, setCurrentStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [skillLevelTeamCounts, setSkillLevelTeamCounts] = useState<Record<string, number>>({});
+  const [showPaymentDialog, setShowPaymentDialog] = useState(false);
 
   const [formData, setFormData] = useState({
     teamName: '',
@@ -201,22 +203,28 @@ export function TeamRegistrationWizard(props: TeamRegistrationWizardProps) {
 
       celebrateSuccess();
       
-      // Delay closing to show confetti
-      setTimeout(() => {
+      // Close registration dialog
+      props.onOpenChange(false);
+      
+      // Reset form
+      setCurrentStep(0);
+      setFormData({
+        teamName: '',
+        contactEmail: profile?.email || '',
+        contactPhone: '',
+        skillLevel: '',
+        category: '',
+      });
+      setPlayers(initializePlayers(props.playersPerTeam));
+      
+      // Show payment dialog if there's an entry fee
+      if (props.entryFee && props.entryFee > 0) {
+        setTimeout(() => {
+          setShowPaymentDialog(true);
+        }, 500);
+      } else {
         props.onSuccess();
-        props.onOpenChange(false);
-        
-        // Reset form
-        setCurrentStep(0);
-        setFormData({
-          teamName: '',
-          contactEmail: profile?.email || '',
-          contactPhone: '',
-          skillLevel: '',
-          category: '',
-        });
-        setPlayers(initializePlayers(props.playersPerTeam));
-      }, 1500);
+      }
     } catch (error: any) {
       console.error('Error registering team:', error);
       toast({
@@ -229,100 +237,124 @@ export function TeamRegistrationWizard(props: TeamRegistrationWizardProps) {
     }
   };
 
+  const handlePaymentComplete = () => {
+    setShowPaymentDialog(false);
+    props.onSuccess();
+  };
+
   return (
-    <Dialog open={props.isOpen} onOpenChange={props.onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
-        <DialogHeader>
-          <DialogTitle>Register Your Team</DialogTitle>
-        </DialogHeader>
+    <>
+      <Dialog open={props.isOpen} onOpenChange={props.onOpenChange}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Register Your Team</DialogTitle>
+          </DialogHeader>
 
-        <StepIndicator steps={STEPS} currentStep={currentStep} />
+          <StepIndicator steps={STEPS} currentStep={currentStep} />
 
-        <div className="flex-1 overflow-y-auto py-4">
-          {currentStep === 0 && (
-            <Step1TeamBasics
-              formData={formData}
-              onChange={handleInputChange}
-              skillLevels={props.tournamentSkillLevels}
-              skillLevelTeamCounts={skillLevelTeamCounts}
-              maxTeamsPerSkillLevel={props.maxTeamsPerSkillLevel}
-            />
-          )}
+          <div className="flex-1 overflow-y-auto py-4">
+            {currentStep === 0 && (
+              <Step1TeamBasics
+                formData={formData}
+                onChange={handleInputChange}
+                skillLevels={props.tournamentSkillLevels}
+                skillLevelTeamCounts={skillLevelTeamCounts}
+                maxTeamsPerSkillLevel={props.maxTeamsPerSkillLevel}
+              />
+            )}
 
-          {currentStep === 1 && (
-            <Step2CaptainInfo
-              formData={formData}
-              onChange={handleInputChange}
-              captainName={profile ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || profile.username : undefined}
-            />
-          )}
+            {currentStep === 1 && (
+              <Step2CaptainInfo
+                formData={formData}
+                onChange={handleInputChange}
+                captainName={profile ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || profile.username : undefined}
+              />
+            )}
 
-          {currentStep === 2 && (
-            <Step3AddPlayers
-              players={players}
-              onUpdatePlayer={handlePlayerUpdate}
-              onAddPlayer={handleAddPlayer}
-              onRemovePlayer={handleRemovePlayer}
-              minPlayers={1}
-            />
-          )}
+            {currentStep === 2 && (
+              <Step3AddPlayers
+                players={players}
+                onUpdatePlayer={handlePlayerUpdate}
+                onAddPlayer={handleAddPlayer}
+                onRemovePlayer={handleRemovePlayer}
+                minPlayers={1}
+              />
+            )}
 
-          {currentStep === 3 && (
-            <Step4Review
-              formData={formData}
-              players={players}
-              entryFee={props.entryFee}
-              paymentInfo={{
-                instructions: props.paymentInstructions,
-                venmo: props.venmoUsername,
-                paypal: props.paypalEmail,
-                bank: props.bankDetails,
-                cashapp: props.cashappInfo,
-                other: props.otherPaymentMethods,
-              }}
-            />
-          )}
-        </div>
+            {currentStep === 3 && (
+              <Step4Review
+                formData={formData}
+                players={players}
+                entryFee={props.entryFee}
+                paymentInfo={{
+                  instructions: props.paymentInstructions,
+                  venmo: props.venmoUsername,
+                  paypal: props.paypalEmail,
+                  bank: props.bankDetails,
+                  cashapp: props.cashappInfo,
+                  other: props.otherPaymentMethods,
+                }}
+              />
+            )}
+          </div>
 
-        <DialogFooter className="flex-row justify-between sm:justify-between">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={handleBack}
-            disabled={currentStep === 0 || loading}
-            className="min-h-[44px]"
-          >
-            <ChevronLeft className="h-4 w-4 mr-1" />
-            Back
-          </Button>
-
-          {currentStep < STEPS.length - 1 ? (
-            <Button 
-              onClick={handleNext} 
-              disabled={!canProceed() || loading}
+          <DialogFooter className="flex-row justify-between sm:justify-between">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleBack}
+              disabled={currentStep === 0 || loading}
               className="min-h-[44px]"
             >
-              Next
-              <ChevronRight className="h-4 w-4 ml-1" />
+              <ChevronLeft className="h-4 w-4 mr-1" />
+              Back
             </Button>
-          ) : (
-            <Button 
-              onClick={handleSubmit} 
-              disabled={loading}
-              className="min-h-[44px]"
-            >
-              {loading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Registering...
-                </>
-              ) : (
-                'Complete Registration'
-              )}
-            </Button>
-          )}
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+
+            {currentStep < STEPS.length - 1 ? (
+              <Button 
+                onClick={handleNext} 
+                disabled={!canProceed() || loading}
+                className="min-h-[44px]"
+              >
+                Next
+                <ChevronRight className="h-4 w-4 ml-1" />
+              </Button>
+            ) : (
+              <Button 
+                onClick={handleSubmit} 
+                disabled={loading}
+                className="min-h-[44px]"
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Registering...
+                  </>
+                ) : (
+                  'Complete Registration'
+                )}
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Payment Options Dialog - shown after successful registration */}
+      <PaymentOptionsDialog
+        isOpen={showPaymentDialog}
+        onOpenChange={setShowPaymentDialog}
+        tournamentId={props.tournamentId}
+        entryFee={props.entryFee || 0}
+        paymentInfo={{
+          instructions: props.paymentInstructions,
+          venmo: props.venmoUsername,
+          paypal: props.paypalEmail,
+          bank: props.bankDetails,
+          cashapp: props.cashappInfo,
+          other: props.otherPaymentMethods,
+        }}
+        onComplete={handlePaymentComplete}
+      />
+    </>
   );
 }
