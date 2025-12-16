@@ -98,7 +98,8 @@ const TournamentDetails = () => {
   const [paying, setPaying] = useState(false);
   const [distanceText, setDistanceText] = useState<string | null>(null);
   const [mapsLink, setMapsLink] = useState<string | null>(null);
-  const [stripeConnected, setStripeConnected] = useState(false);
+  const [organizerStripeConnected, setOrganizerStripeConnected] = useState<boolean | null>(null);
+  const [userStripeConnected, setUserStripeConnected] = useState(false);
 
 
   useEffect(() => {
@@ -111,9 +112,16 @@ const TournamentDetails = () => {
 
   useEffect(() => {
     if (user) {
-      checkStripeStatus();
+      checkUserStripeStatus();
     }
   }, [user]);
+
+  // Check organizer's Stripe status when tournament loads
+  useEffect(() => {
+    if (tournament?.organizer_id) {
+      checkOrganizerStripeStatus();
+    }
+  }, [tournament?.organizer_id]);
 
   const handleDeleteTeam = async () => {
     if (!selectedTeam) return;
@@ -151,17 +159,32 @@ const TournamentDetails = () => {
     }
   };
 
-  const checkStripeStatus = async () => {
+  const checkUserStripeStatus = async () => {
     try {
-      const { data: profile } = await supabase
+      const { data: profileData } = await supabase
         .from('profiles')
         .select('stripe_connected, stripe_charges_enabled')
         .eq('user_id', user?.id)
         .single();
       
-      setStripeConnected(profile?.stripe_connected && profile?.stripe_charges_enabled);
+      setUserStripeConnected(profileData?.stripe_connected && profileData?.stripe_charges_enabled);
     } catch (error) {
-      console.error('Error checking Stripe status:', error);
+      console.error('Error checking user Stripe status:', error);
+    }
+  };
+
+  const checkOrganizerStripeStatus = async () => {
+    if (!tournament?.organizer_id) return;
+    
+    try {
+      // Use profiles_public view to check organizer's Stripe status
+      // Since profiles_public doesn't include Stripe fields, we need to check via edge function
+      // For now, we'll set it to unknown and let the create-payment function handle validation
+      // The payment button will show and error gracefully if Stripe isn't connected
+      setOrganizerStripeConnected(null); // Unknown until payment is attempted
+    } catch (error) {
+      console.error('Error checking organizer Stripe status:', error);
+      setOrganizerStripeConnected(null);
     }
   };
 
@@ -242,17 +265,38 @@ const TournamentDetails = () => {
       const { data, error } = await supabase.functions.invoke('create-payment', {
         body: { tournamentId: tournament.id },
       });
-      if (error) throw error as any;
-      if ((data as any)?.url) {
-        window.open((data as any).url as string, '_blank');
+      
+      if (error) throw error;
+      
+      const response = data as { url?: string; error?: string; code?: string };
+      
+      // Handle specific error codes from the edge function
+      if (response?.error) {
+        if (response.code === 'ORGANIZER_NO_STRIPE') {
+          toast({
+            title: "Online Payment Unavailable",
+            description: "The tournament organizer hasn't set up online payments. Please use an alternative payment method or contact the organizer.",
+            variant: "destructive",
+          });
+          return;
+        }
+        throw new Error(response.error);
+      }
+      
+      if (response?.url) {
+        window.open(response.url, '_blank');
       } else {
         throw new Error('No payment URL received');
       }
-    } catch (e) {
+    } catch (e: any) {
       console.error('Stripe checkout error:', e);
+      const errorMessage = e?.message || 'Failed to initiate payment';
+      
       toast({
         title: "Payment Error",
-        description: "Failed to initiate payment. Please try again or contact support.",
+        description: errorMessage.includes('Stripe') || errorMessage.includes('organizer')
+          ? "Online payment is not available. Please contact the organizer for alternative payment options."
+          : "Failed to initiate payment. Please try again or contact support.",
         variant: "destructive",
       });
     } finally {
@@ -528,7 +572,7 @@ const TournamentDetails = () => {
                   {paying ? 'Redirecting…' : 'Pay online'}
                 </Button>
               )}
-              {tournament.entry_fee > 0 && user && isOrganizer && !stripeConnected && (
+              {tournament.entry_fee > 0 && user && isOrganizer && !userStripeConnected && (
                 <Button 
                   size="sm"
                   className="bg-[#635BFF] hover:bg-[#5348E6] text-white w-full sm:w-auto text-xs"

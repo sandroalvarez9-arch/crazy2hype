@@ -54,12 +54,32 @@ serve(async (req) => {
       .eq("user_id", tournament.organizer_id)
       .maybeSingle();
     
-    if (pErr) throw new Error(`Organizer profile error: ${pErr.message}`);
+    if (pErr) {
+      return new Response(JSON.stringify({ 
+        error: `Organizer profile error: ${pErr.message}`,
+        code: 'ORGANIZER_PROFILE_ERROR'
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 400,
+      });
+    }
     if (!organizerProfile) {
-      throw new Error("Organizer profile not found. Please ensure the tournament organizer has a complete profile.");
+      return new Response(JSON.stringify({ 
+        error: "Organizer profile not found. Please ensure the tournament organizer has a complete profile.",
+        code: 'ORGANIZER_PROFILE_NOT_FOUND'
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 400,
+      });
     }
     if (!organizerProfile?.stripe_account_id || organizerProfile.stripe_connected !== true) {
-      throw new Error("Organizer hasn't connected Stripe to receive payments");
+      return new Response(JSON.stringify({ 
+        error: "The tournament organizer has not set up online payments yet. Please use an alternative payment method.",
+        code: 'ORGANIZER_NO_STRIPE'
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 400,
+      });
     }
 
     // Convert entry_fee (numeric) to integer cents safely
@@ -68,7 +88,13 @@ serve(async (req) => {
       : Number(tournament.entry_fee || 0);
 
     if (!entryFeeNumber || entryFeeNumber <= 0) {
-      throw new Error("This tournament has no entry fee to pay");
+      return new Response(JSON.stringify({ 
+        error: "This tournament has no entry fee to pay",
+        code: 'NO_ENTRY_FEE'
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 400,
+      });
     }
 
     const unitAmount = Math.round(entryFeeNumber * 100);
