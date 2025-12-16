@@ -51,10 +51,18 @@ export function PoolPlayManager({ tournament, teams, onBracketsGenerated }: Pool
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedPools, setGeneratedPools] = useState<GeneratedPool[]>([]);
   const [selectedDivision, setSelectedDivision] = useState<string | null>(null);
+  const [customPoolConfigs, setCustomPoolConfigs] = useState<Record<string, number[]>>({});
   const { toast } = useToast();
 
   const checkedInTeams = teams.filter(team => team.check_in_status === 'checked_in');
   const canGenerateBrackets = checkedInTeams.length >= 4 && !tournament.brackets_generated;
+
+  const handleConfigChange = (skillLevel: string, teamsPerPool: number[]) => {
+    setCustomPoolConfigs(prev => ({
+      ...prev,
+      [skillLevel]: teamsPerPool
+    }));
+  };
 
   // Fetch generated pools data when brackets are already generated
   useEffect(() => {
@@ -209,12 +217,13 @@ export function PoolPlayManager({ tournament, teams, onBracketsGenerated }: Pool
         return;
       }
       
-      // Generate pools and matches using new optimal algorithm
+      // Generate pools and matches using new optimal algorithm (with custom configs if set)
       const { pools, matches, requiredCourts, skillLevelBreakdown } = generatePoolPlayScheduleBySkillLevel(
         checkedInTeams as any,
         firstGameTime,
         tournament.estimated_game_duration,
-        tournament.warm_up_duration || 7
+        tournament.warm_up_duration || 7,
+        Object.keys(customPoolConfigs).length > 0 ? customPoolConfigs : undefined
       );
 
       // Insert all matches into the database
@@ -290,9 +299,11 @@ export function PoolPlayManager({ tournament, teams, onBracketsGenerated }: Pool
       {!tournament.brackets_generated ? (
         <>
           <OptimalPoolPreview 
-            checkedInTeams={checkedInTeams}
+            checkedInTeams={checkedInTeams as any}
             skillLevels={tournament.skill_levels}
             estimatedGameDuration={tournament.estimated_game_duration}
+            customConfigs={customPoolConfigs}
+            onConfigChange={handleConfigChange}
           />
           
           <Card>
