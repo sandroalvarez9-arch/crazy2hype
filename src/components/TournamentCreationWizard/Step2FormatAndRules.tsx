@@ -122,6 +122,9 @@ export function Step2FormatAndRules({ form }: Step2FormatAndRulesProps) {
             </Card>
           ))}
         </div>
+        <p className="text-xs text-muted-foreground">
+          💡 Don't worry — you can always change the format and rules after creating the tournament.
+        </p>
       </div>
 
       {/* Preview Bracket Button */}
