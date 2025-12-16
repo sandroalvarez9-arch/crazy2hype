@@ -1292,6 +1292,77 @@ export type Database = {
       }
     }
     Functions: {
+      get_public_tournament: {
+        Args: { tournament_id: string }
+        Returns: {
+          allow_backup_teams: boolean
+          bank_details: string
+          bracket_version: number
+          brackets_generated: boolean
+          calculated_courts: number
+          cashapp_info: string
+          check_in_deadline: string
+          created_at: string
+          deciding_set_points: number
+          description: string
+          divisions: string[]
+          end_date: string
+          entry_fee: number
+          estimated_game_duration: number
+          first_game_time: string
+          game_format_locked: boolean
+          id: string
+          location: string
+          max_teams: number
+          max_teams_per_division_skill: Json
+          max_teams_per_skill_level: Json
+          must_win_by: number
+          number_of_courts: number
+          other_payment_methods: string
+          payment_instructions: string
+          paypal_email: string
+          players_per_team: number
+          playoff_format: Json
+          points_per_set: number
+          pool_play_format: Json
+          pools_per_skill_level: Json
+          published: boolean
+          registration_deadline: string
+          sets_per_game: number
+          skill_levels: string[]
+          skill_levels_by_division: Json
+          start_date: string
+          status: string
+          title: string
+          tournament_format: string
+          updated_at: string
+          uses_phase_formats: boolean
+          venmo_username: string
+          warm_up_duration: number
+        }[]
+      }
+      get_public_tournaments: {
+        Args: never
+        Returns: {
+          brackets_generated: boolean
+          created_at: string
+          description: string
+          divisions: string[]
+          end_date: string
+          entry_fee: number
+          id: string
+          location: string
+          max_teams: number
+          players_per_team: number
+          published: boolean
+          registration_deadline: string
+          skill_levels: string[]
+          start_date: string
+          status: string
+          title: string
+          tournament_format: string
+        }[]
+      }
       log_format_change: {
         Args: {
           change_reason?: string
