@@ -148,6 +148,13 @@ export type Database = {
             referencedRelation: "tournaments"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "manual_payments_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: false
+            referencedRelation: "tournaments_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       matches: {
@@ -266,6 +273,13 @@ export type Database = {
             columns: ["tournament_id"]
             isOneToOne: false
             referencedRelation: "tournaments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "matches_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: false
+            referencedRelation: "tournaments_public"
             referencedColumns: ["id"]
           },
           {
@@ -400,6 +414,13 @@ export type Database = {
             columns: ["tournament_id"]
             isOneToOne: false
             referencedRelation: "tournaments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "player_statistics_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: false
+            referencedRelation: "tournaments_public"
             referencedColumns: ["id"]
           },
         ]
@@ -568,6 +589,13 @@ export type Database = {
             referencedRelation: "tournaments"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "refund_tracking_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: false
+            referencedRelation: "tournaments_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       stripe_oauth_states: {
@@ -654,6 +682,13 @@ export type Database = {
             columns: ["tournament_id"]
             isOneToOne: false
             referencedRelation: "tournaments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_stats_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: false
+            referencedRelation: "tournaments_public"
             referencedColumns: ["id"]
           },
         ]
@@ -760,6 +795,13 @@ export type Database = {
             columns: ["tournament_id"]
             isOneToOne: false
             referencedRelation: "tournaments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "teams_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: false
+            referencedRelation: "tournaments_public"
             referencedColumns: ["id"]
           },
         ]
@@ -1116,7 +1158,137 @@ export type Database = {
             referencedRelation: "tournaments"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "teams_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: false
+            referencedRelation: "tournaments_public"
+            referencedColumns: ["id"]
+          },
         ]
+      }
+      tournaments_public: {
+        Row: {
+          allow_backup_teams: boolean | null
+          bracket_version: number | null
+          brackets_generated: boolean | null
+          calculated_courts: number | null
+          check_in_deadline: string | null
+          created_at: string | null
+          deciding_set_points: number | null
+          description: string | null
+          divisions: string[] | null
+          end_date: string | null
+          entry_fee: number | null
+          estimated_game_duration: number | null
+          first_game_time: string | null
+          game_format_locked: boolean | null
+          id: string | null
+          location: string | null
+          max_teams: number | null
+          max_teams_per_division_skill: Json | null
+          max_teams_per_skill_level: Json | null
+          must_win_by: number | null
+          number_of_courts: number | null
+          players_per_team: number | null
+          playoff_format: Json | null
+          points_per_set: number | null
+          pool_play_format: Json | null
+          pools_per_skill_level: Json | null
+          published: boolean | null
+          registration_deadline: string | null
+          sets_per_game: number | null
+          skill_levels: string[] | null
+          skill_levels_by_division: Json | null
+          start_date: string | null
+          status: string | null
+          title: string | null
+          tournament_format: string | null
+          updated_at: string | null
+          uses_phase_formats: boolean | null
+          warm_up_duration: number | null
+        }
+        Insert: {
+          allow_backup_teams?: boolean | null
+          bracket_version?: number | null
+          brackets_generated?: boolean | null
+          calculated_courts?: number | null
+          check_in_deadline?: string | null
+          created_at?: string | null
+          deciding_set_points?: number | null
+          description?: string | null
+          divisions?: string[] | null
+          end_date?: string | null
+          entry_fee?: number | null
+          estimated_game_duration?: number | null
+          first_game_time?: string | null
+          game_format_locked?: boolean | null
+          id?: string | null
+          location?: string | null
+          max_teams?: number | null
+          max_teams_per_division_skill?: Json | null
+          max_teams_per_skill_level?: Json | null
+          must_win_by?: number | null
+          number_of_courts?: number | null
+          players_per_team?: number | null
+          playoff_format?: Json | null
+          points_per_set?: number | null
+          pool_play_format?: Json | null
+          pools_per_skill_level?: Json | null
+          published?: boolean | null
+          registration_deadline?: string | null
+          sets_per_game?: number | null
+          skill_levels?: string[] | null
+          skill_levels_by_division?: Json | null
+          start_date?: string | null
+          status?: string | null
+          title?: string | null
+          tournament_format?: string | null
+          updated_at?: string | null
+          uses_phase_formats?: boolean | null
+          warm_up_duration?: number | null
+        }
+        Update: {
+          allow_backup_teams?: boolean | null
+          bracket_version?: number | null
+          brackets_generated?: boolean | null
+          calculated_courts?: number | null
+          check_in_deadline?: string | null
+          created_at?: string | null
+          deciding_set_points?: number | null
+          description?: string | null
+          divisions?: string[] | null
+          end_date?: string | null
+          entry_fee?: number | null
+          estimated_game_duration?: number | null
+          first_game_time?: string | null
+          game_format_locked?: boolean | null
+          id?: string | null
+          location?: string | null
+          max_teams?: number | null
+          max_teams_per_division_skill?: Json | null
+          max_teams_per_skill_level?: Json | null
+          must_win_by?: number | null
+          number_of_courts?: number | null
+          players_per_team?: number | null
+          playoff_format?: Json | null
+          points_per_set?: number | null
+          pool_play_format?: Json | null
+          pools_per_skill_level?: Json | null
+          published?: boolean | null
+          registration_deadline?: string | null
+          sets_per_game?: number | null
+          skill_levels?: string[] | null
+          skill_levels_by_division?: Json | null
+          start_date?: string | null
+          status?: string | null
+          title?: string | null
+          tournament_format?: string | null
+          updated_at?: string | null
+          uses_phase_formats?: boolean | null
+          warm_up_duration?: number | null
+        }
+        Relationships: []
       }
     }
     Functions: {
