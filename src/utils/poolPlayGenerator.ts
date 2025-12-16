@@ -26,8 +26,11 @@ interface PoolConfiguration {
 }
 
 export function calculateOptimalPoolConfiguration(teamCount: number): PoolConfiguration {
-  // Prioritize 4-team pools (6 matches each) over 5-team pools (10 matches each)
-  // This significantly reduces tournament duration
+  // Smart pool distribution:
+  // - Minimum 3 teams per pool (2-team pools are meaningless for round-robin)
+  // - Target 4-team pools for efficiency (6 matches each)
+  // - Allow 5-team pools when needed for better distribution
+  // - Never create pools with fewer than 3 teams
   
   console.log(`DEBUG: calculateOptimalPoolConfiguration called with ${teamCount} teams`);
   
@@ -36,63 +39,79 @@ export function calculateOptimalPoolConfiguration(teamCount: number): PoolConfig
     return { numPools: 0, teamsPerPool: [], totalMatches: 0 };
   }
   
-  if (teamCount <= 4) {
+  if (teamCount <= 5) {
+    // 1-5 teams: single pool
     const config = { numPools: 1, teamsPerPool: [teamCount], totalMatches: Math.floor((teamCount * (teamCount - 1)) / 2) };
     console.log(`DEBUG: Small team count (${teamCount}), returning single pool:`, config);
     return config;
   }
   
-  // Calculate pools to minimize 5+ team pools
-  const numFullPools = Math.floor(teamCount / 4);
-  const remainder = teamCount % 4;
+  // For 6+ teams, find the best configuration
+  // Try different number of pools and pick the most balanced one
+  let bestConfig: { numPools: number; teamsPerPool: number[] } | null = null;
+  let bestScore = Infinity;
   
-  let teamsPerPool: number[] = [];
-  let numPools: number;
+  // Try 2 to ceil(teamCount/3) pools (minimum 3 teams per pool)
+  const maxPools = Math.ceil(teamCount / 3);
   
-  if (remainder === 0) {
-    // Perfect division by 4
-    numPools = numFullPools;
-    teamsPerPool = new Array(numPools).fill(4);
-  } else if (remainder === 1) {
-    // 1 extra team - distribute to avoid single team pool
-    if (numFullPools > 0) {
-      numPools = numFullPools;
-      teamsPerPool = new Array(numFullPools - 1).fill(4);
-      teamsPerPool.push(5); // One pool gets 5 teams
-    } else {
-      numPools = 1;
-      teamsPerPool = [teamCount];
+  for (let numPools = 2; numPools <= maxPools; numPools++) {
+    const baseTeamsPerPool = Math.floor(teamCount / numPools);
+    const remainder = teamCount % numPools;
+    
+    // Skip if any pool would have fewer than 3 teams
+    if (baseTeamsPerPool < 3) continue;
+    
+    // Create distribution: remainder pools get one extra team
+    const teamsPerPool: number[] = [];
+    for (let i = 0; i < numPools; i++) {
+      teamsPerPool.push(baseTeamsPerPool + (i < remainder ? 1 : 0));
     }
-  } else if (remainder === 2) {
-    // 2 extra teams - create one pool with 2 teams or distribute
-    if (numFullPools >= 2) {
-      numPools = numFullPools + 1;
-      teamsPerPool = new Array(numFullPools).fill(4);
-      teamsPerPool.push(2);
-    } else {
-      numPools = numFullPools + 1;
-      teamsPerPool = new Array(numFullPools).fill(4);
-      teamsPerPool.push(2);
+    
+    // Calculate score (prefer balanced pools of 4, then 5, then 3)
+    // Lower score = better
+    let score = 0;
+    for (const poolSize of teamsPerPool) {
+      if (poolSize === 4) score += 0;        // Ideal: 4-team pool (6 matches)
+      else if (poolSize === 5) score += 2;   // Good: 5-team pool (10 matches)
+      else if (poolSize === 3) score += 1;   // Okay: 3-team pool (3 matches)
+      else if (poolSize === 6) score += 4;   // Less ideal: 6-team pool (15 matches)
+      else score += 10;                      // Avoid: very large or small pools
     }
-  } else { // remainder === 3
-    // 3 extra teams - create one pool with 3 teams
-    numPools = numFullPools + 1;
-    teamsPerPool = new Array(numFullPools).fill(4);
-    teamsPerPool.push(3);
+    
+    // Prefer fewer pools for same score (less complexity)
+    score += numPools * 0.1;
+    
+    if (score < bestScore) {
+      bestScore = score;
+      bestConfig = { numPools, teamsPerPool };
+    }
+  }
+  
+  // Fallback if no valid config found
+  if (!bestConfig) {
+    bestConfig = { numPools: 1, teamsPerPool: [teamCount] };
   }
   
   // Calculate total matches
-  const totalMatches = teamsPerPool.reduce((sum, teamCount) => 
-    sum + Math.floor((teamCount * (teamCount - 1)) / 2), 0);
+  const totalMatches = bestConfig.teamsPerPool.reduce((sum, count) => 
+    sum + Math.floor((count * (count - 1)) / 2), 0);
   
-  const config = { numPools, teamsPerPool, totalMatches };
+  const config = { ...bestConfig, totalMatches };
   console.log(`DEBUG: Final pool configuration for ${teamCount} teams:`, config);
   
   return config;
 }
 
-export function generatePools(teams: Team[], skillLevel?: string): Pool[] {
-  const config = calculateOptimalPoolConfiguration(teams.length);
+export function generatePools(teams: Team[], skillLevel?: string, customTeamsPerPool?: number[]): Pool[] {
+  // Use custom configuration if provided, otherwise calculate optimal
+  const config = customTeamsPerPool 
+    ? { 
+        numPools: customTeamsPerPool.length, 
+        teamsPerPool: customTeamsPerPool,
+        totalMatches: customTeamsPerPool.reduce((sum, count) => sum + Math.floor((count * (count - 1)) / 2), 0)
+      }
+    : calculateOptimalPoolConfiguration(teams.length);
+  
   const pools: Pool[] = [];
   
   console.log(`DEBUG: generatePools called with ${teams.length} teams, skillLevel: ${skillLevel}`);
@@ -111,7 +130,7 @@ export function generatePools(teams: Team[], skillLevel?: string): Pool[] {
   
   console.log(`DEBUG: Created ${pools.length} pools:`, pools.map(p => p.name));
   
-  // Distribute teams according to optimal configuration
+  // Distribute teams according to configuration
   let teamIndex = 0;
   for (let poolIndex = 0; poolIndex < config.numPools; poolIndex++) {
     const teamsInThisPool = config.teamsPerPool[poolIndex];
@@ -340,7 +359,8 @@ export function generatePoolPlayScheduleBySkillLevel(
   teams: TeamWithSkillLevel[],
   firstGameTime: Date,
   estimatedGameDuration: number,
-  warmUpDuration: number = 7
+  warmUpDuration: number = 7,
+  customPoolConfigs?: Record<string, number[]>
 ): { pools: Pool[], matches: Match[], requiredCourts: number, skillLevelBreakdown: Record<string, { pools: number, matches: number, teams: number }> } {
   // Group teams by division AND skill level combination
   const teamsByCategory = teams.reduce((acc, team) => {
@@ -364,8 +384,11 @@ export function generatePoolPlayScheduleBySkillLevel(
   Object.entries(teamsByCategory).forEach(([categoryKey, categoryTeams]) => {
     const [division, skillLevel] = categoryKey.split('-');
     
-    // Generate optimal pools for this category
-    const pools = generatePools(categoryTeams, categoryKey);
+    // Check if there's a custom config for this skill level (try both full key and just skill level)
+    const customConfig = customPoolConfigs?.[categoryKey] || customPoolConfigs?.[skillLevel];
+    
+    // Generate pools for this category (use custom config if available)
+    const pools = generatePools(categoryTeams, categoryKey, customConfig);
     
     // Generate matches for each pool
     let categoryMatches: Match[] = [];
