@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ArrowLeft, Calendar, MapPin, Users, Trophy, ExternalLink } from 'lucide-react';
 import { format } from 'date-fns';
 import { formatSkillLevel, getSkillLevelBadgeVariant, type SkillLevel } from '@/utils/skillLevels';
-import EnhancedBracketView from '@/components/EnhancedBracketView';
+import ChampionshipBracketView from '@/components/ChampionshipBracketView';
 import { useIsMobile } from '@/hooks/use-mobile';
 import logo from '@/assets/block-nation-logo.png';
 import { WeatherWidget } from '@/components/WeatherWidget';
@@ -312,21 +312,24 @@ const TournamentPublicView = () => {
           {tournament.brackets_generated && (
             <TabsContent value="bracket" className="mt-6">
               {bracketsMatches.length > 0 ? (
-                <EnhancedBracketView
+                <ChampionshipBracketView
                   matches={bracketsMatches.map(m => ({
                     id: m.id,
+                    team1_id: m.team1_id,
+                    team2_id: m.team2_id,
                     team1_name: m.team1?.name || 'TBD',
                     team2_name: m.team2?.name || 'TBD',
                     team1_score: m.team1_score || 0,
                     team2_score: m.team2_score || 0,
+                    winner_id: m.winner_id,
                     winner_name: m.winner?.name,
                     bracket_position: m.bracket_position || '',
                     status: m.status,
                     round_number: m.round_number,
                     court: m.court_number || undefined,
                   }))}
-                  title="Tournament Bracket"
-                  format="simple"
+                  title="PLAYOFFS"
+                  isHost={false}
                 />
               ) : (
                 <Card>
