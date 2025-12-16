@@ -13,10 +13,16 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // Create Supabase client using the anon key to verify the user and read public data
+  // Create Supabase client using the anon key to verify the user
   const supabaseClient = createClient(
     Deno.env.get("SUPABASE_URL") ?? "",
     Deno.env.get("SUPABASE_ANON_KEY") ?? ""
+  );
+
+  // Create admin client with service role key to bypass RLS for reading organizer data
+  const supabaseAdmin = createClient(
+    Deno.env.get("SUPABASE_URL") ?? "",
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
   );
 
   try {
@@ -32,8 +38,8 @@ serve(async (req) => {
     const { tournamentId, priceId } = await req.json();
     if (!tournamentId) throw new Error("tournamentId is required");
 
-    // Read tournament to get entry fee and title
-    const { data: tournament, error: tErr } = await supabaseClient
+    // Read tournament to get entry fee and title (use admin to bypass RLS)
+    const { data: tournament, error: tErr } = await supabaseAdmin
       .from("tournaments")
       .select("id, title, entry_fee, organizer_id")
       .eq("id", tournamentId)
@@ -41,8 +47,8 @@ serve(async (req) => {
 
     if (tErr || !tournament) throw new Error(tErr?.message || "Tournament not found");
 
-    // Ensure organizer has connected Stripe
-    const { data: organizerProfile, error: pErr } = await supabaseClient
+    // Ensure organizer has connected Stripe (use admin to bypass RLS)
+    const { data: organizerProfile, error: pErr } = await supabaseAdmin
       .from("profiles")
       .select("stripe_account_id, stripe_connected, stripe_charges_enabled")
       .eq("user_id", tournament.organizer_id)
