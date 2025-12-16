@@ -31,11 +31,14 @@ interface Tournament {
   first_game_time: string | null;
   tournament_format: string;
   skill_levels: string[];
+  divisions?: string[];
+  skill_levels_by_division?: Record<string, string[]> | null;
   estimated_game_duration: number;
   number_of_courts: number;
   brackets_generated: boolean;
   max_teams: number;
-  max_teams_per_skill_level?: Record<string, number>;
+  max_teams_per_skill_level?: Record<string, number> | null;
+  max_teams_per_division_skill?: Record<string, Record<string, number>> | null;
   players_per_team: number;
   entry_fee: number;
   payment_instructions: string | null;
@@ -176,7 +179,9 @@ const TournamentDetails = () => {
       if (error) throw error;
       setTournament({
         ...data,
-        max_teams_per_skill_level: data.max_teams_per_skill_level as Record<string, number> | undefined
+        max_teams_per_skill_level: data.max_teams_per_skill_level as Record<string, number> | null,
+        skill_levels_by_division: data.skill_levels_by_division as Record<string, string[]> | null,
+        max_teams_per_division_skill: data.max_teams_per_division_skill as Record<string, Record<string, number>> | null,
       });
     } catch (error) {
       console.error('Error fetching tournament:', error);
@@ -411,6 +416,45 @@ const TournamentDetails = () => {
   const canRegister = new Date() < new Date(tournament.registration_deadline) && 
                      tournament.status === 'open';
   const isPastTournament = new Date() > new Date(tournament.end_date);
+
+  // Extract skill levels - handle both direct skill_levels and skill_levels_by_division
+  const getEffectiveSkillLevels = () => {
+    if (tournament.skill_levels && tournament.skill_levels.length > 0) {
+      return tournament.skill_levels;
+    }
+    // If using divisions, flatten skill_levels_by_division
+    if (tournament.skill_levels_by_division) {
+      const divisionSkills = tournament.skill_levels_by_division as Record<string, string[]>;
+      const allSkills = new Set<string>();
+      Object.values(divisionSkills).forEach(skills => {
+        skills?.forEach(skill => allSkills.add(skill));
+      });
+      return Array.from(allSkills);
+    }
+    return [];
+  };
+  
+  const effectiveSkillLevels = getEffectiveSkillLevels();
+
+  // Get effective max teams per skill level (handles both regular and division-based)
+  const getEffectiveMaxTeamsPerSkillLevel = (): Record<string, number> => {
+    if (tournament.max_teams_per_skill_level && Object.keys(tournament.max_teams_per_skill_level).length > 0) {
+      return tournament.max_teams_per_skill_level;
+    }
+    // If using divisions, flatten max_teams_per_division_skill
+    if (tournament.max_teams_per_division_skill) {
+      const result: Record<string, number> = {};
+      Object.values(tournament.max_teams_per_division_skill).forEach(skillMaxTeams => {
+        Object.entries(skillMaxTeams || {}).forEach(([skill, max]) => {
+          result[skill] = (result[skill] || 0) + max;
+        });
+      });
+      return result;
+    }
+    return {};
+  };
+
+  const effectiveMaxTeamsPerSkillLevel = getEffectiveMaxTeamsPerSkillLevel();
 
   return (
     <div className={`container mx-auto px-3 md:px-4 py-4 md:py-6 ${isMobile ? 'pb-4' : 'md:py-8'}`}>
@@ -867,8 +911,8 @@ const TournamentDetails = () => {
         onOpenChange={setShowRegistrationDialog}
         tournamentId={id!}
         playersPerTeam={tournament?.players_per_team || 6}
-        tournamentSkillLevels={tournament?.skill_levels as any}
-        maxTeamsPerSkillLevel={tournament?.max_teams_per_skill_level}
+        tournamentSkillLevels={effectiveSkillLevels as any}
+        maxTeamsPerSkillLevel={effectiveMaxTeamsPerSkillLevel}
         entryFee={tournament?.entry_fee}
         paymentInstructions={tournament?.payment_instructions}
         venmoUsername={tournament?.venmo_username}
