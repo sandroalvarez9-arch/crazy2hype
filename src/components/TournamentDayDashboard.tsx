@@ -13,6 +13,7 @@ import { PoolDetailsView } from "@/components/PoolDetailsView";
 import { AdvancementConfigurationDialog } from "@/components/AdvancementConfigurationDialog";
 import BracketVisualization from './BracketVisualization';
 import EnhancedBracketView from './EnhancedBracketView';
+import ChampionshipBracketView from './ChampionshipBracketView';
 import { format } from "date-fns";
 import { Trophy, Clock, Users, Play, Pause, CheckCircle, Target } from "lucide-react";
 import { checkPoolCompletion } from "@/utils/poolCompletionDetector";
@@ -79,6 +80,7 @@ export function TournamentDayDashboard({ tournament, teams }: TournamentDayDashb
   const [generatingBrackets, setGeneratingBrackets] = useState(false);
   const [playoffBracketsExist, setPlayoffBracketsExist] = useState(false);
   const [bracketFormat, setBracketFormat] = useState<'simple' | 'detailed'>('simple');
+  const [bracketStyle, setBracketStyle] = useState<'classic' | 'championship'>('championship');
   const [selectedBracketCategory, setSelectedBracketCategory] = useState<string | null>(null);
   const [selectedPoolForBrackets, setSelectedPoolForBrackets] = useState<string | null>(null);
   const { toast } = useToast();
@@ -837,7 +839,7 @@ export function TournamentDayDashboard({ tournament, teams }: TournamentDayDashb
                     }
 
                     return (
-                      <Card>
+                      <Card className={bracketStyle === 'championship' ? 'bg-transparent border-0 shadow-none' : ''}>
                         <CardHeader>
                           <div className="flex flex-col sm:flex-row gap-4 justify-between items-start">
                             <div>
@@ -849,24 +851,54 @@ export function TournamentDayDashboard({ tournament, teams }: TournamentDayDashb
                             
                             <div className="flex gap-2">
                               <Button
-                                variant={bracketFormat === 'simple' ? 'default' : 'outline'}
+                                variant={bracketStyle === 'classic' ? 'default' : 'outline'}
                                 size="sm"
-                                onClick={() => setBracketFormat('simple')}
+                                onClick={() => setBracketStyle('classic')}
                               >
-                                Simple
+                                Classic
                               </Button>
                               <Button
-                                variant={bracketFormat === 'detailed' ? 'default' : 'outline'}
+                                variant={bracketStyle === 'championship' ? 'default' : 'outline'}
                                 size="sm"
-                                onClick={() => setBracketFormat('detailed')}
+                                onClick={() => setBracketStyle('championship')}
                               >
-                                Detailed
+                                Championship
                               </Button>
                             </div>
                           </div>
                         </CardHeader>
-                        <CardContent>
-                          {bracketFormat === 'detailed' ? (
+                        
+                        <CardContent className={bracketStyle === 'championship' ? 'p-0' : ''}>
+                          {bracketStyle === 'championship' ? (
+                            <ChampionshipBracketView
+                              matches={categoryMatches.map(match => ({
+                                id: match.id,
+                                tournament_id: match.tournament_id,
+                                team1_id: match.team1_id,
+                                team2_id: match.team2_id,
+                                team1_name: match.team1_name,
+                                team2_name: match.team2_name,
+                                team1_score: match.team1_score || 0,
+                                team2_score: match.team2_score || 0,
+                                winner_id: match.winner_id,
+                                winner_name: match.winner_id ? (match.winner_id === match.team1_id ? match.team1_name : match.team2_name) : undefined,
+                                bracket_position: match.bracket_position || '',
+                                status: match.status,
+                                round_number: match.round_number,
+                                referee_team_name: match.referee_team_name,
+                                court: match.court_number || undefined
+                              }))}
+                              title={`${selectedBracketCategory}`}
+                              onMatchSelect={(match) => {
+                                const fullMatch = matches.find(m => m.id === match.id);
+                                if (fullMatch) {
+                                  handleMatchSelect(fullMatch);
+                                }
+                              }}
+                              isHost={true}
+                              allTeams={teams.map(t => ({ id: t.id, name: t.name }))}
+                            />
+                          ) : bracketFormat === 'detailed' ? (
                             <EnhancedBracketView
                               matches={categoryMatches.map(match => ({
                                 id: match.id,

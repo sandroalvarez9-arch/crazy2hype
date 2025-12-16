@@ -279,6 +279,99 @@ All colors MUST be HSL.
   }
 }
 
+/* Championship Bracket Styles */
+.championship-bracket-container {
+  @apply bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-xl border border-primary/20;
+}
+
+.championship-header {
+  @apply bg-slate-800/50 border-b border-primary/20 rounded-t-xl;
+}
+
+.championship-bracket-viewport {
+  @apply bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900;
+  background-image: 
+    radial-gradient(circle at 20% 50%, hsl(var(--primary) / 0.05) 0%, transparent 50%),
+    radial-gradient(circle at 80% 50%, hsl(var(--primary) / 0.05) 0%, transparent 50%);
+}
+
+.championship-round-label {
+  @apply inline-block px-4 py-1.5 text-sm font-bold tracking-wider text-primary bg-primary/10 border border-primary/30 rounded-full;
+}
+
+.championship-final-label {
+  @apply text-lg px-6 py-2 bg-primary/20 border-primary/50 text-primary;
+  text-shadow: 0 0 10px hsl(var(--primary) / 0.5);
+}
+
+.championship-match-card {
+  @apply relative p-4 rounded-lg;
+  background: linear-gradient(135deg, hsl(var(--primary) / 0.1) 0%, hsl(220 15% 15%) 100%);
+  border: 2px solid hsl(var(--primary) / 0.3);
+  box-shadow: 0 4px 20px hsl(var(--primary) / 0.15);
+  transform: skewX(-2deg);
+}
+
+.championship-match-card > * {
+  transform: skewX(2deg);
+}
+
+.championship-final-match {
+  @apply border-primary/60;
+  box-shadow: 0 0 30px hsl(var(--primary) / 0.3);
+}
+
+.championship-match-header {
+  @apply flex justify-between items-center mb-3 pb-2 border-b border-primary/20;
+}
+
+.championship-team-box {
+  @apply p-3 rounded-md transition-all duration-200;
+  background: linear-gradient(135deg, hsl(220 20% 18%) 0%, hsl(220 15% 12%) 100%);
+  border: 1px solid hsl(var(--primary) / 0.2);
+}
+
+.championship-team-box:hover {
+  border-color: hsl(var(--primary) / 0.4);
+}
+
+.championship-team-winner {
+  @apply border-primary;
+  background: linear-gradient(135deg, hsl(var(--primary) / 0.3) 0%, hsl(220 15% 15%) 100%);
+  box-shadow: 0 0 15px hsl(var(--primary) / 0.3);
+}
+
+.championship-team-content {
+  @apply flex justify-between items-center gap-2;
+}
+
+.championship-team-name {
+  @apply text-sm font-medium text-foreground truncate;
+}
+
+.championship-team-score {
+  @apply text-lg font-bold text-primary min-w-[2rem] text-right;
+}
+
+.championship-vs {
+  @apply text-center text-xs font-bold text-primary/60 py-1;
+}
+
+.championship-action-btn {
+  @apply border-primary/30 text-primary hover:bg-primary/10 hover:border-primary/50;
+}
+
+.championship-champion-display {
+  @apply flex flex-col items-center justify-center p-6 rounded-xl text-center;
+  background: linear-gradient(135deg, hsl(var(--primary) / 0.2) 0%, hsl(220 15% 12%) 100%);
+  border: 2px solid hsl(var(--primary) / 0.5);
+  box-shadow: 0 0 40px hsl(var(--primary) / 0.3);
+}
+
+.championship-bracket-empty {
+  @apply bg-slate-900 rounded-xl border border-primary/20;
+}
+
 @keyframes fade-in {
   0% {
     opacity: 0;
