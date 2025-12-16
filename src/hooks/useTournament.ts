@@ -33,7 +33,7 @@ export interface Tournament {
   other_payment_methods?: string | null;
   status: string;
   published: boolean;
-  organizer_id: string;
+  organizer_id?: string;
   check_in_deadline?: string | null;
   bracket_version?: number;
   allow_backup_teams?: boolean;
@@ -65,18 +65,19 @@ export function useTournament(tournamentId: string | undefined) {
     setError(null);
 
     try {
+      // Use the secure RPC function to fetch tournament data
       const { data, error: fetchError } = await supabase
-        .from('tournaments')
-        .select(`
-          *,
-          organizer:profiles!tournaments_organizer_id_fkey(username, first_name, last_name)
-        `)
-        .eq('id', tournamentId)
-        .single();
+        .rpc('get_public_tournament', { tournament_id: tournamentId });
 
       if (fetchError) throw fetchError;
 
-      setTournament(data as Tournament);
+      if (!data || data.length === 0) {
+        throw new Error('Tournament not found');
+      }
+
+      // The function returns an array, get the first result
+      const tournamentData = data[0];
+      setTournament(tournamentData as Tournament);
     } catch (err) {
       const error = err instanceof Error ? err : new Error('Failed to fetch tournament');
       setError(error);

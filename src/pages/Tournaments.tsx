@@ -185,28 +185,49 @@ useEffect(() => {
 
   const fetchTournaments = async () => {
     try {
-      let query = supabase
-        .from('tournaments')
-        .select(`
-          *,
-          organizer:profiles_public!tournaments_organizer_id_fkey(username),
-          teams:teams(id)
-        `)
-        .order('start_date', { ascending: true });
+      let data: any[] = [];
+      let error: any = null;
 
       // Filter by user's tournaments if showMyTournaments is true
       if (showMyTournaments && user) {
-        query = query.eq('organizer_id', user.id);
-      } else if (!showMyTournaments) {
-        // Only show published, open tournaments that haven't ended yet
+        // User's own tournaments - query directly (RLS allows organizers to see their own)
+        const result = await supabase
+          .from('tournaments')
+          .select(`
+            *,
+            organizer:profiles_public!tournaments_organizer_id_fkey(username),
+            teams:teams(id)
+          `)
+          .eq('organizer_id', user.id)
+          .order('start_date', { ascending: true });
+        data = result.data || [];
+        error = result.error;
+      } else {
+        // Public tournaments - use secure RPC function
+        const result = await supabase.rpc('get_public_tournaments');
+        if (result.error) throw result.error;
+        
+        // Fetch team counts for each tournament
+        const tournamentIds = (result.data || []).map((t: any) => t.id);
+        const teamsResult = await supabase
+          .from('teams_public')
+          .select('tournament_id')
+          .in('tournament_id', tournamentIds);
+        
+        const teamCounts = new Map<string, number>();
+        (teamsResult.data || []).forEach((t: any) => {
+          teamCounts.set(t.tournament_id, (teamCounts.get(t.tournament_id) || 0) + 1);
+        });
+        
+        // Filter to only show open tournaments that haven't ended
         const today = new Date().toISOString().split('T')[0];
-        query = query
-          .eq('published', true)
-          .eq('status', 'open')
-          .gte('end_date', today);
+        data = (result.data || [])
+          .filter((t: any) => t.status === 'open' && t.end_date >= today)
+          .map((t: any) => ({
+            ...t,
+            teams: [{ count: teamCounts.get(t.id) || 0 }]
+          }));
       }
-
-      const { data, error } = await query;
 
       if (error) throw error;
 
