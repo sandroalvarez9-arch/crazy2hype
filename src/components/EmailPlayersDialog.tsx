@@ -68,12 +68,24 @@ export default function EmailPlayersDialog({ tournamentId, defaultSubject }: Ema
     return subject.trim().length > 0 && message.trim().length > 0 && recipientCount > 0 && !loading;
   }, [subject, message, recipientCount, loading]);
 
+  // Escape HTML entities to prevent XSS
+  const escapeHtml = (text: string): string => {
+    return text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  };
+
   const onSend = async () => {
     try {
       setLoading(true);
 
+      // Sanitize user input before embedding in HTML
+      const safeMessage = escapeHtml(message.trim()).replace(/\n/g, "<br/>");
       const html = `<div style="font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;font-size:16px;line-height:1.4;">
-        ${message.trim().replace(/\n/g, "<br/>")}
+        ${safeMessage}
       </div>`;
 
       const { data, error } = await supabase.functions.invoke("send-bulk-email", {

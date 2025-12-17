@@ -38,6 +38,16 @@ function chunk<T>(arr: T[], size: number): T[][] {
   return chunks;
 }
 
+// Escape HTML entities to prevent XSS attacks
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
 serve(async (req) => {
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
@@ -160,8 +170,11 @@ serve(async (req) => {
       );
     }
 
-    const finalHtml = html || (text ? `<p>${text.trim().replace(/\n/g, "<br/>")}</p>` : "");
-    const finalText = text || (html ? html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim() : "");
+    // Sanitize HTML content to prevent XSS - escape any raw text input
+    const sanitizedHtml = html ? escapeHtml(html.replace(/<[^>]+>/g, '')).replace(/\n/g, "<br/>") : "";
+    const sanitizedText = text ? escapeHtml(text.trim()).replace(/\n/g, "<br/>") : "";
+    const finalHtml = sanitizedHtml || (sanitizedText ? `<p>${sanitizedText}</p>` : "");
+    const finalText = text ? text.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim() : "";
 
     const batches = chunk(uniqueRecipients, 90);
     let sentBatches = 0;
