@@ -18,14 +18,36 @@ serve(async (req) => {
     const TWILIO_PHONE_NUMBER = Deno.env.get('TWILIO_PHONE_NUMBER');
     const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
     const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY');
+    const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
     if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN || !TWILIO_PHONE_NUMBER) {
       console.error('Missing Twilio credentials');
       throw new Error('Twilio credentials not configured');
     }
 
+    // SECURITY: Verify the authenticated user
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: 'Authentication required' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const supabaseAuth = createClient(SUPABASE_URL!, SERVICE_ROLE_KEY!);
+    const { data: { user }, error: authError } = await supabaseAuth.auth.getUser(
+      authHeader.replace('Bearer ', '')
+    );
+
+    if (authError || !user) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const { matchId, action } = await req.json();
-    console.log(`Processing SMS notification for match ${matchId}, action: ${action}`);
+    console.log(`Processing SMS notification for match ${matchId}, action: ${action}, user: ${user.id}`);
 
     if (!matchId) {
       throw new Error('Match ID is required');
@@ -47,6 +69,27 @@ serve(async (req) => {
     if (matchError || !match) {
       console.error('Error fetching match:', matchError);
       throw new Error('Match not found');
+    }
+
+    // SECURITY: Verify user is the tournament organizer
+    const { data: tournament, error: tournamentError } = await supabaseAuth
+      .from('tournaments')
+      .select('organizer_id')
+      .eq('id', match.tournament_id)
+      .single();
+
+    if (tournamentError || !tournament) {
+      return new Response(
+        JSON.stringify({ error: 'Tournament not found' }),
+        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (tournament.organizer_id !== user.id) {
+      return new Response(
+        JSON.stringify({ error: 'Only tournament organizers can send SMS notifications' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     console.log('Match details:', match);

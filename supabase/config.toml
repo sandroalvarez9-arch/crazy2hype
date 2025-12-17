@@ -31,4 +31,4 @@ verify_jwt = false
 verify_jwt = true
 
 [functions.send-match-sms]
-verify_jwt = false
+verify_jwt = true
