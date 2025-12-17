@@ -387,6 +387,23 @@ export function MatchScoringInterface({
       }
 
       console.log('Match started successfully');
+      
+      // Send SMS notifications to subscribers
+      try {
+        const { data, error: smsError } = await supabase.functions.invoke('send-match-sms', {
+          body: { matchId, action: 'match_starting' }
+        });
+        
+        if (smsError) {
+          console.error('SMS notification error:', smsError);
+        } else {
+          console.log('SMS notifications sent:', data);
+        }
+      } catch (smsErr) {
+        console.error('Failed to send SMS notifications:', smsErr);
+        // Don't block match start if SMS fails
+      }
+      
       onMatchUpdate();
       
       toast({
