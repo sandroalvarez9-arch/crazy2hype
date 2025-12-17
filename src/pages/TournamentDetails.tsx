@@ -19,6 +19,7 @@ import { useToast } from '@/hooks/use-toast';
 import { formatSkillLevel, getSkillLevelBadgeVariant } from '@/utils/skillLevels';
 import { WeatherWidget } from '@/components/WeatherWidget';
 import { ConfirmationDialog } from '@/components/ConfirmationDialog';
+import { SMSNotificationSubscribe } from '@/components/SMSNotificationSubscribe';
 
 interface Tournament {
   id: string;
@@ -539,6 +540,11 @@ const TournamentDetails = () => {
               {tournament.status}
             </Badge>
             <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+              <SMSNotificationSubscribe 
+                tournamentId={tournament.id} 
+                teamId={userTeams[0]?.id} 
+                teamName={userTeams[0]?.name}
+              />
               {isOrganizer && (
                 <>
                   <Button 

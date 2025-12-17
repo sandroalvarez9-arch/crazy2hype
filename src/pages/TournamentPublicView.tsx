@@ -12,7 +12,7 @@ import ChampionshipBracketView from '@/components/ChampionshipBracketView';
 import { useIsMobile } from '@/hooks/use-mobile';
 import logo from '@/assets/block-nation-logo.png';
 import { WeatherWidget } from '@/components/WeatherWidget';
-
+import { SMSNotificationSubscribe } from '@/components/SMSNotificationSubscribe';
 interface Tournament {
   id: string;
   title: string;
@@ -181,9 +181,12 @@ const TournamentPublicView = () => {
                 <p className="text-xs text-muted-foreground">Live View</p>
               </div>
             </div>
-            <Badge variant={tournament.status === 'open' ? 'default' : 'secondary'}>
-              {tournament.status}
-            </Badge>
+            <div className="flex items-center gap-2">
+              <SMSNotificationSubscribe tournamentId={tournament.id} />
+              <Badge variant={tournament.status === 'open' ? 'default' : 'secondary'}>
+                {tournament.status}
+              </Badge>
+            </div>
           </div>
         </div>
       </header>
