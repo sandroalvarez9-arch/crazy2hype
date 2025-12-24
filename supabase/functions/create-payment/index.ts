@@ -8,6 +8,13 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Server-side input validation
+function isValidUUID(str: string): boolean {
+  if (!str || typeof str !== 'string') return false;
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(str);
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -45,9 +52,21 @@ serve(async (req) => {
     }
     const user = userData.user;
 
-    const { tournamentId, priceId } = await req.json();
-    if (!tournamentId) {
-      return new Response(JSON.stringify({ error: "Tournament ID is required", code: "MISSING_TOURNAMENT_ID" }), {
+    const body = await req.json();
+    const tournamentId = body.tournamentId;
+    const priceId = body.priceId;
+    
+    // Validate tournamentId is a valid UUID
+    if (!tournamentId || !isValidUUID(tournamentId)) {
+      return new Response(JSON.stringify({ error: "Invalid or missing Tournament ID", code: "INVALID_TOURNAMENT_ID" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 400,
+      });
+    }
+    
+    // Validate priceId if provided (Stripe price IDs start with "price_")
+    if (priceId && (typeof priceId !== 'string' || !priceId.startsWith('price_'))) {
+      return new Response(JSON.stringify({ error: "Invalid price ID format", code: "INVALID_PRICE_ID" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 400,
       });

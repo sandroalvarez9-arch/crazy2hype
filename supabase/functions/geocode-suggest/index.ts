@@ -5,14 +5,35 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Server-side input sanitization for search queries
+function sanitizeSearchQuery(query: string, maxLength: number = 500): string {
+  if (!query || typeof query !== 'string') return '';
+  return query
+    .replace(/[<>"'`]/g, '') // Remove potentially dangerous characters
+    .replace(/[\x00-\x1F\x7F]/g, '') // Remove control characters
+    .slice(0, maxLength)
+    .trim();
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { query } = await req.json();
-    if (!query || typeof query !== "string" || query.trim().length < 2) {
+    const body = await req.json();
+    const rawQuery = body.query;
+    
+    // Validate and sanitize input
+    if (!rawQuery || typeof rawQuery !== "string") {
+      return new Response(JSON.stringify({ suggestions: [] }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
+    }
+    
+    const query = sanitizeSearchQuery(rawQuery);
+    if (query.length < 2) {
       return new Response(JSON.stringify({ suggestions: [] }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,
