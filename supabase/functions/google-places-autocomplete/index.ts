@@ -3,15 +3,36 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Server-side input sanitization for search queries
+function sanitizeSearchQuery(query: string, maxLength: number = 500): string {
+  if (!query || typeof query !== 'string') return '';
+  return query
+    .replace(/[<>"'`]/g, '') // Remove potentially dangerous characters
+    .replace(/[\x00-\x1F\x7F]/g, '') // Remove control characters
+    .slice(0, maxLength)
+    .trim();
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { query } = await req.json();
+    const body = await req.json();
+    const rawQuery = body.query;
 
-    if (!query || typeof query !== "string" || query.trim().length < 2) {
+    // Validate input type
+    if (!rawQuery || typeof rawQuery !== "string") {
+      return new Response(
+        JSON.stringify({ suggestions: [] }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    
+    // Sanitize the query
+    const query = sanitizeSearchQuery(rawQuery);
+    if (query.length < 2) {
       return new Response(
         JSON.stringify({ suggestions: [] }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -27,9 +48,9 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Use Google Places Autocomplete API
+    // Use Google Places Autocomplete API - query is already sanitized
     const url = new URL("https://maps.googleapis.com/maps/api/place/autocomplete/json");
-    url.searchParams.set("input", query.trim());
+    url.searchParams.set("input", query);
     url.searchParams.set("key", apiKey);
     url.searchParams.set("types", "geocode|establishment");
     

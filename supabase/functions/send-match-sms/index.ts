@@ -6,6 +6,29 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Server-side input sanitization
+function sanitizeString(input: string, maxLength: number = 500): string {
+  if (!input || typeof input !== 'string') return '';
+  return input
+    .replace(/[<>'"&]/g, '') // Remove potentially dangerous characters
+    .replace(/[\x00-\x1F\x7F]/g, '') // Remove control characters
+    .slice(0, maxLength)
+    .trim();
+}
+
+function isValidUUID(str: string): boolean {
+  if (!str || typeof str !== 'string') return false;
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(str);
+}
+
+const VALID_ACTIONS = ['match_starting', 'match_completed', 'score_update', 'match_update'] as const;
+type ValidAction = typeof VALID_ACTIONS[number];
+
+function isValidAction(action: string): action is ValidAction {
+  return VALID_ACTIONS.includes(action as ValidAction);
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -46,12 +69,27 @@ serve(async (req) => {
       );
     }
 
-    const { matchId, action } = await req.json();
-    console.log(`Processing SMS notification for match ${matchId}, action: ${action}, user: ${user.id}`);
-
-    if (!matchId) {
-      throw new Error('Match ID is required');
+    const body = await req.json();
+    const matchId = body.matchId;
+    const action = body.action;
+    
+    // Server-side validation of matchId
+    if (!matchId || !isValidUUID(matchId)) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid or missing match ID' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
+
+    // Validate action parameter
+    if (action && !isValidAction(action)) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid action parameter' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log(`Processing SMS notification for match ${matchId}, action: ${action || 'default'}, user: ${user.id}`);
 
     const supabase = createClient(SUPABASE_URL!, SUPABASE_ANON_KEY!);
 
@@ -118,20 +156,23 @@ serve(async (req) => {
       );
     }
 
-    // Build message based on action
+    // Build message based on action - sanitize team names from database
     let message = '';
-    const team1Name = match.team1?.name || 'TBD';
-    const team2Name = match.team2?.name || 'TBD';
+    const team1Name = sanitizeString(match.team1?.name || 'TBD', 100);
+    const team2Name = sanitizeString(match.team2?.name || 'TBD', 100);
+    const courtNumber = match.court_number ? String(match.court_number) : 'TBD';
+    const team1Score = match.team1_score ?? 0;
+    const team2Score = match.team2_score ?? 0;
     
     if (action === 'match_starting') {
-      message = `🏐 Your match is starting! ${team1Name} vs ${team2Name} on Court ${match.court_number || 'TBD'}. Head to the court now!`;
+      message = `🏐 Your match is starting! ${team1Name} vs ${team2Name} on Court ${courtNumber}. Head to the court now!`;
     } else if (action === 'match_completed') {
       const winner = match.winner_id === match.team1_id ? team1Name : team2Name;
-      message = `🏆 Match completed! ${team1Name} (${match.team1_score}) vs ${team2Name} (${match.team2_score}). Winner: ${winner}`;
+      message = `🏆 Match completed! ${team1Name} (${team1Score}) vs ${team2Name} (${team2Score}). Winner: ${winner}`;
     } else if (action === 'score_update') {
-      message = `📊 Score update: ${team1Name} ${match.team1_score} - ${match.team2_score} ${team2Name}`;
+      message = `📊 Score update: ${team1Name} ${team1Score} - ${team2Score} ${team2Name}`;
     } else {
-      message = `🏐 Match update: ${team1Name} vs ${team2Name} - Court ${match.court_number || 'TBD'}`;
+      message = `🏐 Match update: ${team1Name} vs ${team2Name} - Court ${courtNumber}`;
     }
 
     // Send SMS to each subscriber

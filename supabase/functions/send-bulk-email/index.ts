@@ -3,6 +3,7 @@ import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { Resend } from "npm:resend@2.0.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { DOMParser } from "https://deno.land/x/deno_dom@v0.1.45/deno-dom-wasm.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -26,7 +27,6 @@ function isValidEmail(email: string | null | undefined): email is string {
   if (!email) return false;
   const e = email.trim();
   if (!e) return false;
-  // simple sanity check
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
 }
 
@@ -40,12 +40,65 @@ function chunk<T>(arr: T[], size: number): T[][] {
 
 // Escape HTML entities to prevent XSS attacks
 function escapeHtml(text: string): string {
+  if (!text || typeof text !== 'string') return '';
   return text
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
+    .replace(/'/g, '&#039;')
+    .replace(/`/g, '&#96;')
+    .replace(/\//g, '&#47;');
+}
+
+// Sanitize HTML by removing dangerous tags and attributes (server-side)
+function sanitizeHtml(html: string): string {
+  if (!html || typeof html !== 'string') return '';
+  
+  // Remove script tags and their content
+  let sanitized = html.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
+  
+  // Remove style tags and their content
+  sanitized = sanitized.replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '');
+  
+  // Remove on* event handlers (onclick, onerror, etc.)
+  sanitized = sanitized.replace(/\s+on\w+\s*=\s*["'][^"']*["']/gi, '');
+  sanitized = sanitized.replace(/\s+on\w+\s*=\s*[^\s>]+/gi, '');
+  
+  // Remove javascript: and data: URLs
+  sanitized = sanitized.replace(/href\s*=\s*["']javascript:[^"']*["']/gi, '');
+  sanitized = sanitized.replace(/src\s*=\s*["']javascript:[^"']*["']/gi, '');
+  sanitized = sanitized.replace(/href\s*=\s*["']data:[^"']*["']/gi, '');
+  sanitized = sanitized.replace(/src\s*=\s*["']data:[^"']*["']/gi, '');
+  
+  // Remove iframe, object, embed, form tags
+  sanitized = sanitized.replace(/<\/?iframe[^>]*>/gi, '');
+  sanitized = sanitized.replace(/<\/?object[^>]*>/gi, '');
+  sanitized = sanitized.replace(/<\/?embed[^>]*>/gi, '');
+  sanitized = sanitized.replace(/<\/?form[^>]*>/gi, '');
+  sanitized = sanitized.replace(/<\/?input[^>]*>/gi, '');
+  sanitized = sanitized.replace(/<\/?button[^>]*>/gi, '');
+  sanitized = sanitized.replace(/<\/?link[^>]*>/gi, '');
+  sanitized = sanitized.replace(/<\/?meta[^>]*>/gi, '');
+  sanitized = sanitized.replace(/<\/?base[^>]*>/gi, '');
+  
+  return sanitized.trim();
+}
+
+// Validate and sanitize text input (no HTML allowed)
+function sanitizeTextInput(text: string, maxLength: number = 10000): string {
+  if (!text || typeof text !== 'string') return '';
+  // Truncate to max length
+  const truncated = text.slice(0, maxLength);
+  // Escape all HTML
+  return escapeHtml(truncated);
+}
+
+// Validate subject line
+function sanitizeSubject(subject: string): string {
+  if (!subject || typeof subject !== 'string') return '';
+  // Remove newlines and limit length
+  return escapeHtml(subject.replace(/[\r\n]/g, ' ').slice(0, 200).trim());
 }
 
 serve(async (req) => {
@@ -82,14 +135,40 @@ serve(async (req) => {
       );
     }
 
-    const { tournament_id, subject, html, text }: SendBulkEmailRequest = await req.json();
+    const body = await req.json();
+    const tournament_id = body.tournament_id;
+    const rawSubject = body.subject;
+    const rawHtml = body.html;
+    const rawText = body.text;
 
-    if (!tournament_id || !subject || (!html && !text)) {
+    // Validate required fields
+    if (!tournament_id || typeof tournament_id !== 'string') {
       return new Response(
-        JSON.stringify({ error: "Missing tournament_id, subject, and either html or text" }),
+        JSON.stringify({ error: "Invalid or missing tournament_id" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    if (!rawSubject || typeof rawSubject !== 'string') {
+      return new Response(
+        JSON.stringify({ error: "Invalid or missing subject" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if ((!rawHtml && !rawText) || (rawHtml && typeof rawHtml !== 'string') || (rawText && typeof rawText !== 'string')) {
+      return new Response(
+        JSON.stringify({ error: "Invalid or missing html/text content" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Server-side sanitization of all user inputs
+    const subject = sanitizeSubject(rawSubject);
+    const sanitizedHtmlContent = rawHtml ? sanitizeHtml(rawHtml) : '';
+    const sanitizedTextContent = rawText ? sanitizeTextInput(rawText) : '';
+    
+    console.log('Input sanitized - subject length:', subject.length, 'html length:', sanitizedHtmlContent.length);
 
     // Look up tournament and organizer email
     const { data: tournament, error: tErr } = await supabase
@@ -170,11 +249,9 @@ serve(async (req) => {
       );
     }
 
-    // Sanitize HTML content to prevent XSS - escape any raw text input
-    const sanitizedHtml = html ? escapeHtml(html.replace(/<[^>]+>/g, '')).replace(/\n/g, "<br/>") : "";
-    const sanitizedText = text ? escapeHtml(text.trim()).replace(/\n/g, "<br/>") : "";
-    const finalHtml = sanitizedHtml || (sanitizedText ? `<p>${sanitizedText}</p>` : "");
-    const finalText = text ? text.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim() : "";
+    // Use server-side sanitized content
+    const finalHtml = sanitizedHtmlContent || (sanitizedTextContent ? `<p>${sanitizedTextContent.replace(/\n/g, "<br/>")}</p>` : "");
+    const finalText = rawText ? rawText.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 10000) : "";
 
     const batches = chunk(uniqueRecipients, 90);
     let sentBatches = 0;

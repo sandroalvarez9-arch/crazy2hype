@@ -7,6 +7,16 @@ const corsHeaders = {
   'Content-Type': 'application/json'
 };
 
+// Server-side input sanitization for search queries
+function sanitizeSearchQuery(query: string, maxLength: number = 500): string {
+  if (!query || typeof query !== 'string') return '';
+  return query
+    .replace(/[<>"'`]/g, '') // Remove potentially dangerous characters
+    .replace(/[\x00-\x1F\x7F]/g, '') // Remove control characters
+    .slice(0, maxLength)
+    .trim();
+}
+
 Deno.serve(async (req: Request) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
@@ -14,10 +24,21 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    const { query } = await req.json().catch(() => ({ query: null }));
+    const body = await req.json().catch(() => ({ query: null }));
+    const rawQuery = body.query;
 
-    if (!query || typeof query !== 'string' || !query.trim()) {
+    // Validate input type
+    if (!rawQuery || typeof rawQuery !== 'string') {
       return new Response(JSON.stringify({ error: 'Invalid or missing "query"' }), {
+        status: 400,
+        headers: corsHeaders,
+      });
+    }
+    
+    // Sanitize the query
+    const query = sanitizeSearchQuery(rawQuery);
+    if (!query) {
+      return new Response(JSON.stringify({ error: 'Query is empty after sanitization' }), {
         status: 400,
         headers: corsHeaders,
       });
