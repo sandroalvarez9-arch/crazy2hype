@@ -12,7 +12,6 @@ import { TeamScheduleView } from "@/components/TeamScheduleView";
 import { PoolDetailsView } from "@/components/PoolDetailsView";
 import { AdvancementConfigurationDialog } from "@/components/AdvancementConfigurationDialog";
 import BracketVisualization from './BracketVisualization';
-import EnhancedBracketView from './EnhancedBracketView';
 import ChampionshipBracketView from './ChampionshipBracketView';
 import { format } from "date-fns";
 import { Trophy, Clock, Users, Play, Pause, CheckCircle, Target } from "lucide-react";
@@ -79,8 +78,6 @@ export function TournamentDayDashboard({ tournament, teams }: TournamentDayDashb
   const [poolCompletion, setPoolCompletion] = useState<any>(null);
   const [generatingBrackets, setGeneratingBrackets] = useState(false);
   const [playoffBracketsExist, setPlayoffBracketsExist] = useState(false);
-  const [bracketFormat, setBracketFormat] = useState<'simple' | 'detailed'>('simple');
-  const [bracketStyle, setBracketStyle] = useState<'classic' | 'championship'>('championship');
   const [selectedBracketCategory, setSelectedBracketCategory] = useState<string | null>(null);
   const [selectedPoolForBrackets, setSelectedPoolForBrackets] = useState<string | null>(null);
   const { toast } = useToast();
@@ -839,7 +836,7 @@ export function TournamentDayDashboard({ tournament, teams }: TournamentDayDashb
                     }
 
                     return (
-                      <Card className={bracketStyle === 'championship' ? 'bg-transparent border-0 shadow-none' : ''}>
+                      <Card className="bg-transparent border-0 shadow-none">
                         <CardHeader>
                           <div className="flex flex-col sm:flex-row gap-4 justify-between items-start">
                             <div>
@@ -848,170 +845,38 @@ export function TournamentDayDashboard({ tournament, teams }: TournamentDayDashb
                                 {categoryMatches.length} matches in this category
                               </p>
                             </div>
-                            
-                            <div className="flex gap-2">
-                              <Button
-                                variant={bracketStyle === 'classic' ? 'default' : 'outline'}
-                                size="sm"
-                                onClick={() => setBracketStyle('classic')}
-                              >
-                                Classic
-                              </Button>
-                              <Button
-                                variant={bracketStyle === 'championship' ? 'default' : 'outline'}
-                                size="sm"
-                                onClick={() => setBracketStyle('championship')}
-                              >
-                                Championship
-                              </Button>
-                            </div>
                           </div>
                         </CardHeader>
                         
-                        <CardContent className={bracketStyle === 'championship' ? 'p-0' : ''}>
-                          {bracketStyle === 'championship' ? (
-                            <ChampionshipBracketView
-                              matches={categoryMatches.map(match => ({
-                                id: match.id,
-                                tournament_id: match.tournament_id,
-                                team1_id: match.team1_id,
-                                team2_id: match.team2_id,
-                                team1_name: match.team1_name,
-                                team2_name: match.team2_name,
-                                team1_score: match.team1_score || 0,
-                                team2_score: match.team2_score || 0,
-                                winner_id: match.winner_id,
-                                winner_name: match.winner_id ? (match.winner_id === match.team1_id ? match.team1_name : match.team2_name) : undefined,
-                                bracket_position: match.bracket_position || '',
-                                status: match.status,
-                                round_number: match.round_number,
-                                referee_team_name: match.referee_team_name,
-                                court: match.court_number || undefined
-                              }))}
-                              title={`${selectedBracketCategory}`}
-                              onMatchSelect={(match) => {
-                                const fullMatch = matches.find(m => m.id === match.id);
-                                if (fullMatch) {
-                                  handleMatchSelect(fullMatch);
-                                }
-                              }}
-                              isHost={true}
-                              allTeams={teams.map(t => ({ id: t.id, name: t.name }))}
-                            />
-                          ) : bracketFormat === 'detailed' ? (
-                            <EnhancedBracketView
-                              matches={categoryMatches.map(match => ({
-                                id: match.id,
-                                team1_name: match.team1_name,
-                                team2_name: match.team2_name,
-                                team1_score: match.team1_score || 0,
-                                team2_score: match.team2_score || 0,
-                                winner_name: match.winner_id ? (match.winner_id === match.team1_id ? match.team1_name : match.team2_name) : undefined,
-                                bracket_position: match.bracket_position || '',
-                                status: match.status,
-                                round_number: match.round_number,
-                                referee_team_name: match.referee_team_name,
-                                court: match.court_number || undefined
-                              }))}
-                              title={`${selectedBracketCategory} Bracket`}
-                              format={bracketFormat}
-                              onFormatChange={setBracketFormat}
-                              onMatchSelect={(match) => {
-                                console.log('EnhancedBracketView match selected:', match);
-                                const fullMatch = matches.find(m => m.id === match.id);
-                                console.log('Found fullMatch:', fullMatch);
-                                if (fullMatch) {
-                                  console.log('Setting selectedMatch to fullMatch:', fullMatch);
-                                  handleMatchSelect(fullMatch);
-                                } else {
-                                  console.error('Could not find fullMatch for match:', match);
-                                }
-                              }}
-                            />
-                          ) : (
-                            <div className="space-y-6">
-                              {(() => {
-                                const rounds = Array.from(new Set(categoryMatches.map(m => m.round_number))).sort((a, b) => a - b);
-                                
-                                return rounds.map(round => {
-                                  const roundMatches = categoryMatches.filter(m => m.round_number === round);
-                                  const maxRound = Math.max(...categoryMatches.map(m => m.round_number));
-                                  
-                                  const roundName = round === maxRound 
-                                    ? 'Final' 
-                                    : round === maxRound - 1 
-                                    ? 'Semifinals' 
-                                    : round === maxRound - 2
-                                    ? 'Quarterfinals'
-                                    : `Round ${round}`;
-                                  
-                                  return (
-                                    <div key={round}>
-                                      <h4 className="text-md font-semibold mb-3 flex items-center gap-2">
-                                        {roundName}
-                                        <Badge variant="outline" className="text-xs">
-                                          Round {round}
-                                        </Badge>
-                                      </h4>
-                                      <div className="grid gap-3">
-                                        {roundMatches.map(match => (
-                                          <Card key={match.id} className="hover:shadow-md transition-shadow">
-                                            <CardContent className="p-4">
-                                              <div className="flex justify-between items-start mb-3">
-                                                <div className="space-y-1">
-                                                  <h5 className="font-semibold text-sm">
-                                                    {match.team1_name || 'TBD'} vs {match.team2_name || 'TBD'}
-                                                  </h5>
-                                                  <div className="flex gap-2 text-xs text-muted-foreground">
-                                                    <span>Court {match.court_number}</span>
-                                                    {match.referee_team_name && (
-                                                      <span>• Ref: {match.referee_team_name}</span>
-                                                    )}
-                                                  </div>
-                                                  {match.scheduled_time && (
-                                                    <p className="text-xs text-muted-foreground">
-                                                      {format(new Date(match.scheduled_time), 'h:mm a')}
-                                                    </p>
-                                                  )}
-                                                </div>
-                                                {getMatchStatusBadge(match)}
-                                              </div>
-                                              
-                                              {match.status === 'completed' && (
-                                                <div className="text-sm font-medium mb-3 p-2 bg-green-50 rounded text-green-800">
-                                                  Final Score: {match.sets_won_team1}-{match.sets_won_team2}
-                                                  {match.winner_id && (
-                                                    <span className="ml-2">
-                                                      🏆 {match.winner_id === match.team1_id ? match.team1_name : match.team2_name}
-                                                    </span>
-                                                  )}
-                                                </div>
-                                              )}
-                                              
-                              {(match.status === 'in_progress' || match.status === 'scheduled') && (
-                                <Button
-                                  onClick={() => {
-                                    console.log('Bracket Start Match clicked for match:', match.id, match);
-                                    console.log('Setting selectedMatch to:', match);
-                                    handleMatchSelect(match);
-                                  }}
-                                  size="sm"
-                                  variant={match.status === 'in_progress' ? 'default' : 'outline'}
-                                  className="w-full"
-                                >
-                                  {match.status === 'in_progress' ? 'Continue Scoring' : 'Start Match'}
-                                </Button>
-                              )}
-                                            </CardContent>
-                                          </Card>
-                                        ))}
-                                      </div>
-                                    </div>
-                                  );
-                                });
-                              })()}
-                            </div>
-                          )}
+                        <CardContent className="p-0">
+                          <ChampionshipBracketView
+                            matches={categoryMatches.map(match => ({
+                              id: match.id,
+                              tournament_id: match.tournament_id,
+                              team1_id: match.team1_id,
+                              team2_id: match.team2_id,
+                              team1_name: match.team1_name,
+                              team2_name: match.team2_name,
+                              team1_score: match.team1_score || 0,
+                              team2_score: match.team2_score || 0,
+                              winner_id: match.winner_id,
+                              winner_name: match.winner_id ? (match.winner_id === match.team1_id ? match.team1_name : match.team2_name) : undefined,
+                              bracket_position: match.bracket_position || '',
+                              status: match.status,
+                              round_number: match.round_number,
+                              referee_team_name: match.referee_team_name,
+                              court: match.court_number || undefined
+                            }))}
+                            title={`${selectedBracketCategory}`}
+                            onMatchSelect={(match) => {
+                              const fullMatch = matches.find(m => m.id === match.id);
+                              if (fullMatch) {
+                                handleMatchSelect(fullMatch);
+                              }
+                            }}
+                            isHost={true}
+                            allTeams={teams.map(t => ({ id: t.id, name: t.name }))}
+                          />
                         </CardContent>
                       </Card>
                     );
@@ -1099,54 +964,7 @@ export function TournamentDayDashboard({ tournament, teams }: TournamentDayDashb
           </div>
           </TabsContent>
 
-          {/* Bracket Visualization Tab */}
-          <TabsContent value="brackets" className="space-y-6">
-            <div className="text-sm text-muted-foreground mb-4">
-              Debug: Found {filteredPlayoffMatches.length} playoff matches
-              {selectedPoolForBrackets && ` (filtered for ${selectedPoolForBrackets})`}
-            </div>
-            <EnhancedBracketView 
-              matches={filteredPlayoffMatches
-                .map(m => {
-                  // Determine winner name based on winner_id
-                  let winner_name: string | undefined;
-                  if (m.winner_id) {
-                    winner_name = m.winner_id === m.team1_id ? m.team1_name : m.team2_name;
-                  }
-                  
-                  return {
-                    id: m.id,
-                    team1_name: m.team1_name,
-                    team2_name: m.team2_name,
-                    team1_score: m.sets_won_team1 || 0,
-                    team2_score: m.sets_won_team2 || 0,
-                    winner_name,
-                    bracket_position: m.bracket_position || `Match ${m.match_number}`,
-                    status: m.status,
-                    round_number: m.round_number,
-                    referee_team_name: m.referee_team_name || 'TBD',
-                    court: m.court_number || 1
-                  };
-                })
-              }
-              title={`${tournament.title} - Playoff Bracket${selectedPoolForBrackets ? ` (${selectedPoolForBrackets} Teams)` : ''}`}
-              format={bracketFormat}
-              onFormatChange={setBracketFormat}
-              onMatchSelect={(match) => {
-                console.log('Second EnhancedBracketView match selected:', match);
-                const fullMatch = matches.find(m => m.id === match.id);
-                console.log('Found fullMatch:', fullMatch);
-                if (fullMatch) {
-                  console.log('Setting selectedMatch to fullMatch:', fullMatch);
-                  handleMatchSelect(fullMatch);
-                } else {
-                  console.error('Could not find fullMatch for match:', match);
-                }
-              }}
-            />
-            
-            {/* Match Scoring Interface for Bracket matches - Removed: Now using Modal Dialog */}
-          </TabsContent>
+
         </Tabs>
 
       {/* Advancement Configuration Dialog */}
