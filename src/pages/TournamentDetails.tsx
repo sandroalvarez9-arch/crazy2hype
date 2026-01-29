@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -101,6 +101,13 @@ const TournamentDetails = () => {
   const [mapsLink, setMapsLink] = useState<string | null>(null);
   const [organizerStripeConnected, setOrganizerStripeConnected] = useState<boolean | null>(null);
   const [userStripeConnected, setUserStripeConnected] = useState(false);
+  const tabContentRef = useRef<HTMLDivElement>(null);
+
+  const handleTabChange = useCallback(() => {
+    setTimeout(() => {
+      tabContentRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 50);
+  }, []);
 
 
   useEffect(() => {
@@ -742,7 +749,7 @@ const TournamentDetails = () => {
         </Card>
       </div>
 
-      <Tabs defaultValue="overview" className="animate-fade-in">
+      <Tabs defaultValue="overview" onValueChange={handleTabChange} className="animate-fade-in">
         <TabsList className={`grid w-full ${isMobile ? 'grid-cols-2' : userTeams.length > 0 ? 'grid-cols-4' : 'grid-cols-3'}`}>
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="teams">Teams ({registeredTeams.length})</TabsTrigger>
@@ -750,6 +757,7 @@ const TournamentDetails = () => {
           {userTeams.length > 0 && <TabsTrigger value="schedule">My Schedule</TabsTrigger>}
         </TabsList>
         
+        <div ref={tabContentRef}>
         <TabsContent value="overview" className="space-y-6">
           <Card className="shadow-card">
             <CardHeader>
@@ -954,6 +962,7 @@ const TournamentDetails = () => {
             ))}
           </TabsContent>
         )}
+        </div>
       </Tabs>
 
       <TeamRegistrationWizard

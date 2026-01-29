@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -80,7 +80,24 @@ export function TournamentDayDashboard({ tournament, teams }: TournamentDayDashb
   const [playoffBracketsExist, setPlayoffBracketsExist] = useState(false);
   const [selectedBracketCategory, setSelectedBracketCategory] = useState<string | null>(null);
   const [selectedPoolForBrackets, setSelectedPoolForBrackets] = useState<string | null>(null);
+  const tabContentRef = useRef<HTMLDivElement>(null);
+  const bracketContentRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+
+  // Scroll to content when tab changes
+  const handleTabChange = useCallback((value: string) => {
+    setTimeout(() => {
+      tabContentRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 50);
+  }, []);
+
+  // Scroll to bracket when category is selected
+  const handleBracketCategorySelect = useCallback((category: string) => {
+    setSelectedBracketCategory(category);
+    setTimeout(() => {
+      bracketContentRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
+  }, []);
 
   // Debug selectedMatch state changes
   console.log('TournamentDayDashboard render - selectedMatch:', selectedMatch);
@@ -494,7 +511,7 @@ export function TournamentDayDashboard({ tournament, teams }: TournamentDayDashb
         </Card>
       </div>
 
-      <Tabs defaultValue={playoffBracketsExist ? "brackets" : "matches"} className="w-full">
+      <Tabs defaultValue={playoffBracketsExist ? "brackets" : "matches"} onValueChange={handleTabChange} className="w-full">
         <TabsList className="grid w-full grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-1">
           {playoffBracketsExist ? (
             <TabsTrigger value="brackets" className="text-xs md:text-sm">
@@ -525,6 +542,7 @@ export function TournamentDayDashboard({ tournament, teams }: TournamentDayDashb
           </TabsTrigger>
         </TabsList>
 
+        <div ref={tabContentRef}>
         <TabsContent value="matches" className="space-y-4 pt-4">
           <Card>
             <CardHeader>
@@ -762,7 +780,7 @@ export function TournamentDayDashboard({ tournament, teams }: TournamentDayDashb
                                 ? 'ring-2 ring-primary shadow-md' 
                                 : ''
                             }`}
-                            onClick={() => setSelectedBracketCategory(category.name)}
+                            onClick={() => handleBracketCategorySelect(category.name)}
                           >
                             <CardContent className="p-4">
                               <div className="space-y-3">
@@ -801,7 +819,7 @@ export function TournamentDayDashboard({ tournament, teams }: TournamentDayDashb
                                   className="w-full"
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    setSelectedBracketCategory(category.name);
+                                    handleBracketCategorySelect(category.name);
                                   }}
                                 >
                                   {selectedBracketCategory === category.name ? 'Viewing' : 'View Bracket'}
@@ -836,7 +854,7 @@ export function TournamentDayDashboard({ tournament, teams }: TournamentDayDashb
                     }
 
                     return (
-                      <Card className="bg-transparent border-0 shadow-none">
+                      <Card ref={bracketContentRef} className="bg-transparent border-0 shadow-none">
                         <CardHeader>
                           <div className="flex flex-col sm:flex-row gap-4 justify-between items-start">
                             <div>
@@ -963,7 +981,7 @@ export function TournamentDayDashboard({ tournament, teams }: TournamentDayDashb
             )}
           </div>
           </TabsContent>
-
+        </div>
 
         </Tabs>
 

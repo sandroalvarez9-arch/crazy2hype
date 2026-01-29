@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -52,6 +52,7 @@ export function PoolPlayManager({ tournament, teams, onBracketsGenerated }: Pool
   const [generatedPools, setGeneratedPools] = useState<GeneratedPool[]>([]);
   const [selectedDivision, setSelectedDivision] = useState<string | null>(null);
   const [customPoolConfigs, setCustomPoolConfigs] = useState<Record<string, number[]>>({});
+  const poolsResultRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
   const checkedInTeams = teams.filter(team => team.check_in_status === 'checked_in');
@@ -280,6 +281,11 @@ export function PoolPlayManager({ tournament, teams, onBracketsGenerated }: Pool
       // Refresh the pools display
       await fetchGeneratedPools();
       
+      // Scroll to show the generated pools
+      setTimeout(() => {
+        poolsResultRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100);
+      
       onBracketsGenerated();
     } catch (error) {
       console.error('Error generating pool play:', error);
@@ -407,6 +413,7 @@ export function PoolPlayManager({ tournament, teams, onBracketsGenerated }: Pool
               </div>
 
               {/* Display Generated Pools with Division-Skill Level Tabs */}
+              <div ref={poolsResultRef}>
               {generatedPools.length > 0 && (() => {
                 // Group pools by division-skill level combination
                 const poolsByCategory = generatedPools.reduce((acc, pool) => {
@@ -628,6 +635,7 @@ export function PoolPlayManager({ tournament, teams, onBracketsGenerated }: Pool
                   </div>
                 );
               })()}
+              </div>
             </div>
           </CardContent>
         </Card>
