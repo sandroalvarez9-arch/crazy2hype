@@ -1084,15 +1084,6 @@ export default function TournamentManagement() {
           )}
         </TabsContent>
 
-        <TabsContent value="testing" className="space-y-4">
-          {tournament && (
-            <TournamentTestingDashboard 
-              tournament={tournament}
-              teams={teams}
-              onDataChange={fetchTournamentData}
-            />
-          )}
-        </TabsContent>
         <TabsContent value="communications" className="space-y-4">
           <Card>
             <CardHeader>
