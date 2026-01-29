@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams, Navigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -94,6 +94,15 @@ export default function TournamentManagement() {
   const [loading, setLoading] = useState(true);
   const [isOrganizer, setIsOrganizer] = useState(false);
   const [activeTab, setActiveTab] = useState("teams");
+  const tabContentRef = useRef<HTMLDivElement>(null);
+
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    // Scroll to tab content after a brief delay to allow content to render
+    setTimeout(() => {
+      tabContentRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 50);
+  };
   const [stripeConnected, setStripeConnected] = useState(false);
   const [publishingTournament, setPublishingTournament] = useState(false);
   const [publishConfirmOpen, setPublishConfirmOpen] = useState(false);
@@ -673,7 +682,7 @@ export default function TournamentManagement() {
         </Card>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4">
         <div className="w-full overflow-x-auto pb-1">
           <TabsList className="flex justify-start w-max min-w-full h-10 p-1 gap-1 bg-muted rounded-md">
             <TabsTrigger value="teams" className="flex-shrink-0 whitespace-nowrap text-xs sm:text-sm px-2 sm:px-3">Teams</TabsTrigger>
@@ -687,6 +696,7 @@ export default function TournamentManagement() {
           </TabsList>
         </div>
 
+        <div ref={tabContentRef}>
         <TabsContent value="teams" className="space-y-4">
           <Card>
             <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -1097,6 +1107,7 @@ export default function TournamentManagement() {
             </CardContent>
           </Card>
         </TabsContent>
+        </div>
       </Tabs>
     </div>
   );
