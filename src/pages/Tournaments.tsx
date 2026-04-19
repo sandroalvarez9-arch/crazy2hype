@@ -1,20 +1,16 @@
 import { useState, useEffect, useRef } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
-import { MapPin, CalendarDays, Users, Trophy, Navigation, Share2, Eye, ChevronDown, ChevronUp, Filter } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { MapPin, CalendarDays, Trophy, Navigation, Filter, Search } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
-import { formatSkillLevel, getSkillLevelBadgeVariant, SkillLevel } from '@/utils/skillLevels';
+import { SkillLevel } from '@/utils/skillLevels';
 import SkillLevelFilter from '@/components/SkillLevelFilter';
-import { Input } from '@/components/ui/input';
-import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import TournamentCard from '@/components/TournamentCard';
 
 interface Tournament {
   id: string;
@@ -86,7 +82,7 @@ const Tournaments = ({ showMyTournaments = false }: { showMyTournaments?: boolea
   const [manualLoading, setManualLoading] = useState(false);
   const [isIframe, setIsIframe] = useState(false);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
-  const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
+  const [searchParams] = useSearchParams();
   const requestedRef = useRef(false);
   const isMobile = useIsMobile();
   const { toast } = useToast();
