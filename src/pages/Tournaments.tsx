@@ -1,20 +1,16 @@
 import { useState, useEffect, useRef } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
-import { MapPin, CalendarDays, Users, Trophy, Navigation, Share2, Eye, ChevronDown, ChevronUp, Filter } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { MapPin, CalendarDays, Trophy, Navigation, Filter, Search } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
-import { formatSkillLevel, getSkillLevelBadgeVariant, SkillLevel } from '@/utils/skillLevels';
+import { SkillLevel } from '@/utils/skillLevels';
 import SkillLevelFilter from '@/components/SkillLevelFilter';
-import { Input } from '@/components/ui/input';
-import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import TournamentCard from '@/components/TournamentCard';
 
 interface Tournament {
   id: string;
@@ -86,7 +82,7 @@ const Tournaments = ({ showMyTournaments = false }: { showMyTournaments?: boolea
   const [manualLoading, setManualLoading] = useState(false);
   const [isIframe, setIsIframe] = useState(false);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
-  const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
+  const [searchParams] = useSearchParams();
   const requestedRef = useRef(false);
   const isMobile = useIsMobile();
   const { toast } = useToast();
@@ -336,390 +332,148 @@ setTournaments(tournamentsWithDistance);
 
   const getProgressColor = (fillPercentage: number) => {
     if (fillPercentage >= 90) return 'bg-destructive';
-    if (fillPercentage >= 70) return 'bg-volleyball-yellow';
-    return 'bg-primary';
+    if (fillPercentage >= 70) return 'bg-primary';
+    return 'bg-accent';
   };
 
-const requestLocation = () => {
-  checkAndRequestLocation(true);
-};
+  const requestLocation = () => {
+    checkAndRequestLocation(true);
+  };
 
-const handleManualSubmit = async () => {
-  if (!manualQuery.trim()) return;
-  setManualLoading(true);
-  try {
-    const coords = await geocodeLocation(manualQuery.trim());
-    if (!coords) {
-      toast({ title: 'Not found', description: 'Could not find that place. Try a different city or ZIP.', variant: 'default' });
-    } else {
-      setUserLocation(coords);
-      localStorage.setItem('userLocation', JSON.stringify({ ...coords, ts: Date.now(), source: 'manual', query: manualQuery.trim() }));
-      setLocationPermission('manual');
-      toast({ title: 'Location set', description: 'Sorting by distance from your chosen location.', variant: 'default' });
-      fetchTournaments();
+  const handleManualSubmit = async () => {
+    if (!manualQuery.trim()) return;
+    setManualLoading(true);
+    try {
+      const coords = await geocodeLocation(manualQuery.trim());
+      if (!coords) {
+        toast({ title: 'Not found', description: 'Could not find that place. Try a different city or ZIP.', variant: 'default' });
+      } else {
+        setUserLocation(coords);
+        localStorage.setItem('userLocation', JSON.stringify({ ...coords, ts: Date.now(), source: 'manual', query: manualQuery.trim() }));
+        setLocationPermission('manual');
+        toast({ title: 'Location set', description: 'Sorting by distance from your chosen location.', variant: 'default' });
+        fetchTournaments();
+      }
+    } finally {
+      setManualLoading(false);
     }
-  } finally {
-    setManualLoading(false);
-  }
-};
+  };
+
+  // Apply ?q= from URL once on mount
+  useEffect(() => {
+    const q = searchParams.get('q');
+    if (q && !manualQuery) {
+      setManualQuery(q);
+    }
+  }, [searchParams]);
 
   return (
-    <div className="container mx-auto px-3 md:px-4 py-4 md:py-8">
-      <div className="max-w-6xl mx-auto">
-        <div className="flex flex-col gap-4 mb-6 md:mb-8">
-          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-3 md:gap-4">
-            <div className="min-w-0">
-              <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold gradient-text mb-2 break-words">
-                {showMyTournaments ? 'My Tournaments' : 'Browse Tournaments'}
-              </h1>
-              <p className="text-sm md:text-base text-muted-foreground break-words">
-                {showMyTournaments 
-                  ? `${filteredTournaments.length} of ${tournaments.length} tournaments you've created`
-                  : userLocation 
-                    ? `${filteredTournaments.length} of ${tournaments.length} tournaments sorted by distance`
-                    : `${filteredTournaments.length} of ${tournaments.length} tournaments available`
-                }
-              </p>
-            </div>
+    <div className="max-w-7xl mx-auto px-4 md:px-6 py-8 md:py-12">
+      {/* Header */}
+      <div className="mb-8 md:mb-10">
+        <h1 className="font-display font-extrabold text-4xl md:text-5xl tracking-tighter mb-2">
+          {showMyTournaments ? 'My tournaments' : 'Browse tournaments'}
+        </h1>
+        <p className="text-muted-foreground">
+          {showMyTournaments
+            ? `${filteredTournaments.length} of ${tournaments.length} tournaments you've created`
+            : userLocation
+            ? `${filteredTournaments.length} tournaments sorted by distance`
+            : `${filteredTournaments.length} tournaments available`}
+        </p>
+      </div>
 
-            <div className="flex flex-col sm:flex-row lg:flex-row gap-2 w-full lg:w-auto">
-              <SkillLevelFilter 
-                selectedLevels={selectedSkillLevels}
-                onLevelsChange={setSelectedSkillLevels}
-              />
-              {locationPermission !== 'granted' && (
-                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full lg:w-auto">
-                  <Input
-                    placeholder="City or ZIP"
-                    aria-label="Enter a city or ZIP"
-                    value={manualQuery}
-                    onChange={(e) => setManualQuery(e.target.value)}
-                    className="w-full sm:w-[140px] h-9 text-sm"
-                  />
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleManualSubmit}
-                      disabled={!manualQuery.trim() || manualLoading}
-                      className="flex-1 sm:flex-initial text-xs"
-                    >
-                      {manualLoading ? 'Setting...' : 'Set'}
-                    </Button>
-                    <Button 
-                      onClick={requestLocation}
-                      variant="outline"
-                      size="sm"
-                      className="flex items-center justify-center gap-1 flex-1 sm:flex-initial text-xs"
-                      title={isIframe ? 'Preview may block geolocation' : undefined}
-                    >
-                      <Navigation className="h-3 w-3" />
-                      <span className="hidden sm:inline">Use Location</span>
-                      <span className="sm:hidden">Location</span>
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Status Filter Tabs */}
-          <Tabs value={statusFilter} onValueChange={(v) => setStatusFilter(v as StatusFilter)} className="w-full">
-            <TabsList className="w-full md:w-auto grid grid-cols-4 md:inline-flex">
-              <TabsTrigger value="all" className="text-xs md:text-sm">All</TabsTrigger>
-              <TabsTrigger value="upcoming" className="text-xs md:text-sm">Upcoming</TabsTrigger>
-              <TabsTrigger value="active" className="text-xs md:text-sm">Active</TabsTrigger>
-              <TabsTrigger value="past" className="text-xs md:text-sm">Past</TabsTrigger>
-            </TabsList>
-          </Tabs>
+      {/* Filter bar */}
+      <div className="bg-surface-raised border border-white/5 rounded-2xl p-3 md:p-4 mb-6 flex flex-col lg:flex-row gap-3 items-stretch lg:items-center">
+        <div className="flex items-center gap-2 px-3 py-2 bg-background rounded-xl flex-1 min-w-0">
+          <MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
+          <Input
+            placeholder="City or ZIP"
+            value={manualQuery}
+            onChange={(e) => setManualQuery(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleManualSubmit()}
+            className="border-0 bg-transparent p-0 h-auto focus-visible:ring-0 text-sm"
+          />
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={handleManualSubmit}
+            disabled={!manualQuery.trim() || manualLoading}
+            className="text-xs font-semibold"
+          >
+            {manualLoading ? '...' : 'Set'}
+          </Button>
         </div>
-
-        {loading ? (
-          <div className={`grid ${isMobile ? 'grid-cols-1 gap-4' : 'md:grid-cols-2 lg:grid-cols-3 gap-6'}`}>
-            {[...Array(6)].map((_, i) => (
-              <Card key={i} className="animate-pulse shadow-card">
-                <CardHeader>
-                  <Skeleton className="h-4 w-3/4 mb-2" />
-                  <Skeleton className="h-3 w-1/2" />
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    <Skeleton className="h-3 w-full" />
-                    <Skeleton className="h-3 w-3/4" />
-                    <Skeleton className="h-8 w-full" />
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        ) : filteredTournaments.length > 0 ? (
-          <div className={`grid ${isMobile ? 'grid-cols-1 gap-4' : 'md:grid-cols-2 lg:grid-cols-3 gap-6'}`}>
-            {filteredTournaments.map((tournament) => {
-              const teamCount = tournament.teams?.[0]?.count || 0;
-              const fillPercentage = (teamCount / tournament.max_teams) * 100;
-              const isExpanded = expandedCards.has(tournament.id);
-              
-              return (
-                <Card key={tournament.id} className="hover:shadow-lg transition-all duration-200 shadow-card hover-scale animate-fade-in">
-                  {isMobile ? (
-                    // Mobile: Collapsible card with bigger touch targets
-                    <Collapsible open={isExpanded} onOpenChange={() => toggleCardExpand(tournament.id)}>
-                      <CollapsibleTrigger className="w-full text-left">
-                        <CardHeader className="pb-3">
-                          <div className="flex justify-between items-start gap-2">
-                            <div className="flex-1 min-w-0">
-                              <CardTitle className="text-lg line-clamp-2 mb-1">
-                                {tournament.title}
-                              </CardTitle>
-                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                <CalendarDays className="h-4 w-4 shrink-0" />
-                                {new Date(tournament.start_date).toLocaleDateString('en-US', {
-                                  month: 'short',
-                                  day: 'numeric'
-                                })}
-                                {userLocation && tournament.distance !== undefined && (
-                                  <Badge variant="outline" className="text-xs ml-1">
-                                    {tournament.distance.toFixed(0)} mi
-                                  </Badge>
-                                )}
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <Badge 
-                                variant={tournament.status === 'open' ? 'default' : 'secondary'} 
-                                className="shrink-0 text-xs"
-                              >
-                                {tournament.status}
-                              </Badge>
-                              {isExpanded ? (
-                                <ChevronUp className="h-5 w-5 text-muted-foreground" />
-                              ) : (
-                                <ChevronDown className="h-5 w-5 text-muted-foreground" />
-                              )}
-                            </div>
-                          </div>
-                        </CardHeader>
-                      </CollapsibleTrigger>
-                      
-                      <CollapsibleContent>
-                        <CardContent className="pt-0 space-y-4">
-                          <div className="space-y-2">
-                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                              <MapPin className="h-4 w-4 shrink-0" />
-                              <span className="line-clamp-1">{tournament.location}</span>
-                            </div>
-                            <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                              <Users className="h-4 w-4 shrink-0" />
-                              by {tournament.organizer?.username}
-                            </div>
-                            <div className="flex flex-wrap gap-1">
-                              {tournament.skill_levels.map((level) => (
-                                <Badge key={level} variant={getSkillLevelBadgeVariant(level as SkillLevel)} className="text-xs">
-                                  {formatSkillLevel(level as SkillLevel)}
-                                </Badge>
-                              ))}
-                            </div>
-                          </div>
-
-                          <div className="space-y-2">
-                            <div className="flex items-center justify-between text-sm">
-                              <span className="text-muted-foreground">Teams</span>
-                              <span className="font-semibold">
-                                {teamCount}/{tournament.max_teams}
-                              </span>
-                            </div>
-                            <Progress 
-                              value={fillPercentage} 
-                              className="h-2"
-                              indicatorClassName={getProgressColor(fillPercentage)}
-                            />
-                            <div className="flex items-center justify-between text-xs text-muted-foreground">
-                              <span>{Math.round(fillPercentage)}% full</span>
-                              {tournament.entry_fee > 0 && (
-                                <span className="font-medium">${tournament.entry_fee} entry</span>
-                              )}
-                            </div>
-                          </div>
-
-                          <div className="flex flex-col gap-2">
-                            <div className="flex gap-2">
-                              <Button 
-                                variant="outline" 
-                                size="sm" 
-                                className="flex-1 min-h-[44px]"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleShareLink(tournament.id);
-                                }}
-                              >
-                                <Share2 className="h-4 w-4 mr-2" />
-                                Share
-                              </Button>
-                              <Button 
-                                variant="outline" 
-                                size="sm" 
-                                className="flex-1 min-h-[44px]"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  navigate(`/tournament/${tournament.id}/live`);
-                                }}
-                              >
-                                <Eye className="h-4 w-4 mr-2" />
-                                Live View
-                              </Button>
-                            </div>
-                            <Link to={`/tournament/${tournament.id}`} className="block">
-                              <Button variant="default" className="w-full min-h-[44px]">
-                                View Details
-                              </Button>
-                            </Link>
-                          </div>
-                        </CardContent>
-                      </CollapsibleContent>
-                    </Collapsible>
-                  ) : (
-                    // Desktop: Full card view
-                    <>
-                      <CardHeader className="pb-3">
-                        <div className="flex justify-between items-start">
-                          <CardTitle className="text-xl line-clamp-2">
-                            {tournament.title}
-                          </CardTitle>
-                          <div className="flex flex-col items-end gap-1">
-                            <div className="flex flex-wrap gap-1">
-                              {tournament.skill_levels.map((level) => (
-                                <Badge key={level} variant={getSkillLevelBadgeVariant(level as SkillLevel)} className="shrink-0 text-xs">
-                                  {formatSkillLevel(level as SkillLevel)}
-                                </Badge>
-                              ))}
-                              <Badge variant="secondary" className="shrink-0 text-xs">
-                                {tournament.status}
-                              </Badge>
-                            </div>
-                            {userLocation && tournament.distance !== undefined && (
-                              <Badge variant="outline" className="text-xs">
-                                {tournament.distance.toFixed(1)} mi
-                              </Badge>
-                            )}
-                          </div>
-                        </div>
-                        <CardDescription className="flex items-center gap-1 text-sm">
-                          <Users className="h-3 w-3" />
-                          by {tournament.organizer?.username}
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent className="pt-0">
-                        <div className="space-y-3">
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <MapPin className="h-4 w-4" />
-                            {tournament.location}
-                          </div>
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <CalendarDays className="h-4 w-4" />
-                            {new Date(tournament.start_date).toLocaleDateString('en-US', {
-                              weekday: 'short',
-                              month: 'short',
-                              day: 'numeric'
-                            })}
-                          </div>
-                          
-                          <div className="space-y-2">
-                            <div className="flex items-center justify-between text-sm">
-                              <span className="text-muted-foreground">Teams</span>
-                              <span className="font-semibold">
-                                {teamCount}/{tournament.max_teams}
-                              </span>
-                            </div>
-                            <Progress 
-                              value={fillPercentage} 
-                              className="h-2"
-                              indicatorClassName={getProgressColor(fillPercentage)}
-                            />
-                            <div className="flex items-center justify-between text-xs text-muted-foreground">
-                              <span>{Math.round(fillPercentage)}% full</span>
-                              {tournament.entry_fee > 0 && (
-                                <span className="font-medium">${tournament.entry_fee} entry</span>
-                              )}
-                            </div>
-                          </div>
-
-                          <div className="flex gap-2 pt-2">
-                            <Button 
-                              variant="outline" 
-                              size="sm" 
-                              className="flex-1"
-                              onClick={() => handleShareLink(tournament.id)}
-                            >
-                              <Share2 className="h-4 w-4 mr-1" />
-                              Share
-                            </Button>
-                            <Button 
-                              variant="outline" 
-                              size="sm" 
-                              className="flex-1"
-                              onClick={() => navigate(`/tournament/${tournament.id}/live`)}
-                            >
-                              <Eye className="h-4 w-4 mr-1" />
-                              Live
-                            </Button>
-                          </div>
-                          <Link to={`/tournament/${tournament.id}`}>
-                            <Button variant="default" className="w-full">
-                              View Details
-                            </Button>
-                          </Link>
-                        </div>
-                      </CardContent>
-                    </>
-                  )}
-                </Card>
-              );
-            })}
-          </div>
-        ) : tournaments.length > 0 ? (
-          <Card className="shadow-card">
-            <CardContent className="py-8 text-center">
-              <Filter className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-muted-foreground mb-4">
-                No tournaments match your current filters. Try adjusting your filter settings.
-              </p>
-              <div className="flex flex-wrap justify-center gap-2">
-                <Button 
-                  variant="outline" 
-                  onClick={() => {
-                    setSelectedSkillLevels([]);
-                    setStatusFilter('all');
-                  }}
-                >
-                  Clear All Filters
-                </Button>
-                <Link to="/create-tournament">
-                  <Button className="gradient-primary hover:opacity-90 transition-opacity">
-                    Create Tournament
-                  </Button>
-                </Link>
-              </div>
-            </CardContent>
-          </Card>
-        ) : (
-          <Card className="shadow-card">
-            <CardContent className="py-8 text-center">
-              <Trophy className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-muted-foreground mb-4">
-                {showMyTournaments 
-                  ? "You haven't created any tournaments yet."
-                  : "No tournaments available right now."
-                }
-              </p>
-              <Link to="/create-tournament">
-                <Button className="gradient-primary hover:opacity-90 transition-opacity">
-                  {showMyTournaments ? 'Create Your First Tournament' : 'Create the First Tournament'}
-                </Button>
-              </Link>
-            </CardContent>
-          </Card>
+        <SkillLevelFilter
+          selectedLevels={selectedSkillLevels}
+          onLevelsChange={setSelectedSkillLevels}
+        />
+        {locationPermission !== 'granted' && (
+          <Button
+            onClick={requestLocation}
+            variant="outline"
+            size="sm"
+            className="rounded-full"
+            title={isIframe ? 'Preview may block geolocation' : undefined}
+          >
+            <Navigation className="h-3.5 w-3.5 mr-1.5" />
+            Use my location
+          </Button>
         )}
       </div>
+
+      {/* Status tabs */}
+      <Tabs value={statusFilter} onValueChange={(v) => setStatusFilter(v as StatusFilter)} className="w-full mb-6">
+        <TabsList className="bg-surface-raised border border-white/5 grid grid-cols-4 w-full md:w-auto md:inline-flex">
+          <TabsTrigger value="all" className="text-xs md:text-sm">All</TabsTrigger>
+          <TabsTrigger value="upcoming" className="text-xs md:text-sm">Upcoming</TabsTrigger>
+          <TabsTrigger value="active" className="text-xs md:text-sm">Active</TabsTrigger>
+          <TabsTrigger value="past" className="text-xs md:text-sm">Past</TabsTrigger>
+        </TabsList>
+      </Tabs>
+
+      {/* Grid */}
+      {loading ? (
+        <div className="grid gap-4 md:gap-5 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+          {[...Array(6)].map((_, i) => (
+            <div key={i} className="bg-surface-raised border border-white/5 rounded-2xl h-64 animate-pulse" />
+          ))}
+        </div>
+      ) : filteredTournaments.length > 0 ? (
+        <div className="grid gap-4 md:gap-5 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+          {filteredTournaments.map((t) => (
+            <TournamentCard key={t.id} tournament={t as any} />
+          ))}
+        </div>
+      ) : tournaments.length > 0 ? (
+        <div className="bg-surface-raised border border-white/5 rounded-2xl p-12 text-center">
+          <Filter className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+          <p className="text-muted-foreground mb-6">No tournaments match your filters.</p>
+          <Button
+            variant="outline"
+            onClick={() => {
+              setSelectedSkillLevels([]);
+              setStatusFilter('all');
+            }}
+          >
+            Clear filters
+          </Button>
+        </div>
+      ) : (
+        <div className="bg-surface-raised border border-white/5 rounded-2xl p-12 text-center">
+          <Trophy className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+          <p className="text-muted-foreground mb-6">
+            {showMyTournaments
+              ? "You haven't created any tournaments yet."
+              : 'No tournaments available right now.'}
+          </p>
+          <Link to={user ? '/create-tournament' : '/host'}>
+            <Button className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-full">
+              {showMyTournaments ? 'Create your first tournament' : 'Host a tournament'}
+            </Button>
+          </Link>
+        </div>
+      )}
     </div>
   );
 };
