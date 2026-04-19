@@ -318,18 +318,6 @@ setTournaments(tournamentsWithDistance);
     }
   };
 
-  const toggleCardExpand = (id: string) => {
-    setExpandedCards(prev => {
-      const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
-      return next;
-    });
-  };
-
   const getProgressColor = (fillPercentage: number) => {
     if (fillPercentage >= 90) return 'bg-destructive';
     if (fillPercentage >= 70) return 'bg-primary';
