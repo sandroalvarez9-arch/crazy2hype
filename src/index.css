@@ -1,395 +1,229 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800;900&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
+/* =============================================================
+   Block Nation — Stadium Carbon design system.
+   All colors MUST be HSL. Tokens consumed via tailwind.config.ts.
+   ============================================================= */
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* Carbon surface scale */
+    --background: 230 13% 5%;            /* carbon-900 */
+    --foreground: 0 0% 96%;
+    --surface-raised: 228 13% 9%;        /* carbon-800 */
+    --surface-elevated: 226 14% 13%;     /* carbon-700 */
 
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card: 228 13% 9%;
+    --card-foreground: 0 0% 96%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover: 228 13% 9%;
+    --popover-foreground: 0 0% 96%;
 
-    --primary: 28 100% 60%;
+    /* Court orange — primary brand */
+    --primary: 14 95% 54%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    /* Volt lime — secondary highlight (live, success) */
+    --accent: 73 100% 50%;
+    --accent-foreground: 230 13% 5%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --secondary: 226 14% 13%;
+    --secondary-foreground: 0 0% 96%;
 
-    --accent: 213 94% 68%;
-    --accent-foreground: 0 0% 100%;
+    --muted: 226 14% 13%;
+    --muted-foreground: 220 9% 60%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 28 100% 60%;
+    --border: 0 0% 100% / 0.08;          /* used as rgba via hsl(var) — see overrides below */
+    --border-solid: 226 12% 18%;
+    --input: 226 14% 13%;
+    --ring: 14 95% 54%;
 
-    --radius: 0.75rem;
+    --radius: 1rem;
 
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 28 100% 60%;
+    /* Skill level chips */
+    --skill-elite: 14 95% 54%;
+    --skill-expert: 268 83% 65%;
+    --skill-advanced: 0 84% 65%;
+    --skill-intermediate: 180 84% 50%;
+    --skill-beginner: 213 94% 68%;
+    --skill-recreational: 220 9% 60%;
+
+    /* Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(14 95% 54%), hsl(8 85% 48%));
+    --gradient-host: linear-gradient(135deg, hsl(14 95% 54%) 0%, hsl(350 85% 50%) 100%);
+    --gradient-glow: radial-gradient(ellipse at top, hsl(14 95% 54% / 0.18), transparent 60%);
+
+    /* Shadows */
+    --shadow-card: 0 1px 0 hsl(0 0% 100% / 0.04) inset, 0 8px 30px -12px hsl(0 0% 0% / 0.6);
+    --shadow-glow: 0 0 28px hsl(14 95% 54% / 0.35);
+    --shadow-lime: 0 0 24px hsl(73 100% 50% / 0.45);
+
+    /* Sidebar (kept but tuned dark) */
+    --sidebar-background: 228 13% 8%;
+    --sidebar-foreground: 0 0% 92%;
+    --sidebar-primary: 14 95% 54%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 4.8% 95.9%;
-    --sidebar-accent-foreground: 240 5.9% 10%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 28 100% 60%;
-
-    /* Volleyball theme colors */
-    --volleyball-orange: 28 100% 60%;
-    --volleyball-blue: 213 94% 68%;
-    --volleyball-green: 142 76% 36%;
-    --volleyball-yellow: 48 100% 67%;
-    --volleyball-purple: 268 83% 58%;
-    
-    /* Skill level colors - distinct but themed */
-    --skill-elite: 28 100% 60%;      /* Orange - Elite/Open */
-    --skill-expert: 268 83% 58%;     /* Purple - Expert/AA */
-    --skill-advanced: 0 84% 60%;     /* Red - Advanced/A */
-    --skill-intermediate: 180 84% 45%; /* Teal - Intermediate/BB */
-    --skill-beginner: 213 94% 68%;   /* Blue - Beginner-Intermediate/B */
-    --skill-recreational: 215 16% 47%; /* Gray - Recreational/C */
-    
-    /* Enhanced gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--volleyball-blue)));
-    --gradient-hero: linear-gradient(135deg, hsl(var(--volleyball-orange)) 0%, hsl(var(--volleyball-purple)) 50%, hsl(var(--primary)) 100%);
-    --gradient-card: linear-gradient(145deg, hsl(var(--card)) 0%, hsl(var(--muted)) 100%);
-    
-    /* Enhanced shadows */
-    --shadow-elegant: 0 20px 40px -12px hsl(var(--primary) / 0.25);
-    --shadow-card: 0 8px 25px -8px hsl(var(--primary) / 0.15);
-    --shadow-glow: 0 0 30px hsl(var(--primary) / 0.3);
-    
-    /* Animation variables */
-    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    --transition-bounce: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-  }
-
-  .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-
-    --primary: 28 100% 55%;
-    --primary-foreground: 0 0% 100%;
-
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-
-    --accent: 213 94% 68%;
-    --accent-foreground: 222.2 84% 4.9%;
-
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 28 100% 55%;
-    
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 28 100% 55%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 28 100% 55%;
-    
-    /* Update gradients for dark mode */
-    --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--volleyball-blue)));
-    --gradient-hero: linear-gradient(135deg, hsl(var(--volleyball-orange)) 0%, hsl(var(--volleyball-purple)) 50%, hsl(var(--primary)) 100%);
-    --gradient-card: linear-gradient(145deg, hsl(var(--card)) 0%, hsl(var(--muted)) 100%);
-    
-    /* Update shadows for dark mode */
-    --shadow-elegant: 0 20px 40px -12px hsl(var(--primary) / 0.35);
-    --shadow-card: 0 8px 25px -8px hsl(var(--primary) / 0.25);
-    --shadow-glow: 0 0 30px hsl(var(--primary) / 0.4);
+    --sidebar-accent: 226 14% 13%;
+    --sidebar-accent-foreground: 0 0% 92%;
+    --sidebar-border: 226 12% 18%;
+    --sidebar-ring: 14 95% 54%;
   }
 }
 
 @layer base {
-* {
-  @apply border-border;
-  -webkit-tap-highlight-color: transparent;
-}
+  * {
+    border-color: hsl(var(--border-solid));
+    -webkit-tap-highlight-color: transparent;
+  }
 
-/* Mobile touch improvements */
-@media (max-width: 768px) {
-  button, a, [role="button"] {
-    min-height: 44px;
-    min-width: 44px;
+  html {
+    font-family: 'Inter', system-ui, sans-serif;
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
   }
-  
-  input, textarea, select {
-    font-size: 16px; /* Prevents iOS zoom on focus */
-  }
-}
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: 'cv11', 'ss01';
   }
 
-  /* Enhanced Button Micro-Interactions */
+  /* Display font helper (used inline + via .font-display) */
+  .font-display {
+    font-family: 'Outfit', 'Inter', sans-serif;
+    letter-spacing: -0.02em;
+  }
+
+  /* Mobile touch sizing */
+  @media (max-width: 768px) {
+    button, a, [role="button"] {
+      min-height: 44px;
+    }
+    input, textarea, select { font-size: 16px; }
+  }
+
   button:active:not(:disabled) {
     transform: scale(0.98);
     transition: transform 0.1s ease-in-out;
   }
 
-  button {
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  }
-
-  /* Enhanced Card Hover Effects */
-  .hover\:shadow-elegant:hover {
-    box-shadow: 0 20px 40px -10px hsl(var(--primary) / 0.15);
-    transform: translateY(-2px);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  }
-
-  /* Enhanced Input Focus Rings */
-  input:focus,
-  textarea:focus,
-  select:focus {
-    outline: none;
-    ring: 2px;
-    ring-color: hsl(var(--primary));
-    ring-offset: 2px;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  }
-
-  /* Typography Consistency Classes */
-  .heading-1 {
-    @apply text-3xl md:text-4xl font-bold;
-  }
-
-  .heading-2 {
-    @apply text-2xl md:text-3xl font-bold;
-  }
-
-  .heading-3 {
-    @apply text-xl font-semibold;
-  }
-
-  .body-text {
-    @apply text-base leading-relaxed;
-  }
-
-  .small-text {
-    @apply text-sm;
+  /* Selection */
+  ::selection {
+    background: hsl(var(--accent));
+    color: hsl(var(--accent-foreground));
   }
 }
 
 @layer utilities {
-  .animate-fade-in {
-    animation: fade-in 0.3s ease-out;
-  }
-  
-  .animate-scale-in {
-    animation: scale-in 0.2s ease-out;
-  }
-  
-  .hover-scale {
-    transition: var(--transition-bounce);
-  }
-  
-  .hover-scale:hover {
-    transform: scale(1.05);
-  }
-  
-  .gradient-primary {
-    background: var(--gradient-primary);
-  }
-  
-  .gradient-hero {
-    background: var(--gradient-hero);
-  }
-  
-  .gradient-card {
-    background: var(--gradient-card);
-  }
-  
-  .shadow-elegant {
-    box-shadow: var(--shadow-elegant);
-  }
-  
-  .shadow-card {
-    box-shadow: var(--shadow-card);
-  }
-  
-  .shadow-glow {
-    box-shadow: var(--shadow-glow);
-  }
-  
+  .animate-fade-in { animation: fade-in 0.4s ease-out; }
+  .animate-scale-in { animation: scale-in 0.2s ease-out; }
+  .hover-scale { transition: transform 0.25s cubic-bezier(0.4,0,0.2,1); }
+  .hover-scale:hover { transform: scale(1.03); }
+
+  .gradient-primary { background: var(--gradient-primary); }
+  .gradient-host { background: var(--gradient-host); }
+  .gradient-glow { background: var(--gradient-glow); }
+
+  .shadow-card { box-shadow: var(--shadow-card); }
+  .shadow-glow { box-shadow: var(--shadow-glow); }
+  .shadow-lime { box-shadow: var(--shadow-lime); }
+
   .glass {
-    background: rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: hsl(var(--surface-raised) / 0.6);
+    backdrop-filter: blur(14px);
+    border: 1px solid hsl(0 0% 100% / 0.06);
   }
-  
-  /* Logo background utilities */
-  .page-logo-bg {
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 70vw;
-    height: 70vh;
-    max-width: 700px;
-    max-height: 700px;
-    opacity: 1;
-    z-index: 0;
-    pointer-events: none;
-    background: transparent;
-    overflow: hidden;
+
+  .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+  .scrollbar-hide::-webkit-scrollbar { display: none; }
+
+  /* Skewed monogram block (logo mark) */
+  .logo-mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    transform: skewX(-12deg);
+    background: hsl(var(--primary));
+    color: hsl(var(--primary-foreground));
+    font-family: 'Outfit', sans-serif;
+    font-weight: 900;
+    border-radius: 4px;
   }
-  
-  .logo-bg-header > * {
-    position: relative;
-    z-index: 1;
-  }
-  
-  /* Hide scrollbar for horizontal scroll */
-  .scrollbar-hide {
-    -ms-overflow-style: none;  /* IE and Edge */
-    scrollbar-width: none;     /* Firefox */
-  }
-  
-  .scrollbar-hide::-webkit-scrollbar {
-    display: none;             /* Chrome, Safari, Opera */
-  }
+  .logo-mark > span { transform: skewX(12deg); }
 }
 
-/* Championship Bracket Styles */
+/* Championship bracket styles — kept, retuned for new palette */
 .championship-bracket-container {
-  @apply bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-xl border border-primary/20;
+  background: linear-gradient(135deg, hsl(228 13% 9%), hsl(230 13% 5%));
+  border: 1px solid hsl(var(--primary) / 0.25);
+  border-radius: var(--radius);
 }
-
 .championship-header {
-  @apply bg-slate-800/50 border-b border-primary/20 rounded-t-xl;
+  background: hsl(228 13% 11% / 0.5);
+  border-bottom: 1px solid hsl(var(--primary) / 0.25);
+  border-top-left-radius: var(--radius);
+  border-top-right-radius: var(--radius);
 }
-
 .championship-bracket-viewport {
-  @apply bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900;
-  background-image: 
-    radial-gradient(circle at 20% 50%, hsl(var(--primary) / 0.05) 0%, transparent 50%),
-    radial-gradient(circle at 80% 50%, hsl(var(--primary) / 0.05) 0%, transparent 50%);
+  background: hsl(230 13% 5%);
 }
-
 .championship-round-label {
-  @apply inline-block px-4 py-1.5 text-sm font-bold tracking-wider text-primary bg-primary/10 border border-primary/30 rounded-full;
+  display: inline-block;
+  padding: 0.375rem 1rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: hsl(var(--primary));
+  background: hsl(var(--primary) / 0.1);
+  border: 1px solid hsl(var(--primary) / 0.3);
+  border-radius: 9999px;
 }
-
 .championship-final-label {
-  @apply text-lg px-6 py-2 bg-primary/20 border-primary/50 text-primary;
-  text-shadow: 0 0 10px hsl(var(--primary) / 0.5);
+  font-size: 0.875rem;
+  background: hsl(var(--primary) / 0.2);
+  border-color: hsl(var(--primary) / 0.5);
 }
-
 .championship-match-card {
-  @apply relative p-4 rounded-lg;
-  background: linear-gradient(135deg, hsl(var(--primary) / 0.1) 0%, hsl(220 15% 15%) 100%);
-  border: 2px solid hsl(var(--primary) / 0.3);
-  box-shadow: 0 4px 20px hsl(var(--primary) / 0.15);
-  transform: skewX(-2deg);
+  position: relative;
+  padding: 1rem;
+  border-radius: 0.75rem;
+  background: linear-gradient(135deg, hsl(var(--primary) / 0.08), hsl(228 13% 9%));
+  border: 1px solid hsl(var(--primary) / 0.25);
+  box-shadow: 0 4px 18px hsl(0 0% 0% / 0.4);
 }
-
-.championship-match-card > * {
-  transform: skewX(2deg);
-}
-
-.championship-final-match {
-  @apply border-primary/60;
-  box-shadow: 0 0 30px hsl(var(--primary) / 0.3);
-}
-
-.championship-match-header {
-  @apply flex justify-between items-center mb-3 pb-2 border-b border-primary/20;
-}
-
-.championship-team-box {
-  @apply p-3 rounded-md transition-all duration-200;
-  background: linear-gradient(135deg, hsl(220 20% 18%) 0%, hsl(220 15% 12%) 100%);
-  border: 1px solid hsl(var(--primary) / 0.2);
-}
-
-.championship-team-box:hover {
-  border-color: hsl(var(--primary) / 0.4);
-}
-
-.championship-team-winner {
-  @apply border-primary;
-  background: linear-gradient(135deg, hsl(var(--primary) / 0.3) 0%, hsl(220 15% 15%) 100%);
-  box-shadow: 0 0 15px hsl(var(--primary) / 0.3);
-}
-
-.championship-team-content {
-  @apply flex justify-between items-center gap-2;
-}
-
-.championship-team-name {
-  @apply text-sm font-bold text-white truncate;
-}
-
-.championship-team-score {
-  @apply text-lg font-bold text-primary min-w-[2rem] text-right;
-}
-
-.championship-vs {
-  @apply text-center text-xs font-bold text-primary/60 py-1;
-}
-
-.championship-action-btn {
-  @apply border-primary/30 text-primary hover:bg-primary/10 hover:border-primary/50;
-}
-
-.championship-champion-display {
-  @apply flex flex-col items-center justify-center p-6 rounded-xl text-center;
-  background: linear-gradient(135deg, hsl(var(--primary) / 0.2) 0%, hsl(220 15% 12%) 100%);
-  border: 2px solid hsl(var(--primary) / 0.5);
-  box-shadow: 0 0 40px hsl(var(--primary) / 0.3);
-}
-
-.championship-bracket-empty {
-  @apply bg-slate-900 rounded-xl border border-primary/20;
-}
+.championship-final-match { border-color: hsl(var(--primary) / 0.6); box-shadow: 0 0 30px hsl(var(--primary) / 0.25); }
+.championship-match-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; padding-bottom: 0.5rem; border-bottom: 1px solid hsl(var(--primary) / 0.2); }
+.championship-team-box { padding: 0.75rem; border-radius: 0.5rem; background: hsl(228 13% 11%); border: 1px solid hsl(var(--primary) / 0.18); transition: border-color 0.2s; }
+.championship-team-box:hover { border-color: hsl(var(--primary) / 0.4); }
+.championship-team-winner { background: linear-gradient(135deg, hsl(var(--primary) / 0.25), hsl(228 13% 11%)); border-color: hsl(var(--primary)); }
+.championship-team-content { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; }
+.championship-team-name { font-size: 0.875rem; font-weight: 700; color: hsl(0 0% 96%); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.championship-team-score { font-size: 1.125rem; font-weight: 700; color: hsl(var(--primary)); min-width: 2rem; text-align: right; }
+.championship-vs { text-align: center; font-size: 0.75rem; font-weight: 700; color: hsl(var(--primary) / 0.7); padding: 0.25rem 0; }
+.championship-action-btn { border-color: hsl(var(--primary) / 0.3); color: hsl(var(--primary)); }
+.championship-action-btn:hover { background: hsl(var(--primary) / 0.1); border-color: hsl(var(--primary) / 0.5); }
+.championship-champion-display { display: flex; flex-direction: column; align-items: center; padding: 1.5rem; text-align: center; border-radius: 0.75rem; background: linear-gradient(135deg, hsl(var(--primary) / 0.2), hsl(228 13% 11%)); border: 2px solid hsl(var(--primary) / 0.5); box-shadow: 0 0 40px hsl(var(--primary) / 0.3); }
+.championship-bracket-empty { background: hsl(228 13% 9%); border: 1px solid hsl(var(--primary) / 0.2); border-radius: var(--radius); }
 
 @keyframes fade-in {
-  0% {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  0% { opacity: 0; transform: translateY(8px); }
+  100% { opacity: 1; transform: translateY(0); }
 }
-
 @keyframes scale-in {
-  0% {
-    transform: scale(0.95);
-    opacity: 0;
-  }
-  100% {
-    transform: scale(1);
-    opacity: 1;
-  }
+  0% { transform: scale(0.96); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
 }
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+.animate-pulse-dot { animation: pulse-dot 1.6s ease-in-out infinite; }
