@@ -332,6 +332,154 @@ setTournaments(tournamentsWithDistance);
 
   const getProgressColor = (fillPercentage: number) => {
     if (fillPercentage >= 90) return 'bg-destructive';
+    if (fillPercentage >= 70) return 'bg-primary';
+    return 'bg-accent';
+  };
+
+  const requestLocation = () => {
+    checkAndRequestLocation(true);
+  };
+
+  const handleManualSubmit = async () => {
+    if (!manualQuery.trim()) return;
+    setManualLoading(true);
+    try {
+      const coords = await geocodeLocation(manualQuery.trim());
+      if (!coords) {
+        toast({ title: 'Not found', description: 'Could not find that place. Try a different city or ZIP.', variant: 'default' });
+      } else {
+        setUserLocation(coords);
+        localStorage.setItem('userLocation', JSON.stringify({ ...coords, ts: Date.now(), source: 'manual', query: manualQuery.trim() }));
+        setLocationPermission('manual');
+        toast({ title: 'Location set', description: 'Sorting by distance from your chosen location.', variant: 'default' });
+        fetchTournaments();
+      }
+    } finally {
+      setManualLoading(false);
+    }
+  };
+
+  // Apply ?q= from URL once on mount
+  useEffect(() => {
+    const q = searchParams.get('q');
+    if (q && !manualQuery) {
+      setManualQuery(q);
+    }
+  }, [searchParams]);
+
+  return (
+    <div className="max-w-7xl mx-auto px-4 md:px-6 py-8 md:py-12">
+      {/* Header */}
+      <div className="mb-8 md:mb-10">
+        <h1 className="font-display font-extrabold text-4xl md:text-5xl tracking-tighter mb-2">
+          {showMyTournaments ? 'My tournaments' : 'Browse tournaments'}
+        </h1>
+        <p className="text-muted-foreground">
+          {showMyTournaments
+            ? `${filteredTournaments.length} of ${tournaments.length} tournaments you've created`
+            : userLocation
+            ? `${filteredTournaments.length} tournaments sorted by distance`
+            : `${filteredTournaments.length} tournaments available`}
+        </p>
+      </div>
+
+      {/* Filter bar */}
+      <div className="bg-surface-raised border border-white/5 rounded-2xl p-3 md:p-4 mb-6 flex flex-col lg:flex-row gap-3 items-stretch lg:items-center">
+        <div className="flex items-center gap-2 px-3 py-2 bg-background rounded-xl flex-1 min-w-0">
+          <MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
+          <Input
+            placeholder="City or ZIP"
+            value={manualQuery}
+            onChange={(e) => setManualQuery(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleManualSubmit()}
+            className="border-0 bg-transparent p-0 h-auto focus-visible:ring-0 text-sm"
+          />
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={handleManualSubmit}
+            disabled={!manualQuery.trim() || manualLoading}
+            className="text-xs font-semibold"
+          >
+            {manualLoading ? '...' : 'Set'}
+          </Button>
+        </div>
+        <SkillLevelFilter
+          selectedLevels={selectedSkillLevels}
+          onLevelsChange={setSelectedSkillLevels}
+        />
+        {locationPermission !== 'granted' && (
+          <Button
+            onClick={requestLocation}
+            variant="outline"
+            size="sm"
+            className="rounded-full"
+            title={isIframe ? 'Preview may block geolocation' : undefined}
+          >
+            <Navigation className="h-3.5 w-3.5 mr-1.5" />
+            Use my location
+          </Button>
+        )}
+      </div>
+
+      {/* Status tabs */}
+      <Tabs value={statusFilter} onValueChange={(v) => setStatusFilter(v as StatusFilter)} className="w-full mb-6">
+        <TabsList className="bg-surface-raised border border-white/5 grid grid-cols-4 w-full md:w-auto md:inline-flex">
+          <TabsTrigger value="all" className="text-xs md:text-sm">All</TabsTrigger>
+          <TabsTrigger value="upcoming" className="text-xs md:text-sm">Upcoming</TabsTrigger>
+          <TabsTrigger value="active" className="text-xs md:text-sm">Active</TabsTrigger>
+          <TabsTrigger value="past" className="text-xs md:text-sm">Past</TabsTrigger>
+        </TabsList>
+      </Tabs>
+
+      {/* Grid */}
+      {loading ? (
+        <div className="grid gap-4 md:gap-5 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+          {[...Array(6)].map((_, i) => (
+            <div key={i} className="bg-surface-raised border border-white/5 rounded-2xl h-64 animate-pulse" />
+          ))}
+        </div>
+      ) : filteredTournaments.length > 0 ? (
+        <div className="grid gap-4 md:gap-5 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+          {filteredTournaments.map((t) => (
+            <TournamentCard key={t.id} tournament={t as any} />
+          ))}
+        </div>
+      ) : tournaments.length > 0 ? (
+        <div className="bg-surface-raised border border-white/5 rounded-2xl p-12 text-center">
+          <Filter className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+          <p className="text-muted-foreground mb-6">No tournaments match your filters.</p>
+          <Button
+            variant="outline"
+            onClick={() => {
+              setSelectedSkillLevels([]);
+              setStatusFilter('all');
+            }}
+          >
+            Clear filters
+          </Button>
+        </div>
+      ) : (
+        <div className="bg-surface-raised border border-white/5 rounded-2xl p-12 text-center">
+          <Trophy className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+          <p className="text-muted-foreground mb-6">
+            {showMyTournaments
+              ? "You haven't created any tournaments yet."
+              : 'No tournaments available right now.'}
+          </p>
+          <Link to={user ? '/create-tournament' : '/host'}>
+            <Button className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-full">
+              {showMyTournaments ? 'Create your first tournament' : 'Host a tournament'}
+            </Button>
+          </Link>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default Tournaments;
+    if (fillPercentage >= 90) return 'bg-destructive';
     if (fillPercentage >= 70) return 'bg-volleyball-yellow';
     return 'bg-primary';
   };
