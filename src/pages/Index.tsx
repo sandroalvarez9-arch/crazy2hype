@@ -103,9 +103,7 @@ const Index = () => {
           <h1 className="font-display font-extrabold text-5xl md:text-7xl lg:text-8xl tracking-tighter leading-[0.95] text-balance max-w-4xl">
             Find your court.
             <br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-orange-400">
-              Own the rally.
-            </span>
+            <span className="text-primary">Own the rally.</span>
           </h1>
           <p className="mt-6 text-lg md:text-xl text-muted-foreground max-w-xl">
             Browse upcoming volleyball tournaments near you, register your team in minutes, and

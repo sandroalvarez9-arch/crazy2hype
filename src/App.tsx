@@ -19,6 +19,8 @@ import StripeConnectCallback from "./pages/StripeConnectCallback";
 import Profile from "./pages/Profile";
 import TournamentPublicView from "./pages/TournamentPublicView";
 import TeamProfile from "./pages/TeamProfile";
+import HowItWorks from "./pages/HowItWorks";
+import Host from "./pages/Host";
 
 const queryClient = new QueryClient();
 
@@ -84,6 +86,16 @@ const App = () => (
             <Route path="/tournaments" element={
               <Layout>
                 <Tournaments />
+              </Layout>
+            } />
+            <Route path="/how-it-works" element={
+              <Layout>
+                <HowItWorks />
+              </Layout>
+            } />
+            <Route path="/host" element={
+              <Layout>
+                <Host />
               </Layout>
             } />
             <Route path="/my-tournaments" element={
