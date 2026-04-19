@@ -318,8 +318,6 @@ setTournaments(tournamentsWithDistance);
     }
   };
 
-  };
-
   const getProgressColor = (fillPercentage: number) => {
     if (fillPercentage >= 90) return 'bg-destructive';
     if (fillPercentage >= 70) return 'bg-primary';
