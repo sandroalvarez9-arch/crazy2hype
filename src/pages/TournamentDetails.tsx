@@ -686,7 +686,7 @@ const TournamentDetails = () => {
         </Card>
 
         {/* Prominent Registration CTA */}
-        {canRegister && !isOrganizer && (
+        {canRegister && (
           <Card className="shadow-card border-primary/20 bg-primary/5 animate-scale-in">
             <CardContent className="py-4 px-4 md:px-6">
               <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
