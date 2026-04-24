@@ -809,7 +809,7 @@ const TournamentDetails = () => {
         <TabsContent value="teams" className="space-y-6">
           <div className="flex justify-between items-center">
             <h3 className="text-lg font-semibold">Registered Teams</h3>
-            {canRegister && profile?.role === 'player' && (
+            {canRegister && !isOrganizer && (
               <Button 
                 size="sm" 
                 className="gradient-primary hover:opacity-90 transition-opacity"
