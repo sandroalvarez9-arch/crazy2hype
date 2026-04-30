@@ -239,7 +239,9 @@ export function PoolPlayManager({ tournament, teams, onBracketsGenerated }: Pool
         court_number: match.court_number,
         scheduled_time: match.scheduled_time,
         tournament_phase: 'pool_play',
-        status: 'scheduled'
+        status: 'scheduled',
+        division: match.division || 'open',
+        skill_level: match.skill_level || 'open'
       }));
 
       const { error: matchError } = await supabase

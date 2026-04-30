@@ -8,6 +8,7 @@ import LoadingSkeleton, { EmptyState } from '@/components/LoadingSkeleton';
 import { Trophy, ArrowRight, Search, MapPin, Calendar, Sparkles } from 'lucide-react';
 import { useAsync } from '@/hooks/useAsync';
 import TournamentCard from '@/components/TournamentCard';
+import { shouldShowOnPublicTournamentLists } from '@/utils/publicTournamentFilters';
 
 interface Tournament {
   id: string;
@@ -38,8 +39,11 @@ const Index = () => {
       const { data, error } = await supabase.rpc('get_public_tournaments');
       if (error) throw error;
 
-      const upcoming = (data || [])
-        .filter((t: any) => new Date(t.end_date) >= new Date())
+      const cleanedPublicTournaments = (data || []).filter((t: any) =>
+        shouldShowOnPublicTournamentLists(t)
+      );
+
+      const upcoming = cleanedPublicTournaments
         .sort((a: any, b: any) => new Date(a.start_date).getTime() - new Date(b.start_date).getTime())
         .slice(0, 6);
 
@@ -63,7 +67,7 @@ const Index = () => {
       }));
       setTournaments(decorated);
 
-      const live = (data || []).filter((t: any) => t.status === 'in_progress').length;
+      const live = cleanedPublicTournaments.filter((t: any) => t.status === 'in_progress').length;
       const openSpots = decorated.reduce(
         (sum, t) => sum + Math.max(0, (t.max_teams || 0) - (teamMap[t.id] || 0)),
         0
@@ -71,7 +75,7 @@ const Index = () => {
       setStats({
         live,
         openSpots,
-        hosts: new Set((data || []).map((t: any) => t.organizer_id || t.id)).size,
+        hosts: new Set(cleanedPublicTournaments.map((t: any) => t.organizer_id || t.id)).size,
       });
 
       return decorated;

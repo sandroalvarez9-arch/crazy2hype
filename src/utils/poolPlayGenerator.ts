@@ -12,6 +12,8 @@ interface Match {
   pool_name: string;
   court_number: number;
   scheduled_time: string;
+  division?: string;
+  skill_level?: string;
 }
 
 interface Pool {
@@ -200,6 +202,8 @@ export function generateRoundRobinMatches(pool: Pool): Match[] {
   // Convert rounds to matches
   rounds.forEach(roundMatches => {
     roundMatches.forEach(roundMatch => {
+      const [division = 'open', skillLevel = 'open'] = pool.name.split('-', 2);
+
       matches.push({
         team1_id: roundMatch.team1.id,
         team2_id: roundMatch.team2.id,
@@ -209,6 +213,8 @@ export function generateRoundRobinMatches(pool: Pool): Match[] {
         pool_name: pool.name,
         court_number: 1, // Will be assigned later
         scheduled_time: '', // Will be assigned later
+        division,
+        skill_level: skillLevel,
       });
     });
   });

@@ -11,6 +11,7 @@ import { SkillLevel } from '@/utils/skillLevels';
 import SkillLevelFilter from '@/components/SkillLevelFilter';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import TournamentCard from '@/components/TournamentCard';
+import { shouldShowOnPublicTournamentLists } from '@/utils/publicTournamentFilters';
 
 interface Tournament {
   id: string;
@@ -215,10 +216,9 @@ useEffect(() => {
           teamCounts.set(t.tournament_id, (teamCounts.get(t.tournament_id) || 0) + 1);
         });
         
-        // Filter to only show open tournaments that haven't ended
-        const today = new Date().toISOString().split('T')[0];
+        // Filter public lists down to real, still-relevant tournaments
         data = (result.data || [])
-          .filter((t: any) => t.status === 'open' && t.end_date >= today)
+          .filter((t: any) => t.status === 'open' && shouldShowOnPublicTournamentLists(t))
           .map((t: any) => ({
             ...t,
             teams: [{ count: teamCounts.get(t.id) || 0 }]

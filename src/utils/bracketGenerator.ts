@@ -55,7 +55,11 @@ export async function generatePlayoffBrackets(
     if (teamsError) throw teamsError;
 
     const teamLookup = (teams || []).reduce((acc, team) => {
-      acc[team.id] = { name: team.name, skill_level: team.skill_level, division: team.division };
+      acc[team.id] = {
+        name: team.name,
+        skill_level: team.skill_level || 'open',
+        division: team.division || 'open'
+      };
       return acc;
     }, {} as Record<string, { name: string; skill_level: string; division: string }>);
 
@@ -77,7 +81,11 @@ export async function generatePlayoffBrackets(
       .eq('check_in_status', 'checked_in');
 
     const allTeamLookup = (allTeams || []).reduce((acc, team) => {
-      acc[team.id] = { name: team.name, skill_level: team.skill_level, division: team.division };
+      acc[team.id] = {
+        name: team.name,
+        skill_level: team.skill_level || 'open',
+        division: team.division || 'open'
+      };
       return acc;
     }, {} as Record<string, { name: string; skill_level: string; division: string }>);
 
