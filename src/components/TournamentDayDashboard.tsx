@@ -15,7 +15,7 @@ import BracketVisualization from './BracketVisualization';
 import ChampionshipBracketView from './ChampionshipBracketView';
 import { format } from "date-fns";
 import { Trophy, Clock, Users, Play, Pause, CheckCircle, Target } from "lucide-react";
-import { checkPoolCompletion } from "@/utils/poolCompletionDetector";
+import { checkPoolCompletion, type PoolCompletionStatus, type PoolStats } from "@/utils/poolCompletionDetector";
 import { generatePlayoffBrackets } from "@/utils/bracketGenerator";
 
 interface Match {
@@ -37,7 +37,7 @@ interface Match {
   winner_id: string | null;
   team1_score: number | null;
   team2_score: number | null;
-  set_scores: any;
+  set_scores: unknown;
   current_set: number | null;
   completed_at: string | null;
   referee_team_id: string | null;
@@ -75,7 +75,7 @@ export function TournamentDayDashboard({ tournament, teams }: TournamentDayDashb
   const [selectedPool, setSelectedPool] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [showAdvancementDialog, setShowAdvancementDialog] = useState(false);
-  const [poolCompletion, setPoolCompletion] = useState<any>(null);
+  const [poolCompletion, setPoolCompletion] = useState<PoolCompletionStatus | null>(null);
   const [generatingBrackets, setGeneratingBrackets] = useState(false);
   const [playoffBracketsExist, setPlayoffBracketsExist] = useState(false);
   const [selectedBracketCategory, setSelectedBracketCategory] = useState<string | null>(null);
@@ -203,22 +203,17 @@ export function TournamentDayDashboard({ tournament, teams }: TournamentDayDashb
 
       setMatches(formattedMatches);
       
-      // Check if playoff brackets exist with actual teams assigned
-      const hasPlayoffsWithTeams = formattedMatches.some(m => 
-        (m.tournament_phase === 'playoffs' || m.tournament_phase === 'bracket') && 
-        m.team1_id && m.team2_id
+      // Any playoff/bracket match means brackets exist, even if some slots are still TBD.
+      const hasPlayoffMatches = formattedMatches.some(
+        (m) => m.tournament_phase === 'playoffs' || m.tournament_phase === 'bracket'
       );
       console.log('DEBUG: Playoff bracket check:', { 
-        hasPlayoffsWithTeams, 
+        hasPlayoffMatches, 
         totalMatches: formattedMatches.length, 
         playoffMatches: formattedMatches.filter(m => m.tournament_phase === 'playoffs' || m.tournament_phase === 'bracket'),
-        playoffMatchesWithTeams: formattedMatches.filter(m => 
-          (m.tournament_phase === 'playoffs' || m.tournament_phase === 'bracket') && 
-          m.team1_id && m.team2_id
-        ),
         allPhases: [...new Set(formattedMatches.map(m => m.tournament_phase))]
       });
-      setPlayoffBracketsExist(hasPlayoffsWithTeams);
+      setPlayoffBracketsExist(hasPlayoffMatches);
       
     } catch (error) {
       console.error('Error fetching matches:', error);
@@ -990,7 +985,7 @@ export function TournamentDayDashboard({ tournament, teams }: TournamentDayDashb
         <AdvancementConfigurationDialog
           open={showAdvancementDialog}
           onOpenChange={setShowAdvancementDialog}
-          poolStats={poolCompletion.poolStats.map((pool: any) => ({
+          poolStats={poolCompletion.poolStats.map((pool: PoolStats) => ({
             poolName: pool.poolName,
             standings: pool.standings
           }))}

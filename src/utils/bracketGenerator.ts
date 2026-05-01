@@ -12,6 +12,15 @@ interface TeamStanding {
   winPercentage: number;
 }
 
+interface PoolMatch {
+  pool_name: string | null;
+  status: string;
+  team1_id: string | null;
+  team2_id: string | null;
+  sets_won_team1: number | null;
+  sets_won_team2: number | null;
+}
+
 interface BracketMatch {
   tournament_id: string;
   round_number: number;
@@ -23,9 +32,11 @@ interface BracketMatch {
   court_number: number;
   tournament_phase: 'playoffs';
   bracket_position: string;
-  status: 'scheduled';
+  status: 'scheduled' | 'completed';
   division?: string;
   skill_level?: string;
+  winner_id?: string | null;
+  completed_at?: string | null;
 }
 
 export async function generatePlayoffBrackets(
@@ -90,7 +101,7 @@ export async function generatePlayoffBrackets(
     }, {} as Record<string, { name: string; skill_level: string; division: string }>);
 
     // Generate bracket matches for each category
-    let allBracketMatches: BracketMatch[] = [];
+    const allBracketMatches: BracketMatch[] = [];
     const bracketSummary: Array<{ category: string; matches: number; teams: number }> = [];
 
     for (const [category, advancingTeams] of Object.entries(advancingTeamsByCategory)) {
@@ -162,13 +173,13 @@ export async function generatePlayoffBrackets(
   }
 }
 
-function calculateAllPoolStandings(matches: any[], teamLookup: Record<string, { name: string; skill_level: string; division: string }>): Record<string, TeamStanding[]> {
-  const poolGroups = matches.reduce((acc, match) => {
+function calculateAllPoolStandings(matches: PoolMatch[], teamLookup: Record<string, { name: string; skill_level: string; division: string }>): Record<string, TeamStanding[]> {
+  const poolGroups = matches.reduce<Record<string, PoolMatch[]>>((acc, match) => {
     const poolName = match.pool_name || 'Pool';
     if (!acc[poolName]) acc[poolName] = [];
     acc[poolName].push(match);
     return acc;
-  }, {} as Record<string, any[]>);
+  }, {});
 
   const poolStandings: Record<string, TeamStanding[]> = {};
 
@@ -176,8 +187,8 @@ function calculateAllPoolStandings(matches: any[], teamLookup: Record<string, { 
     const teamStats: Record<string, Omit<TeamStanding, 'teamName' | 'poolName' | 'winPercentage' | 'setsDifferential'>> = {};
 
     // Initialize team stats
-    (poolMatches as any[]).forEach(match => {
-      [match.team1_id, match.team2_id].forEach(teamId => {
+    poolMatches.forEach((match) => {
+      [match.team1_id, match.team2_id].forEach((teamId) => {
         if (teamId && !teamStats[teamId]) {
           teamStats[teamId] = {
             teamId,
@@ -191,7 +202,7 @@ function calculateAllPoolStandings(matches: any[], teamLookup: Record<string, { 
     });
 
     // Calculate stats from completed matches
-    (poolMatches as any[]).forEach(match => {
+    poolMatches.forEach((match) => {
       if (match.status === 'completed' && match.team1_id && match.team2_id) {
         const team1Stats = teamStats[match.team1_id];
         const team2Stats = teamStats[match.team2_id];
@@ -301,6 +312,10 @@ function generateBracketMatchesForCategory(
   skillLevel: string
 ): BracketMatch[] {
   const numTeams = advancingTeams.length;
+
+  if (numTeams < 2) {
+    return [];
+  }
   
   // Find the next power of 2 that fits all teams
   const bracketSize = Math.pow(2, Math.ceil(Math.log2(numTeams)));
@@ -327,19 +342,23 @@ function generateBracketMatchesForCategory(
         tournament_id: tournamentId,
         round_number: round,
         match_number: matchNum,
-        team1_id: null, // Will be filled when previous round completes
+        team1_id: null,
         team2_id: null,
-        referee_team_id: null, // Will be assigned based on previous round losers
-        scheduled_time: null, // Will be scheduled when teams are determined
-        court_number: 1, // Default court, can be updated
+        referee_team_id: null,
+        scheduled_time: null,
+        court_number: 1,
         tournament_phase: 'playoffs',
         bracket_position: bracketPosition,
         status: 'scheduled',
-        division: division,
-        skill_level: skillLevel
+        division,
+        skill_level: skillLevel,
+        winner_id: null,
+        completed_at: null,
       });
     }
   }
+
+  autoAdvanceByeTeams(matches);
 
   return matches;
 }
@@ -348,12 +367,14 @@ function generateFirstRoundMatchesForCategory(teams: TeamStanding[], bracketSize
   const matches: BracketMatch[] = [];
   const numFirstRoundMatches = bracketSize / 2;
   
-  // Create seeded matchups (1 vs lowest seed, 2 vs 2nd lowest, etc.)
+  // Standard single-elimination seeding against the full bracket size:
+  // match 1 = seed 1 vs seed N, match 2 = seed 2 vs seed N-1, etc.
   for (let i = 0; i < numFirstRoundMatches; i++) {
-    const higherSeed = teams[i] || null;
-    const lowerSeed = teams[teams.length - 1 - i] || null;
+    const highSeedNumber = i + 1;
+    const lowSeedNumber = bracketSize - i;
+    const higherSeed = highSeedNumber <= teams.length ? teams[highSeedNumber - 1] : null;
+    const lowerSeed = lowSeedNumber <= teams.length ? teams[lowSeedNumber - 1] : null;
     
-    // Only create match if we have at least one team
     if (higherSeed || lowerSeed) {
       matches.push({
         tournament_id: tournamentId,
@@ -361,14 +382,16 @@ function generateFirstRoundMatchesForCategory(teams: TeamStanding[], bracketSize
         match_number: i + 1,
         team1_id: higherSeed?.teamId || null,
         team2_id: lowerSeed?.teamId || null,
-        referee_team_id: refereeTeamId, // 3rd place team refs first round
-        scheduled_time: null, // Will be scheduled
-        court_number: (i % 4) + 1, // Distribute across 4 courts
+        referee_team_id: higherSeed && lowerSeed ? refereeTeamId : null,
+        scheduled_time: null,
+        court_number: (i % 4) + 1,
         tournament_phase: 'playoffs',
         bracket_position: `${division} ${skillLevel.toUpperCase()} - Round 1 - Match ${i + 1}`,
         status: 'scheduled',
-        division: division,
-        skill_level: skillLevel
+        division,
+        skill_level: skillLevel,
+        winner_id: null,
+        completed_at: null,
       });
     }
   }
@@ -423,6 +446,42 @@ function findThirdPlaceTeamForCategory(
   // Find the first team that didn't advance (3rd place in this category)
   const advancingTeamIds = new Set(advancingTeams.map(team => team.teamId));
   return categoryTeams.find(team => !advancingTeamIds.has(team.teamId)) || null;
+}
+
+function autoAdvanceByeTeams(matches: BracketMatch[]) {
+  const matchLookup = new Map(matches.map((match) => [`${match.round_number}-${match.match_number}`, match]));
+  const orderedMatches = [...matches].sort((a, b) => a.round_number - b.round_number || a.match_number - b.match_number);
+
+  orderedMatches.forEach((match) => {
+    const hasTeam1 = Boolean(match.team1_id);
+    const hasTeam2 = Boolean(match.team2_id);
+
+    if (hasTeam1 === hasTeam2) {
+      return;
+    }
+
+    const winnerId = match.team1_id || match.team2_id;
+    if (!winnerId) {
+      return;
+    }
+
+    match.status = 'completed';
+    match.winner_id = winnerId;
+    match.completed_at = new Date().toISOString();
+
+    const nextRoundKey = `${match.round_number + 1}-${Math.ceil(match.match_number / 2)}`;
+    const nextRoundMatch = matchLookup.get(nextRoundKey);
+
+    if (!nextRoundMatch) {
+      return;
+    }
+
+    if (match.match_number % 2 === 1) {
+      nextRoundMatch.team1_id = winnerId;
+    } else {
+      nextRoundMatch.team2_id = winnerId;
+    }
+  });
 }
 
 function getBracketPositionName(round: number, matchNumber: number, totalRounds: number, division?: string, skillLevel?: string): string {

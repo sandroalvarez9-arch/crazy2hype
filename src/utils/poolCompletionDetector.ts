@@ -1,6 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 
-interface PoolStats {
+export interface PoolStats {
   poolName: string;
   totalMatches: number;
   completedMatches: number;
@@ -8,7 +8,7 @@ interface PoolStats {
   standings: TeamStanding[];
 }
 
-interface TeamStanding {
+export interface TeamStanding {
   teamId: string;
   teamName: string;
   wins: number;
@@ -19,7 +19,16 @@ interface TeamStanding {
   winPercentage: number;
 }
 
-interface PoolCompletionStatus {
+interface PoolMatch {
+  pool_name: string | null;
+  status: string;
+  team1_id: string | null;
+  team2_id: string | null;
+  sets_won_team1: number | null;
+  sets_won_team2: number | null;
+}
+
+export interface PoolCompletionStatus {
   allPoolsComplete: boolean;
   totalPools: number;
   completedPools: number;
@@ -63,12 +72,12 @@ export async function checkPoolCompletion(tournamentId: string): Promise<PoolCom
     }
 
     // Group matches by pool
-    const poolGroups = matches.reduce((acc, match) => {
+    const poolGroups = (matches as PoolMatch[]).reduce<Record<string, PoolMatch[]>>((acc, match) => {
       const poolName = match.pool_name || 'Pool';
       if (!acc[poolName]) acc[poolName] = [];
       acc[poolName].push(match);
       return acc;
-    }, {} as Record<string, any[]>);
+    }, {});
 
     // Calculate stats for each pool
     const poolStats: PoolStats[] = Object.entries(poolGroups).map(([poolName, poolMatches]) => {
@@ -110,7 +119,7 @@ export async function checkPoolCompletion(tournamentId: string): Promise<PoolCom
   }
 }
 
-function calculatePoolStandings(matches: any[], teamLookup: Record<string, string>): TeamStanding[] {
+function calculatePoolStandings(matches: PoolMatch[], teamLookup: Record<string, string>): TeamStanding[] {
   const teamStats: Record<string, Omit<TeamStanding, 'teamName' | 'winPercentage' | 'setsDifferential'>> = {};
 
   // Initialize team stats
