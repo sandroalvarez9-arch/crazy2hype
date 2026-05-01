@@ -41,7 +41,7 @@ export default function EmailPlayersDialog({ tournamentId, defaultSubject }: Ema
 
       let playerEmails: string[] = [];
       if (teamIds.length > 0) {
-        // Fetch player emails from secure player_contacts table
+        // Prefer secure player_contacts rows, but fall back to legacy players.email data.
         const { data: playerContacts } = await supabase
           .from("player_contacts")
           .select(`
@@ -51,9 +51,20 @@ export default function EmailPlayersDialog({ tournamentId, defaultSubject }: Ema
           `)
           .in("players.team_id", teamIds);
 
-        playerEmails = (playerContacts || [])
+        const contactEmails = (playerContacts || [])
           .map(pc => pc.email)
           .filter((e): e is string => !!e && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e));
+
+        const { data: legacyPlayers } = await supabase
+          .from("players")
+          .select("email, team_id")
+          .in("team_id", teamIds);
+
+        const legacyEmails = (legacyPlayers || [])
+          .map((player) => player.email)
+          .filter((e): e is string => !!e && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e));
+
+        playerEmails = [...contactEmails, ...legacyEmails];
       }
 
       const unique = new Set([...teamEmails, ...playerEmails]);
@@ -106,11 +117,11 @@ export default function EmailPlayersDialog({ tournamentId, defaultSubject }: Ema
       setOpen(false);
       setMessage("");
       setSubject(defaultSubject || "");
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error("[EmailPlayersDialog] Failed to send bulk email:", e);
       toast({
         title: "Failed to send emails",
-        description: "Please check your sending domain and try again.",
+        description: e instanceof Error ? e.message : "Please check your sending domain and try again.",
         variant: "destructive",
       });
     } finally {

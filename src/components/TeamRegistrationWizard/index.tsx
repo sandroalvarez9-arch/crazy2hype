@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -64,9 +64,9 @@ export function TeamRegistrationWizard(props: TeamRegistrationWizardProps) {
 
   useEffect(() => {
     if (props.isOpen && props.tournamentSkillLevels) {
-      fetchTeamCounts();
+      void fetchTeamCounts();
     }
-  }, [props.isOpen, props.tournamentId, props.tournamentSkillLevels]);
+  }, [fetchTeamCounts, props.isOpen, props.tournamentSkillLevels]);
 
   useEffect(() => {
     if (props.isOpen && props.tournamentSkillLevels?.length === 1 && !formData.skillLevel) {
@@ -74,7 +74,7 @@ export function TeamRegistrationWizard(props: TeamRegistrationWizardProps) {
     }
   }, [props.isOpen, props.tournamentSkillLevels, formData.skillLevel]);
 
-  const fetchTeamCounts = async () => {
+  const fetchTeamCounts = useCallback(async () => {
     if (!props.tournamentSkillLevels) return;
 
     try {
@@ -95,7 +95,7 @@ export function TeamRegistrationWizard(props: TeamRegistrationWizardProps) {
     } catch (error) {
       console.error('Error fetching team counts:', error);
     }
-  };
+  }, [props.tournamentId, props.tournamentSkillLevels]);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -179,21 +179,40 @@ export function TeamRegistrationWizard(props: TeamRegistrationWizardProps) {
 
       if (teamError) throw teamError;
 
-      // Create players with contact info
+      // Create players first, then persist contact info in the secure contacts table
       const playersWithNames = players.filter((p) => p.name.trim());
       if (playersWithNames.length > 0) {
-        const { error: playersError } = await supabase.from('players').insert(
-          playersWithNames.map((player) => ({
-            team_id: team.id,
-            name: player.name.trim(),
-            email: player.email.trim() || null,
-            phone: player.phone.trim() || null,
-            position: player.position.trim() || null,
-            jersey_number: player.jerseyNumber.trim() ? parseInt(player.jerseyNumber) : null,
-          }))
-        );
+        const { data: insertedPlayers, error: playersError } = await supabase
+          .from('players')
+          .insert(
+            playersWithNames.map((player) => ({
+              team_id: team.id,
+              name: player.name.trim(),
+              email: player.email.trim() || null,
+              phone: player.phone.trim() || null,
+              position: player.position.trim() || null,
+              jersey_number: player.jerseyNumber.trim() ? parseInt(player.jerseyNumber, 10) : null,
+            }))
+          )
+          .select('id');
 
         if (playersError) throw playersError;
+
+        const playerContacts = playersWithNames
+          .map((player, index) => ({
+            player_id: insertedPlayers?.[index]?.id,
+            email: player.email.trim() || null,
+            phone: player.phone.trim() || null,
+          }))
+          .filter((contact) => contact.player_id && (contact.email || contact.phone));
+
+        if (playerContacts.length > 0) {
+          const { error: contactsError } = await supabase
+            .from('player_contacts')
+            .insert(playerContacts as Array<{ player_id: string; email: string | null; phone: string | null }>);
+
+          if (contactsError) throw contactsError;
+        }
       }
 
       toast({
@@ -225,11 +244,11 @@ export function TeamRegistrationWizard(props: TeamRegistrationWizardProps) {
       } else {
         props.onSuccess();
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error registering team:', error);
       toast({
         title: 'Error',
-        description: error.message || 'Failed to register team',
+        description: error instanceof Error ? error.message : 'Failed to register team',
         variant: 'destructive',
       });
     } finally {
