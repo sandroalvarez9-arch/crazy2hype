@@ -11,9 +11,10 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Sparkles, Eye, Trophy, Users, Zap } from 'lucide-react';
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { TournamentCreationFormValues } from './types';
 
 interface Step2FormatAndRulesProps {
-  form: UseFormReturn<any>;
+  form: UseFormReturn<TournamentCreationFormValues>;
 }
 
 const divisions = [

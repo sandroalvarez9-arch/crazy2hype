@@ -1,20 +1,23 @@
 import { FormField, FormItem, FormLabel, FormControl, FormDescription, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar } from '@/components/ui/calendar';
-import { Button } from '@/components/ui/button';
-import { CalendarIcon } from 'lucide-react';
-import { format } from 'date-fns';
-import { cn } from '@/lib/utils';
 import { UseFormReturn } from 'react-hook-form';
+import { format } from 'date-fns';
 import { LocationAutocompleteInput } from '@/components/LocationAutocompleteInput';
+import { TournamentCreationFormValues } from './types';
 
 interface Step1BasicInfoProps {
-  form: UseFormReturn<any>;
+  form: UseFormReturn<TournamentCreationFormValues>;
 }
 
+const formatDateForInput = (value?: Date) => {
+  if (!value) return '';
+  return format(value, 'yyyy-MM-dd');
+};
+
 export function Step1BasicInfo({ form }: Step1BasicInfoProps) {
+  const startDate = form.watch('start_date');
+
   return (
     <div className="space-y-6">
       <div className="space-y-4">
@@ -85,33 +88,31 @@ export function Step1BasicInfo({ form }: Step1BasicInfoProps) {
           control={form.control}
           name="start_date"
           render={({ field }) => (
-            <FormItem className="flex flex-col">
+            <FormItem>
               <FormLabel>Start Date *</FormLabel>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <FormControl>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        'min-h-[44px] w-full pl-3 text-left font-normal',
-                        !field.value && 'text-muted-foreground'
-                      )}
-                    >
-                      {field.value ? format(field.value, 'PPP') : 'Pick a date'}
-                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                    </Button>
-                  </FormControl>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={field.value}
-                    onSelect={field.onChange}
-                    disabled={(date) => date < new Date()}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
+              <FormControl>
+                <Input
+                  type="date"
+                  className="min-h-[44px]"
+                  value={formatDateForInput(field.value)}
+                  min={format(new Date(), 'yyyy-MM-dd')}
+                  onChange={(event) => {
+                    const nextValue = event.target.value ? new Date(`${event.target.value}T00:00:00`) : undefined;
+                    field.onChange(nextValue);
+
+                    const currentEndDate = form.getValues('end_date');
+                    if (currentEndDate && nextValue && currentEndDate < nextValue) {
+                      form.setValue('end_date', nextValue, { shouldValidate: true });
+                    }
+
+                    const currentDeadline = form.getValues('registration_deadline');
+                    if (currentDeadline && nextValue && currentDeadline > nextValue) {
+                      form.setValue('registration_deadline', nextValue, { shouldValidate: true });
+                    }
+                  }}
+                />
+              </FormControl>
+              <FormDescription>Choose the first day of the tournament.</FormDescription>
               <FormMessage />
             </FormItem>
           )}
@@ -121,33 +122,21 @@ export function Step1BasicInfo({ form }: Step1BasicInfoProps) {
           control={form.control}
           name="end_date"
           render={({ field }) => (
-            <FormItem className="flex flex-col">
+            <FormItem>
               <FormLabel>End Date *</FormLabel>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <FormControl>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        'min-h-[44px] w-full pl-3 text-left font-normal',
-                        !field.value && 'text-muted-foreground'
-                      )}
-                    >
-                      {field.value ? format(field.value, 'PPP') : 'Pick a date'}
-                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                    </Button>
-                  </FormControl>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={field.value}
-                    onSelect={field.onChange}
-                    disabled={(date) => date < new Date()}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
+              <FormControl>
+                <Input
+                  type="date"
+                  className="min-h-[44px]"
+                  value={formatDateForInput(field.value)}
+                  min={formatDateForInput(startDate || new Date())}
+                  onChange={(event) => {
+                    const nextValue = event.target.value ? new Date(`${event.target.value}T00:00:00`) : undefined;
+                    field.onChange(nextValue);
+                  }}
+                />
+              </FormControl>
+              <FormDescription>For one-day events, use the same date as the start date.</FormDescription>
               <FormMessage />
             </FormItem>
           )}
@@ -157,33 +146,22 @@ export function Step1BasicInfo({ form }: Step1BasicInfoProps) {
           control={form.control}
           name="registration_deadline"
           render={({ field }) => (
-            <FormItem className="flex flex-col">
+            <FormItem>
               <FormLabel>Registration Deadline *</FormLabel>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <FormControl>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        'min-h-[44px] w-full pl-3 text-left font-normal',
-                        !field.value && 'text-muted-foreground'
-                      )}
-                    >
-                      {field.value ? format(field.value, 'PPP') : 'Pick a date'}
-                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                    </Button>
-                  </FormControl>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={field.value}
-                    onSelect={field.onChange}
-                    disabled={(date) => date < new Date()}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
+              <FormControl>
+                <Input
+                  type="date"
+                  className="min-h-[44px]"
+                  value={formatDateForInput(field.value)}
+                  min={format(new Date(), 'yyyy-MM-dd')}
+                  max={formatDateForInput(startDate)}
+                  onChange={(event) => {
+                    const nextValue = event.target.value ? new Date(`${event.target.value}T00:00:00`) : undefined;
+                    field.onChange(nextValue);
+                  }}
+                />
+              </FormControl>
+              <FormDescription>Teams must finish registering by this date.</FormDescription>
               <FormMessage />
             </FormItem>
           )}

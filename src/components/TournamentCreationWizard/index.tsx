@@ -1,8 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -16,51 +15,11 @@ import { Step1BasicInfo } from './Step1BasicInfo';
 import { Step2FormatAndRules } from './Step2FormatAndRules';
 import { Step3Logistics } from './Step3Logistics';
 import { Step4PaymentSetup } from './Step4PaymentSetup';
+import { tournamentCreationFormSchema, type TournamentCreationFormValues } from './types';
 
 const DRAFT_KEY = 'create_tournament_draft';
 const STRIPE_CONNECTED_KEY = 'stripe_connected';
-
-const formSchema = z.object({
-  title: z.string().min(3, 'Tournament title must be at least 3 characters'),
-  description: z.string().optional(),
-  location: z.string().min(2, 'Location is required'),
-  start_date: z.date({ required_error: 'Start date is required' }),
-  end_date: z.date({ required_error: 'End date is required' }),
-  registration_deadline: z.date({ required_error: 'Registration deadline is required' }),
-  first_game_time: z.string().min(1, 'First game time is required'),
-  tournament_format: z.enum(['pool_play', 'single_elimination', 'double_elimination', 'round_robin']),
-  divisions: z.array(z.enum(['men', 'women', 'coed'])).default([]),
-  skill_levels: z.array(z.enum(['open', 'aa', 'a', 'bb', 'b', 'c'])).default([]),
-  skill_levels_by_division: z.record(z.array(z.enum(['open', 'aa', 'a', 'bb', 'b', 'c']))).default({}),
-  estimated_game_duration: z.number().min(15).max(180),
-  warm_up_duration: z.number().min(3).max(10),
-  number_of_courts: z.number().min(1).max(20).optional(),
-  max_teams_per_skill_level: z.record(z.number().min(4).max(64)).default({}),
-  max_teams_per_division_skill: z.record(z.record(z.number().min(4).max(64))).default({}),
-  players_per_team: z.number().min(1).max(20),
-  entry_fee: z.number().min(0),
-  venmo_username: z.string().optional(),
-  paypal_email: z.string().optional(),
-  cashapp_info: z.string().optional(),
-  bank_details: z.string().optional(),
-  other_payment_methods: z.string().optional(),
-  payment_instructions: z.string().optional(),
-  allow_backup_teams: z.boolean().default(true),
-}).refine((data) => {
-  // If no divisions selected, require skill_levels
-  if (data.divisions.length === 0) {
-    return data.skill_levels.length > 0;
-  }
-  // If divisions selected, require skill_levels_by_division for each division
-  return data.divisions.every(div => 
-    data.skill_levels_by_division[div]?.length > 0
-  );
-}, {
-  message: 'Please select skill levels for your tournament',
-  path: ['skill_levels'],
-});
-
-type FormValues = z.infer<typeof formSchema>;
+const dateFieldKeys = ['start_date', 'end_date', 'registration_deadline'] as const;
 
 const steps = ['Basic Info', 'Format & Rules', 'Logistics', 'Payment Setup'];
 
@@ -74,8 +33,8 @@ export function TournamentCreationWizard() {
   const [connectingStripe, setConnectingStripe] = useState(false);
   const [skipStripe, setSkipStripe] = useState(false);
 
-  const form = useForm<FormValues>({
-    resolver: zodResolver(formSchema),
+  const form = useForm<TournamentCreationFormValues>({
+    resolver: zodResolver(tournamentCreationFormSchema),
     defaultValues: {
       title: '',
       description: '',
@@ -99,13 +58,18 @@ export function TournamentCreationWizard() {
     const draft = localStorage.getItem(DRAFT_KEY);
     if (draft) {
       try {
-        const parsedDraft = JSON.parse(draft);
-        Object.keys(parsedDraft).forEach((key) => {
-          if (['start_date', 'end_date', 'registration_deadline'].includes(key)) {
-            form.setValue(key as any, new Date(parsedDraft[key]));
-          } else {
-            form.setValue(key as any, parsedDraft[key]);
+        const parsedDraft = JSON.parse(draft) as Partial<Record<keyof TournamentCreationFormValues, unknown>>;
+
+        (Object.keys(parsedDraft) as Array<keyof TournamentCreationFormValues>).forEach((key) => {
+          const value = parsedDraft[key];
+          if (value === undefined) return;
+
+          if (dateFieldKeys.includes(key as typeof dateFieldKeys[number]) && typeof value === 'string') {
+            form.setValue(key, new Date(value));
+            return;
           }
+
+          form.setValue(key, value as TournamentCreationFormValues[typeof key]);
         });
       } catch (error) {
         console.error('Failed to load draft:', error);
@@ -117,8 +81,8 @@ export function TournamentCreationWizard() {
       setStripeConnected(true);
     }
 
-    checkStripeStatus();
-  }, []);
+    void checkStripeStatus();
+  }, [checkStripeStatus, form]);
 
   // Auto-save draft
   useEffect(() => {
@@ -128,7 +92,7 @@ export function TournamentCreationWizard() {
     return () => subscription.unsubscribe();
   }, [form]);
 
-  const checkStripeStatus = async () => {
+  const checkStripeStatus = useCallback(async () => {
     if (!user) return;
 
     try {
@@ -145,7 +109,7 @@ export function TournamentCreationWizard() {
     } catch (error) {
       console.error('Error checking Stripe status:', error);
     }
-  };
+  }, [user]);
 
   const connectStripe = async () => {
     if (!user) return;
@@ -159,10 +123,10 @@ export function TournamentCreationWizard() {
       if (data?.url) {
         window.location.href = data.url;
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Error',
-        description: error.message || 'Failed to connect Stripe',
+        description: error instanceof Error ? error.message : 'Failed to connect Stripe',
         variant: 'destructive',
       });
     } finally {
@@ -172,7 +136,7 @@ export function TournamentCreationWizard() {
 
   const nextStep = async () => {
     const fieldsToValidate = getFieldsForStep(currentStep);
-    const isValid = await form.trigger(fieldsToValidate as any);
+    const isValid = await form.trigger(fieldsToValidate);
 
     if (isValid && currentStep < steps.length - 1) {
       setCurrentStep(currentStep + 1);
@@ -185,7 +149,7 @@ export function TournamentCreationWizard() {
     }
   };
 
-  const getFieldsForStep = (step: number): string[] => {
+  const getFieldsForStep = (step: number): Array<keyof TournamentCreationFormValues> => {
     switch (step) {
       case 0:
         return ['title', 'location', 'start_date', 'end_date', 'registration_deadline'];
@@ -200,7 +164,7 @@ export function TournamentCreationWizard() {
     }
   };
 
-  const onSubmit = async (values: FormValues) => {
+  const onSubmit = async (values: TournamentCreationFormValues) => {
     console.log('Form submitted with values:', values);
     
     if (!user) {
@@ -278,10 +242,10 @@ export function TournamentCreationWizard() {
       setTimeout(() => {
         navigate(`/tournament/${tournament.id}/manage`);
       }, 1500);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Error',
-        description: error.message || 'Failed to create tournament',
+        description: error instanceof Error ? error.message : 'Failed to create tournament',
         variant: 'destructive',
       });
     } finally {

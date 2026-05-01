@@ -7,9 +7,10 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { UseFormReturn } from 'react-hook-form';
 import { AlertTriangle, CheckCircle, CreditCard, Code } from 'lucide-react';
+import { TournamentCreationFormValues } from './types';
 
 interface Step4PaymentSetupProps {
-  form: UseFormReturn<any>;
+  form: UseFormReturn<TournamentCreationFormValues>;
   stripeConnected: boolean;
   connectingStripe: boolean;
   onConnectStripe: () => void;

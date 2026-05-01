@@ -2,9 +2,10 @@ import { FormField, FormItem, FormLabel, FormControl, FormDescription, FormMessa
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { UseFormReturn } from 'react-hook-form';
+import { TournamentCreationFormValues } from './types';
 
 interface Step3LogisticsProps {
-  form: UseFormReturn<any>;
+  form: UseFormReturn<TournamentCreationFormValues>;
 }
 
 export function Step3Logistics({ form }: Step3LogisticsProps) {
