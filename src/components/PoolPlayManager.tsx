@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -56,7 +56,8 @@ export function PoolPlayManager({ tournament, teams, onBracketsGenerated }: Pool
   const { toast } = useToast();
 
   const checkedInTeams = teams.filter(team => team.check_in_status === 'checked_in');
-  const canGenerateBrackets = checkedInTeams.length >= 4 && !tournament.brackets_generated;
+  const hasGeneratedPoolPlay = generatedPools.length > 0;
+  const canGenerateBrackets = checkedInTeams.length >= 4 && !hasGeneratedPoolPlay;
 
   const handleConfigChange = (skillLevel: string, teamsPerPool: number[]) => {
     setCustomPoolConfigs(prev => ({
@@ -65,14 +66,12 @@ export function PoolPlayManager({ tournament, teams, onBracketsGenerated }: Pool
     }));
   };
 
-  // Fetch generated pools data when brackets are already generated
+  // Fetch generated pool-play data whenever this tournament changes.
   useEffect(() => {
-    if (tournament.brackets_generated) {
-      fetchGeneratedPools();
-    }
-  }, [tournament.brackets_generated, tournament.id]);
+    void fetchGeneratedPools();
+  }, [fetchGeneratedPools]);
 
-  const fetchGeneratedPools = async () => {
+  const fetchGeneratedPools = useCallback(async () => {
     try {
       // Fetch matches to reconstruct pool information
       const { data: matches, error } = await supabase
@@ -146,7 +145,7 @@ export function PoolPlayManager({ tournament, teams, onBracketsGenerated }: Pool
     } catch (error) {
       console.error('Error fetching generated pools:', error);
     }
-  };
+  }, [tournament.id]);
 
   const firstGameDate = (() => {
     const t = tournament.first_game_time;
@@ -220,7 +219,7 @@ export function PoolPlayManager({ tournament, teams, onBracketsGenerated }: Pool
       
       // Generate pools and matches using new optimal algorithm (with custom configs if set)
       const { pools, matches, requiredCourts, skillLevelBreakdown } = generatePoolPlayScheduleBySkillLevel(
-        checkedInTeams as any,
+        checkedInTeams,
         firstGameTime,
         tournament.estimated_game_duration,
         tournament.warm_up_duration || 7,
@@ -250,11 +249,11 @@ export function PoolPlayManager({ tournament, teams, onBracketsGenerated }: Pool
 
       if (matchError) throw matchError;
 
-      // Update tournament with calculated courts and pool breakdown
+      // Update tournament with calculated courts and pool breakdown.
+      // Do not mark playoff brackets as generated here; this is only pool play.
       const { error: tournamentError } = await supabase
         .from('tournaments')
         .update({ 
-          brackets_generated: true,
           calculated_courts: requiredCourts,
           pools_per_skill_level: skillLevelBreakdown
         })
@@ -304,10 +303,10 @@ export function PoolPlayManager({ tournament, teams, onBracketsGenerated }: Pool
 
   return (
     <div className="space-y-6">
-      {!tournament.brackets_generated ? (
+      {!hasGeneratedPoolPlay ? (
         <>
           <OptimalPoolPreview 
-            checkedInTeams={checkedInTeams as any}
+            checkedInTeams={checkedInTeams}
             skillLevels={tournament.skill_levels}
             estimatedGameDuration={tournament.estimated_game_duration}
             customConfigs={customPoolConfigs}

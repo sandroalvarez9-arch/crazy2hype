@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -103,10 +103,8 @@ export function TournamentDayDashboard({ tournament, teams }: TournamentDayDashb
   console.log('TournamentDayDashboard render - selectedMatch:', selectedMatch);
 
   useEffect(() => {
-    if (tournament.brackets_generated) {
-      fetchMatches();
-    }
-  }, [tournament.id, tournament.brackets_generated]);
+    void fetchMatches();
+  }, [fetchMatches]);
 
   // Subscribe to real-time match updates
   useEffect(() => {
@@ -124,7 +122,7 @@ export function TournamentDayDashboard({ tournament, teams }: TournamentDayDashb
         },
         (payload) => {
           console.log('Real-time tournament match update:', payload);
-          fetchMatches(); // Refresh all matches to get updated team names
+          void fetchMatches(); // Refresh all matches to get updated team names
         }
       )
       .subscribe();
@@ -133,23 +131,19 @@ export function TournamentDayDashboard({ tournament, teams }: TournamentDayDashb
       console.log('Cleaning up real-time tournament updates');
       supabase.removeChannel(channel);
     };
-  }, [tournament.id]);
+  }, [fetchMatches, tournament.id]);
 
   // Check pool completion periodically
   useEffect(() => {
-    let interval: NodeJS.Timeout;
-    
-    if (tournament.brackets_generated) {
-      checkForPoolCompletion();
-      interval = setInterval(checkForPoolCompletion, 30000); // Check every 30 seconds
-    }
+    void checkForPoolCompletion();
+    const interval = setInterval(checkForPoolCompletion, 30000);
 
     return () => {
-      if (interval) clearInterval(interval);
+      clearInterval(interval);
     };
-  }, [tournament.id, tournament.brackets_generated]);
+  }, [checkForPoolCompletion]);
 
-  const checkForPoolCompletion = async () => {
+  const checkForPoolCompletion = useCallback(async () => {
     const completionStatus = await checkPoolCompletion(tournament.id);
     setPoolCompletion(completionStatus);
     
@@ -160,16 +154,16 @@ export function TournamentDayDashboard({ tournament, teams }: TournamentDayDashb
       .eq('tournament_id', tournament.id)
       .in('tournament_phase', ['playoffs', 'bracket']);
     
-    const hasPlayoffs = playoffMatches && playoffMatches.length > 0;
+    const hasPlayoffs = Boolean(playoffMatches && playoffMatches.length > 0);
     
     // Auto-show advancement dialog when pools are complete and no playoffs exist yet
     // Check database directly to avoid race conditions with state
     if (completionStatus.readyForBrackets && !hasPlayoffs && !showAdvancementDialog) {
       setShowAdvancementDialog(true);
     }
-  };
+  }, [showAdvancementDialog, tournament.id]);
 
-  const fetchMatches = async () => {
+  const fetchMatches = useCallback(async () => {
     try {
       // First get matches
       const { data: matchesData, error: matchesError } = await supabase
@@ -225,7 +219,7 @@ export function TournamentDayDashboard({ tournament, teams }: TournamentDayDashb
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast, tournament.id]);
 
   const handleMatchSelect = async (match: Match) => {
     console.log('Match selected for scoring:', match);
@@ -322,36 +316,33 @@ export function TournamentDayDashboard({ tournament, teams }: TournamentDayDashb
   const poolPlayMatches = matches.filter(m => m.tournament_phase === 'pool_play' || !m.tournament_phase);
   const playoffMatches = matches.filter(m => m.tournament_phase === 'playoffs' || m.tournament_phase === 'bracket');
 
-  // Extract bracket categories from playoff matches
-  const getBracketCategories = () => {
+  const bracketCategories = useMemo(() => {
     const categories = new Map<string, { name: string; matchCount: number; completedCount: number }>();
-    
-    playoffMatches.forEach(match => {
-      if (match.bracket_position) {
-        const parts = match.bracket_position.split(' - ');
-        if (parts.length >= 2) {
-          const categoryName = parts[0];
-          const existing = categories.get(categoryName) || { name: categoryName, matchCount: 0, completedCount: 0 };
-          existing.matchCount++;
-          if (match.status === 'completed') {
-            existing.completedCount++;
-          }
-          categories.set(categoryName, existing);
-        }
-      }
-    });
-    
-    return Array.from(categories.values()).sort((a, b) => a.name.localeCompare(b.name));
-  };
 
-  const bracketCategories = getBracketCategories();
+    playoffMatches.forEach((match) => {
+      if (!match.bracket_position) return;
+
+      const parts = match.bracket_position.split(' - ');
+      if (parts.length < 2) return;
+
+      const categoryName = parts[0];
+      const existing = categories.get(categoryName) || { name: categoryName, matchCount: 0, completedCount: 0 };
+      existing.matchCount++;
+      if (match.status === 'completed') {
+        existing.completedCount++;
+      }
+      categories.set(categoryName, existing);
+    });
+
+    return Array.from(categories.values()).sort((a, b) => a.name.localeCompare(b.name));
+  }, [playoffMatches]);
 
   // Auto-select first bracket category when playoff matches are loaded
   useEffect(() => {
     if (bracketCategories.length > 0 && !selectedBracketCategory) {
       setSelectedBracketCategory(bracketCategories[0].name);
     }
-  }, [bracketCategories.length, selectedBracketCategory]);
+  }, [bracketCategories, selectedBracketCategory]);
 
   // Filter playoff matches by selected category and pool
   const getFilteredPlayoffMatches = () => {
@@ -398,6 +389,7 @@ export function TournamentDayDashboard({ tournament, teams }: TournamentDayDashb
   };
 
   const checkedInTeams = teams.filter(team => team.check_in_status === 'checked_in');
+  const hasScheduledMatches = matches.length > 0;
   
   // Get unique pools from pool play matches only
   const pools = Array.from(new Set(poolPlayMatches.map(match => match.pool_name).filter(Boolean)));
@@ -413,25 +405,6 @@ export function TournamentDayDashboard({ tournament, teams }: TournamentDayDashb
     );
   }
 
-  if (!tournament.brackets_generated) {
-    return (
-      <Card>
-        <CardContent className="pt-6">
-          <div className="text-center py-8">
-            <Trophy className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold mb-2">Tournament Day Dashboard</h3>
-            <p className="text-muted-foreground mb-4">
-              Brackets must be generated before the tournament day dashboard is available.
-            </p>
-            <p className="text-sm text-muted-foreground">
-              Go to the Pool Play tab to generate brackets first.
-            </p>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
   if (loading) {
     return (
       <Card>
@@ -439,6 +412,25 @@ export function TournamentDayDashboard({ tournament, teams }: TournamentDayDashb
           <div className="text-center py-8">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
             <p className="text-muted-foreground mt-4">Loading tournament data...</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!hasScheduledMatches) {
+    return (
+      <Card>
+        <CardContent className="pt-6">
+          <div className="text-center py-8">
+            <Trophy className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+            <h3 className="text-lg font-semibold mb-2">Tournament Day Dashboard</h3>
+            <p className="text-muted-foreground mb-4">
+              Generate pool play first so the live dashboard has matches to manage.
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Once pool matches exist, live scoring, standings, and playoff generation will show up here.
+            </p>
           </div>
         </CardContent>
       </Card>
