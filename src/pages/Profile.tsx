@@ -123,7 +123,7 @@ if (profile) {
 
   // Basic SEO for the page
   useEffect(() => {
-    document.title = "Profile Settings | VolleyTournament";
+    document.title = "Profile Settings | BlockNation";
 
     const description =
       "Manage your player profile: username, name, and optional shirt size and position.";

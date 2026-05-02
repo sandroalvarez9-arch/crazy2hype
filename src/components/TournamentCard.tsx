@@ -70,7 +70,7 @@ const TournamentCard = ({ tournament, featured = false, className = '' }: Tourna
 
   return (
     <Link
-      to={`/tournament/${tournament.id}`}
+      to={`/tournament/${tournament.id}/live`}
       className={`group block bg-surface-raised border border-border rounded-2xl p-5 transition-all duration-300 hover:border-white/20 hover:-translate-y-0.5 shadow-card animate-fade-in relative overflow-hidden ${
         featured ? 'ring-1 ring-primary/40' : ''
       } ${className}`}

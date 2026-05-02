@@ -85,7 +85,7 @@ const Auth = () => {
         <Card className="shadow-card animate-fade-in">
           <CardHeader className="text-center">
             <CardTitle className="text-3xl font-bold gradient-hero bg-clip-text text-transparent">
-              VolleyTournament
+              BlockNation
             </CardTitle>
             <CardDescription>
               Join or organize volleyball tournaments

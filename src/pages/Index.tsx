@@ -30,7 +30,7 @@ const Index = () => {
   const { user, profile } = useAuth();
   const navigate = useNavigate();
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
-  const [stats, setStats] = useState({ live: 0, openSpots: 0, hosts: 0 });
+  const [stats, setStats] = useState({ available: 0, liveNow: 0, openSpots: 0, hosts: 0 });
   const [locationQuery, setLocationQuery] = useState('');
 
   const { execute: fetchTournaments, loading, error, retry } = useAsync(
@@ -67,13 +67,14 @@ const Index = () => {
       }));
       setTournaments(decorated);
 
-      const live = cleanedPublicTournaments.filter((t: any) => t.status === 'in_progress').length;
+      const liveNow = cleanedPublicTournaments.filter((t: any) => t.status === 'in_progress').length;
       const openSpots = decorated.reduce(
         (sum, t) => sum + Math.max(0, (t.max_teams || 0) - (teamMap[t.id] || 0)),
         0
       );
       setStats({
-        live,
+        available: cleanedPublicTournaments.length,
+        liveNow,
         openSpots,
         hosts: new Set(cleanedPublicTournaments.map((t: any) => t.organizer_id || t.id)).size,
       });
@@ -101,7 +102,11 @@ const Index = () => {
           {/* Live status pill */}
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-surface-raised border border-white/10 text-xs font-medium text-accent mb-6 animate-fade-in">
             <span className="size-2 rounded-full bg-accent animate-pulse-dot" />
-            {stats.live > 0 ? `${stats.live} tournaments live right now` : 'Find your next tournament'}
+            {stats.liveNow > 0
+              ? `${stats.liveNow} tournaments live right now`
+              : stats.available > 0
+                ? `${stats.available} tournaments open for registration`
+                : 'Find your next tournament'}
           </div>
 
           <h1 className="font-display font-extrabold text-5xl md:text-7xl lg:text-8xl tracking-tighter leading-[0.95] text-balance max-w-4xl">
@@ -142,7 +147,7 @@ const Index = () => {
 
           {/* Stat strip */}
           <div className="mt-12 grid grid-cols-3 gap-6 md:gap-12 max-w-2xl py-6 border-y border-white/5">
-            <Stat label="Live tournaments" value={stats.live.toString()} accent />
+            <Stat label="Available tournaments" value={stats.available.toString()} accent />
             <Stat label="Open team spots" value={stats.openSpots.toString()} />
             <Stat label="Active hosts" value={stats.hosts.toString()} />
           </div>
