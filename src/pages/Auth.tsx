@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useMemo, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Button } from '@/components/ui/button';
@@ -14,8 +14,14 @@ import { Users, UserCheck } from 'lucide-react';
 const Auth = () => {
   const { signIn, signUp } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const isMobile = useIsMobile();
   const [loading, setLoading] = useState(false);
+
+  const redirectTo = useMemo(() => {
+    const redirect = searchParams.get('redirect')?.trim();
+    return redirect && redirect.startsWith('/') ? redirect : '/';
+  }, [searchParams]);
 
   const handleSignIn = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -38,7 +44,7 @@ const Auth = () => {
         title: "Welcome back!",
         description: "You've been signed in successfully.",
       });
-      navigate('/');
+      navigate(redirectTo);
     }
     
     setLoading(false);

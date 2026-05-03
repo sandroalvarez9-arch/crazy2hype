@@ -27,11 +27,11 @@ interface Tournament {
   entry_fee: number;
   status: string;
   brackets_generated: boolean;
-  organizer: {
-    username: string;
-    first_name: string;
-    last_name: string;
-  };
+  organizer?: {
+    username?: string;
+    first_name?: string;
+    last_name?: string;
+  } | null;
 }
 
 interface Team {
@@ -81,18 +81,22 @@ const TournamentPublicView = () => {
   const fetchPublicTournamentData = async () => {
     setLoading(true);
     try {
-      // Fetch tournament details
-      const { data: tournamentData, error: tournamentError } = await supabase
-        .from('tournaments')
-        .select(`
-          *,
-          organizer:profiles!tournaments_organizer_id_fkey(username, first_name, last_name)
-        `)
-        .eq('id', id)
-        .single();
+      // Fetch tournament details through the public RPC so unauthenticated users
+      // can open event pages without tripping RLS on the main tournaments table.
+      const { data: publicTournamentRows, error: tournamentError } = await supabase
+        .rpc('get_public_tournaments');
 
       if (tournamentError) throw tournamentError;
-      setTournament(tournamentData);
+
+      const tournamentData = (publicTournamentRows || []).find((row: any) => row.id === id);
+      if (!tournamentData) {
+        setTournament(null);
+        setTeams([]);
+        setMatches([]);
+        return;
+      }
+
+      setTournament(tournamentData as Tournament);
 
       // Create Google Maps link
       if (tournamentData.location) {
@@ -257,7 +261,8 @@ const TournamentPublicView = () => {
                 )}
 
                 <div className="text-sm text-muted-foreground">
-                  Organized by {tournament.organizer.first_name} {tournament.organizer.last_name}
+                  Organized by {tournament.organizer?.first_name || tournament.organizer?.username || 'BlockNation host'}
+                  {tournament.organizer?.last_name ? ` ${tournament.organizer.last_name}` : ''}
                 </div>
               </div>
             </div>
