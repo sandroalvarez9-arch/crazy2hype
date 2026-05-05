@@ -2,8 +2,10 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useParams } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
+import { useEffect, useState } from "react";
 import Layout from "@/components/Layout";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
@@ -60,6 +62,74 @@ function AuthRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+function TournamentRouteResolver() {
+  const { user, loading } = useAuth();
+  const { id } = useParams();
+  const [checkingOwnership, setCheckingOwnership] = useState(true);
+  const [isOwner, setIsOwner] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const resolveRoute = async () => {
+      if (loading) return;
+
+      if (!user || !id) {
+        if (!cancelled) {
+          setIsOwner(false);
+          setCheckingOwnership(false);
+        }
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from('tournaments')
+          .select('id')
+          .eq('id', id)
+          .eq('organizer_id', user.id)
+          .maybeSingle();
+
+        if (!cancelled) {
+          setIsOwner(Boolean(data) && !error);
+        }
+      } catch {
+        if (!cancelled) {
+          setIsOwner(false);
+        }
+      } finally {
+        if (!cancelled) {
+          setCheckingOwnership(false);
+        }
+      }
+    };
+
+    resolveRoute();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [id, user, loading]);
+
+  if (loading || checkingOwnership) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  if (isOwner) {
+    return (
+      <Layout>
+        <TournamentDetails />
+      </Layout>
+    );
+  }
+
+  return <TournamentPublicView />;
+}
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -111,11 +181,7 @@ const App = () => (
                 <TeamProfile />
               </Layout>
             } />
-            <Route path="/tournament/:id" element={
-              <ProtectedRoute>
-                <TournamentDetails />
-              </ProtectedRoute>
-            } />
+            <Route path="/tournament/:id" element={<TournamentRouteResolver />} />
             <Route path="/tournament/:id/manage" element={
               <ProtectedRoute>
                 <TournamentManagement />
