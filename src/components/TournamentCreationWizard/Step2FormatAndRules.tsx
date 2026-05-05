@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Sparkles, Eye, Trophy, Users, Zap } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { TournamentCreationFormValues } from './types';
 
@@ -60,6 +60,63 @@ export function Step2FormatAndRules({ form }: Step2FormatAndRulesProps) {
   const [showPreview, setShowPreview] = useState(false);
   const tournamentFormat = form.watch('tournament_format');
   const maxTeams = form.watch('max_teams_per_skill_level');
+
+  useEffect(() => {
+    const currentMaxTeams = form.getValues('max_teams_per_skill_level') || {};
+    const nextMaxTeams: Record<string, number> = { ...currentMaxTeams };
+    let changed = false;
+
+    selectedSkillLevels.forEach((level: SkillLevel) => {
+      if (typeof nextMaxTeams[level] !== 'number' || Number.isNaN(nextMaxTeams[level])) {
+        nextMaxTeams[level] = 4;
+        changed = true;
+      }
+    });
+
+    Object.keys(nextMaxTeams).forEach((level) => {
+      if (!selectedSkillLevels.includes(level as SkillLevel)) {
+        delete nextMaxTeams[level];
+        changed = true;
+      }
+    });
+
+    if (changed) {
+      form.setValue('max_teams_per_skill_level', nextMaxTeams, { shouldDirty: true, shouldValidate: false });
+    }
+  }, [form, selectedSkillLevels]);
+
+  useEffect(() => {
+    const currentDivisionSkillMax = form.getValues('max_teams_per_division_skill') || {};
+    const nextDivisionSkillMax: Record<string, Record<string, number>> = {};
+    let changed = false;
+
+    selectedDivisions.forEach((division: string) => {
+      const currentDivisionValues = currentDivisionSkillMax[division] || {};
+      nextDivisionSkillMax[division] = {};
+
+      (skillLevelsByDivision[division] || []).forEach((level: SkillLevel) => {
+        const currentValue = currentDivisionValues[level];
+        if (typeof currentValue === 'number' && !Number.isNaN(currentValue)) {
+          nextDivisionSkillMax[division][level] = currentValue;
+        } else {
+          nextDivisionSkillMax[division][level] = 4;
+          changed = true;
+        }
+      });
+
+      if (Object.keys(currentDivisionValues).length !== Object.keys(nextDivisionSkillMax[division]).length) {
+        changed = true;
+      }
+    });
+
+    if (Object.keys(currentDivisionSkillMax).length !== Object.keys(nextDivisionSkillMax).length) {
+      changed = true;
+    }
+
+    if (changed) {
+      form.setValue('max_teams_per_division_skill', nextDivisionSkillMax, { shouldDirty: true, shouldValidate: false });
+    }
+  }, [form, selectedDivisions, skillLevelsByDivision]);
 
   const applyPreset = (preset: typeof formatPresets[0]) => {
     form.setValue('tournament_format', preset.format);
